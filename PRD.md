@@ -1,17 +1,24 @@
-# [Project Name] — Product Requirements Document
+# template-autoresearch-ready-repo — Product Requirements Document
 
-> Version: 0.1.0
-> Date: 2026-01-01
-> Status: **TEMPLATE** — Replace with project details
+> Version: 1.0.0
+> Date: 2026-09-04
+> Status: **ACTIVE** — grounded in `kb/` (stage 3), compared against the codebase in `docs/gaps/` (stage 5)
 > Knowledge Base: `kb/`
 
 ---
 
 ## Repo Identity
 
-This repository is the **real deployment repository** — the codebase the engineering team builds, tests, and ships to production.
+This repository is a **template for autonomous research** in the style of
+[karpathy/autoresearch](https://github.com/karpathy/autoresearch), built on the
+bachkukkik/template-agentic-ready-repo doctrine. It ships the autoresearch
+contract (`program.md` / `prepare.py` / `train.py`, fixed-time budget, `val_bpb`,
+keep/discard loop) inside the document funnel governance (kb → PRD → gaps →
+verified reality) with example service + three-tier tests + CI as the working
+scaffold.
 
-**Brand:** [Project name]. Tagline: [tagline].
+**Brand:** template-autoresearch-ready-repo. Tagline: *ship the loop, keep the
+funnel.*
 
 ## Funnel Position
 
@@ -32,7 +39,10 @@ Three sources feed this PRD set. When they conflict, this doctrine resolves:
 
 | # | Topic | Document | Status |
 |---|-------|----------|--------|
-| 01 | [Topic] | [docs/prd/01-topic.md](docs/prd/01-topic.md) | Template |
+| 01 | Template Scaffold & CI | [docs/prd/01-template-scaffold-ci.md](docs/prd/01-template-scaffold-ci.md) | Active — verified in [docs/01](docs/01-service-architecture.md) |
+| 02 | Autoresearch Template Contract | [docs/prd/02-autoresearch-contract.md](docs/prd/02-autoresearch-contract.md) | Intent — implementation: next pipeline run |
+| 03 | Document Funnel & KB Governance | [docs/prd/03-funnel-kb-governance.md](docs/prd/03-funnel-kb-governance.md) | Active — partially verified in CI (doctrine + sources-readonly jobs) |
+| 04 | Examples Corpus | [docs/prd/04-examples-corpus.md](docs/prd/04-examples-corpus.md) | Active — corpus ingested to `kb/raw/`, synthesis in `kb/` |
 
 ## Verification Policy
 
@@ -65,3 +75,4 @@ encodes the tier, per the table above.
 |---------|------|---------|
 | 0.1.0 | 2026-01-01 | Template created. |
 | 0.2.0 | 2026-09-02 | Test tiers made executable; ID ranges encode the tier. |
+| 1.0.0 | 2026-09-04 | Real repo identity + four topic PRDs (01–04) grounded in the populated `kb/`; placeholder example PRD replaced. |
