@@ -1,0 +1,212 @@
+# CI Pipeline — Agentic Ready Repo Template
+#
+# Local-first (AGENTS.md §6): run the unit / integration / secret-scan jobs green
+# under `act` before opening a PR. The e2e job builds and starts containers — read
+# the warning in AGENTS.md §6 before running it under `act` on a host that also
+# runs a live deployment of this compose project.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════
+  # Tier 1: unit — pure logic, no transport, no services
+  # ═══════════════════════════════════════════════════════════════
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --no-cache-dir -r tests/requirements.txt
+      - run: python3 -m pytest tests/unit -v
+
+  # ═══════════════════════════════════════════════════════════════
+  # Tier 2: integration — cross-process / persistence, no container
+  # ═══════════════════════════════════════════════════════════════
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [unit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --no-cache-dir -r tests/requirements.txt
+      - run: python3 -m pytest tests/integration -v
+
+  # ═══════════════════════════════════════════════════════════════
+  # Tier 3: e2e — bats against the running container
+  # ═══════════════════════════════════════════════════════════════
+  e2e:
+    name: Docker E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [integration]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start the service
+        run: docker compose up -d --build
+
+      - name: Wait for health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if docker compose ps --format '{{.Health}}' service | grep -q healthy; then
+              echo "healthy after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::service did not become healthy in 30s"
+          docker compose logs service
+          exit 1
+
+      - name: Install bats
+        run: |
+          set -euo pipefail
+          # Source install: apt's bats lives in universe, which act's local
+          # runner image lacks. This works on act and GitHub-hosted alike.
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          sudo /tmp/bats/install.sh /usr/local
+
+      - name: Bats E2E
+        run: bats tests/e2e/
+
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose logs service
+
+  # ═══════════════════════════════════════════════════════════════
+  # Guard: no credentials in the tracked tree (AGENTS.md §Security)
+  # ═══════════════════════════════════════════════════════════════
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert no live credential files are tracked
+        run: |
+          set -euo pipefail
+          # Only .example shapes may be tracked.
+          if git ls-files | grep -E '^\.credentials/' | grep -v '\.example\(\..*\)\?$'; then
+            echo "::error::a live .credentials/ file is tracked (only *.example shapes may be)"
+            exit 1
+          fi
+          if git ls-files | grep -qxF '.env'; then
+            echo "::error::.env is tracked"
+            exit 1
+          fi
+          if git ls-files | grep -E '\.(pem|key|p12)$'; then
+            echo "::error::a key material file is tracked"
+            exit 1
+          fi
+          echo "No live credential files tracked."
+
+      - name: Assert .credentials/ is gitignored
+        run: |
+          set -euo pipefail
+          # The doctrine promises a *gitignored* credentials directory (AGENTS.md
+          # §Security). Assert the promise instead of trusting it: a probe file must
+          # come back ignored. Without this the job above only catches a leak that
+          # already happened.
+          mkdir -p .credentials
+          probe='.credentials/__ci_probe.json'
+          printf 'probe\n' > "$probe"
+          if git check-ignore -q "$probe"; then
+            echo ".credentials/ is gitignored."
+          else
+            echo "::error::.credentials/ is NOT gitignored — add it to .gitignore"
+            rm -f "$probe"; exit 1
+          fi
+          rm -f "$probe"
+
+      - name: Assert no hardcoded secret assignments in source or docs
+        run: |
+          set -euo pipefail
+          # Real assignments only — env lookups and .example placeholders are fine.
+          # Markdown is in scope on purpose: kb/ and docs/ are tracked, and kb/raw/
+          # is add-only, so a credential pasted into a source doc cannot be edited
+          # out later (funnel rule 9). Catch it at the PR instead.
+          hits=$(git ls-files '*.py' '*.sh' '*.js' '*.ts' '*.yml' '*.yaml' '*.md' \
+            | xargs -r grep -nEi \
+              "(client_secret|access_token|refresh_token|bot_token|api_key|jwt_secret|hook_secret|webhook_secret|signing_secret|verify_token)[[:space:]]*[=:][[:space:]]*['\"][A-Za-z0-9/_.+-]{12,}['\"]" \
+            || true)
+          if [ -n "$hits" ]; then
+            echo "::error::hardcoded secret assignment found"
+            echo "$hits"
+            exit 1
+          fi
+          echo "No hardcoded secret assignments."
+
+  # ═══════════════════════════════════════════════════════════════
+  # Guard: the doctrine is intact — entry points resolve, funnel is
+  # tracked (AGENTS.md funnel rules 9-10 + Harness Adapter)
+  # ═══════════════════════════════════════════════════════════════
+  doctrine:
+    name: Doctrine Integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assert every harness entry point is a resolving symlink
+        run: |
+          set -euo pipefail
+          fail=0
+          # A plain copy forks AGENTS.md silently; a dangling link breaks the
+          # harness on a fresh clone while still looking committed.
+          for link in CLAUDE.md .github/copilot-instructions.md .claude/skills .claude/plugins; do
+            if [ ! -L "$link" ]; then
+              echo "::error file=$link::$link is not a symlink. It must point at the canonical source (git config core.symlinks true on Windows)."
+              fail=1
+            elif [ ! -e "$link" ]; then
+              echo "::error file=$link::$link is a dangling symlink -> $(readlink "$link"). Its target is missing or gitignored."
+              fail=1
+            fi
+          done
+          if [ "$fail" -eq 0 ]; then echo "All harness entry points resolve."; fi
+          exit "$fail"
+
+      - name: Assert the document funnel is tracked, not ignored
+        run: |
+          set -euo pipefail
+          fail=0
+          for path in AGENTS.md PRD.md README.md .agents .github docs kb tests; do
+            if [ -z "$(git ls-files -- "$path")" ]; then
+              echo "::error::$path is not tracked. The document funnel only works if it is versioned (AGENTS.md funnel rule 10)."
+              fail=1
+            fi
+            if git check-ignore -q "$path"; then
+              echo "::error::$path is matched by a .gitignore rule. Remove the ignore (AGENTS.md funnel rule 10)."
+              fail=1
+            fi
+          done
+          if [ "$fail" -eq 0 ]; then echo "Document funnel fully tracked."; fi
+          exit "$fail"
+
+      - name: Assert no secret values landed in kb/
+        run: |
+          set -euo pipefail
+          # Funnel rule 9: kb/raw/ is add-only, so a leak there is not editable out.
+          # Reference that a secret exists and where it is configured, never the value.
+          hits=$(git ls-files 'kb/**' \
+            | xargs -r grep -nEi \
+              "(client_secret|access_token|refresh_token|bot_token|api_key|hook_secret|password)[\"']?[[:space:]]*[:=][[:space:]]*[\"'][A-Za-z0-9/_.+-]{12,}[\"']" \
+            || true)
+          if [ -n "$hits" ]; then
+            echo "::error::a secret-shaped value appears under kb/ (funnel rule 9)"
+            echo "$hits"
+            exit 1
+          fi
+          echo "No secret values under kb/."
