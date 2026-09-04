@@ -22,7 +22,7 @@ written only by llm-wiki; gaps are transient; secrets never enter `kb/` or `docs
 
 - **SC1** — No stray documents: a new `.md` outside stages 1–6 (scratchpads,
   kb/raw, kb, PRD/docs/prd, docs/gaps, docs/NN, issues) is a defect. _Verify:_
-  `tests/unit/test_funnel_structure.py` (AC-FUN-001..003). `[PLANNED]`
+  `tests/unit/test_funnel_structure.py` (AC-FUN-001..003). ✅ implemented 2026-09-04
 
 - **SC2** — `kb/raw/**` is add-only and enforced in CI (M/D without `ingest` label
   fails); secrets never land in `kb/` or `docs/` (mirrored by the `secret-scan`
@@ -38,12 +38,12 @@ written only by llm-wiki; gaps are transient; secrets never enter `kb/` or `docs
 - **SC4** — `kb/` layer-2 pages are never hand-written: the llm-wiki workflow is
   the only writer, and the KB layout (`SCHEMA.md`, `index.md`, `log.md`, `raw/`)
   follows the llm-wiki spec. _Verify:_ `tests/unit/test_kb_layout.py`
-  (AC-FUN-011..012). `[PLANNED]`
+  (AC-FUN-011..012). ✅ implemented 2026-09-04
 
 - **SC5** — Gaps are transient: every `docs/gaps/NN-*.md` file has a `Resolution`
   section naming exactly one closing action, and open gaps are listed in
   `docs/gaps/README.md`. _Verify:_ `tests/unit/test_gaps_lifecycle.py`
-  (AC-FUN-021). `[PLANNED]`
+  (AC-FUN-021). ✅ implemented 2026-09-04
 
 ## Test Mapping
 
@@ -57,18 +57,18 @@ written only by llm-wiki; gaps are transient; secrets never enter `kb/` or `docs
 
 ## Assumptions
 
-- The CI jobs are the authoritative structural enforcement today; the `[PLANNED]`
-  unit tests harden the same rules inside the pytest tier per `AGENTS.md` §5
+- The CI jobs remain the authoritative structural enforcement; the `AC-FUN-*`
+  pytest tests harden the same rules inside the pytest tier per `AGENTS.md` §5
   (every tier must have a runner — no tier is a stub). `[ASSUMPTION]`
 
 ## Confidence
 
 **High** — the funnel and harness adapter are fully documented in `AGENTS.md`, the
-KB doctrine page, and enforced by live CI jobs (`doctrine`, `sources-readonly`).
+KB doctrine page, enforced by live CI jobs (`doctrine`, `sources-readonly`), and
+now by the passing `AC-FUN-*` pytest tests (2026-09-04).
 
 ## CI/CD Gate
 
 The `doctrine` and `secret-scan` jobs run on every PR per
 `.github/workflows/ci.yml`; `sources-readonly.yml` runs on PR open/sync/label
-events. No PR merges with a red gate. The `[PLANNED]` unit tests join the suite
-when written (next implementation run).
+events. The `AC-FUN-*` tests run in the `unit` job. No PR merges with a red gate.

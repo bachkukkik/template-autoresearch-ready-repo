@@ -51,6 +51,10 @@ coverage/
 .coverage
 htmlcov/
 
+# === Autoresearch loop ===
+# upstream leaves the results log untracked (program.md §Logging results)
+results.tsv
+
 # === Agent scratch space ===
 scratchpads/*
 !scratchpads/.gitkeep

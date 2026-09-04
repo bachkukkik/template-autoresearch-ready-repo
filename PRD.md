@@ -40,9 +40,9 @@ Three sources feed this PRD set. When they conflict, this doctrine resolves:
 | # | Topic | Document | Status |
 |---|-------|----------|--------|
 | 01 | Template Scaffold & CI | [docs/prd/01-template-scaffold-ci.md](docs/prd/01-template-scaffold-ci.md) | Active — verified in [docs/01](docs/01-service-architecture.md) |
-| 02 | Autoresearch Template Contract | [docs/prd/02-autoresearch-contract.md](docs/prd/02-autoresearch-contract.md) | Intent — implementation: next pipeline run |
-| 03 | Document Funnel & KB Governance | [docs/prd/03-funnel-kb-governance.md](docs/prd/03-funnel-kb-governance.md) | Active — partially verified in CI (doctrine + sources-readonly jobs) |
-| 04 | Examples Corpus | [docs/prd/04-examples-corpus.md](docs/prd/04-examples-corpus.md) | Active — corpus ingested to `kb/raw/`, synthesis in `kb/` |
+| 02 | Autoresearch Template Contract | [docs/prd/02-autoresearch-contract.md](docs/prd/02-autoresearch-contract.md) | Active — implemented + verified in [docs/02](docs/02-autoresearch-contract.md) |
+| 03 | Document Funnel & KB Governance | [docs/prd/03-funnel-kb-governance.md](docs/prd/03-funnel-kb-governance.md) | Active — verified in CI + [docs/03](docs/03-funnel-kb-governance.md) |
+| 04 | Examples Corpus | [docs/prd/04-examples-corpus.md](docs/prd/04-examples-corpus.md) | Active — verified in [docs/04](docs/04-examples-corpus.md) |
 
 ## Verification Policy
 
@@ -76,3 +76,4 @@ encodes the tier, per the table above.
 | 0.1.0 | 2026-01-01 | Template created. |
 | 0.2.0 | 2026-09-02 | Test tiers made executable; ID ranges encode the tier. |
 | 1.0.0 | 2026-09-04 | Real repo identity + four topic PRDs (01–04) grounded in the populated `kb/`; placeholder example PRD replaced. |
+| 1.1.0 | 2026-09-04 | PRDs 02–04 un-`[PLANNED]`: autoresearch contract implemented (program.md/prepare.py/train.py), governance + corpus tests added; verified in docs/02–04. |

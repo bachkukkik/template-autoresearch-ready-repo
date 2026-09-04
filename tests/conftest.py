@@ -3,6 +3,10 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Repo root must itself be importable so `import prepare` / `import train` work
+# from tests/unit/ (autoresearch contract files live at repo root).
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 for pkg_dir in ("service",):
     path = os.path.join(ROOT, pkg_dir)
     if path not in sys.path:
