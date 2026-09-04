@@ -1,4 +1,4 @@
-# Agent Instructions — [Project Name]
+# Agent Instructions — template-autoresearch-ready-repo
 
 > **This file is the single source of agent instructions for every harness.**
 > `CLAUDE.md` and `.github/copilot-instructions.md` are **symlinks** to this file —
@@ -7,7 +7,17 @@
 
 ## What This Is
 
-[One-line description of the project. Stack, purpose, deployment context.]
+A template repo for **autonomous research** in the style of
+[karpathy/autoresearch](https://github.com/karpathy/autoresearch), built on the
+**bachkukkik/template-agentic-ready-repo doctrine**: the same document funnel,
+harness adapter, and PRD→SC→test→CI gates, applied to the research loop pattern
+(`program.md`/`train.py`/`prepare.py`, fixed-time budget, keep/discard).
+
+**Current state:** the `kb/` knowledge base is populated (2026-09-04) with
+ingested raw sources (upstream `program.md`, 11 YouTube transcripts, research
+conclusions) and the synthesized layer-2 pages. Agents working in this repo
+should orient in `kb/` first (see *Read First*), then follow the funnel below
+for any new writing.
 
 ## Read First
 

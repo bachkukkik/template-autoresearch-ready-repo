@@ -1,0 +1,810 @@
+---
+source_url: https://www.youtube.com/watch?v=4Cb_l2LJAW8
+ingested: 2026-09-04
+sha256: 5e6d55343082187627a77be64db0c4cc2af28dc3199fa266e5bb49c4008a8534
+title: Claude Code + Karpathy Autoresearch = The New Meta
+---
+
+An open-source project just dropped
+that, when you combine it with Claude
+code, literally becomes self-improving
+AI. This is not engagement farming or
+hype bait. This is a real repo that was
+just released by Andre Karpathy, who's
+widely renowned as one of the foremost
+voices in AI and machine learning
+research. And basically, what he did
+was, while training his model, he
+thought, "Why don't I just have my
+models train my models instead?" He
+built an elegant pipeline, which he's
+calling auto research, and essentially
+completely and fully automates the
+process of experimentation. He says it
+right here. The idea is to give an AI
+agent a small but real LLM training
+setup and just let it experiment
+autonomously overnight. It'll modify the
+code, train for 5 minutes, check if the
+results improved, keep or discard, and
+then just repeat. You wake up in the
+morning to a log of experiments and it
+hopefully a better model. Now, I'm not
+in machine learning training. I don't
+help make models more intelligent. What
+I do is I take models that other people
+have made, and then I use them for the
+purposes of making money. And so,
+immediately when this dropped, I started
+thinking about ways that I could apply
+this principle of auto research into my
+own life to improve, obviously, my own
+economic outcomes. And there are so
+many, it's not even funny. So, what I'm
+going to do is I'm going to run through
+some real practical examples in a
+moment, things that I'm actually doing
+in my own business that you can
+implement inside of Claude code. Then,
+I'm going to show you how to actually do
+it, so go through the step-by-step of
+setting up the repo and building some
+experimentation done totally
+autonomously for you. And at the end,
+you will have a fully automated,
+self-improving pipeline, just like Andre
+Karpathy here has done for his own
+machine learning training. So, here's
+one of many examples. I do a lot of cold
+email in my own business and then for
+clients. And cold email, in case you
+didn't know, is where you package up a
+really nice, sexy-sounding offer, and
+then you send it to people you've never
+met with the hopes that they take you up
+on it and then maybe convert. So, jump
+on a call with you, fill out a form,
+whatever. Now, the key metric in cold
+email is usually reply rate,
+specifically positive reply rate, but
+reply rate's easier for our purposes, so
+that's what I'm going to go with. And as
+you could see, most cold email software
+tracks this for you out of the box. So,
+2.4% of people replied to this campaign.
+2.5% of people replied to this campaign,
+and so on. Well, turns out that's all
+you need in order to build an automatic
+experimentation pipeline. You need some
+metric that you want to improve, and
+then you need some way factor, some
+thing you can modify to improve it. And
+so, what I have is my metric is reply
+rate, and then what I have is the thing
+that I can adjust is my cold email copy.
+So, what this looks like in practice for
+me is a folder called email optimizer.
+There are a bunch of additional code
+files here, configs, places where I'm
+storing the results of my data, and so
+on and so forth, and aren't super
+important. What is important is this
+file right over here called
+orchestrator.py.
+And this contains all of the prompts
+that I'm feeding into my orchestrator
+agent, who essentially is responsible
+for spinning up new cold email campaigns
+and then testing them against each other
+until I get better and better results.
+And it was as simple for me as literally
+copying the repo and making some slight
+adjustments. What I do is I tell it that
+that's inspired by Carbon the thesis
+auto research pattern. The core idea is
+an AI agent that runs experiments
+autonomously in a tight loop using an
+objective metric as a feedback signal. I
+have the architecture over here. I run
+the loop every 4 hours, and at the end
+of every 4 hours, I actually have better
+copy uh that's self-evolving over time
+based on the results from my previous
+test. And you can see some of the
+examples right over here. Anything with
+C is what we call a challenger. Anything
+with B is what's called baseline. And
+so, the model starts with a baseline
+type of copy, which we could see right
+over here. And then it makes slight
+modifications based off of what it knows
+to perform really well in cold email
+copy before testing it out. It runs the
+two side by side, and then automatically
+harvests based off of the results, aka
+the number of replies, and so on and so
+forth for both campaigns. Now, that part
+isn't the important bit. I mean, we've
+been optimizing cold emails for for many
+years at this point. The important bit
+is it then creates new copy based off of
+the learnings from previous experiments.
+As the models get better and better and
+better, they log all of their learnings
+to a resource.md
+that significantly improves future
+models abilities to make changes. And so
+here's a big list of things that this is
+essentially figured out, move reply rate
+up. And so in that way we get to push
+towards that direction over time. Now
+this has only been running for a few
+days now. Imagine this running for a
+year. Instead of optimizing on a basis
+of once every 4 hours, imagine if this
+optimized on a basis of once every 5
+minutes. Well, that's what my next leg
+of testing is going to do. We're going
+to be significantly improving the
+volume, pumping all this stuff out at
+10x the level, and then optimizing and
+iterating our results again fully
+autonomously. So that's just one
+example. I'm going to run you guys
+through a bunch of other use cases that
+you can apply auto research to, whether
+you're in machine learning engineering
+or whether you're just trying to improve
+the profitability of let's say
+paper click ad campaign. But first,
+let's make sure we all know how to
+actually use this thing. So, the way
+that auto research works, to make a long
+story short, is we start with an
+experiment. And just like in science,
+everything begins with some sort of
+hypothesis, okay? So my hypothesis might
+be, hey, if I make a slight adjustment
+to the copy of this campaign so that
+it's a little bit punchier, I think it's
+going to go well. You insert that using
+this little test.md. It's your goal,
+metric, and some high-level
+instructions. From there, the auto
+research agent will go through, employ
+the experiment usually using API calls.
+In my case, in the example we just saw,
+um to instantly, in Karpathy's specific
+example we saw, he's doing it through
+adjusting what are called hyper
+parameters. And then after that, we
+measure the results. Now, in order for
+us to make sure that this works, you
+know, the hypothesis isn't enough. We
+need some sort of metric that we're
+tracking. Now in my case, the metric was
+obviously pretty simple. It was reply
+rate. In Karpathy's case, it was pretty
+simple. It was something called
+validation loss. As long as you have
+that, you can then just pick the winner
+and then make a slight change before
+looping back. And depending on how tight
+this feedback loop is, you could
+theoretically do this in a minute or
+two. I mean, if he had more
+infrastructure when he's training his
+models, he could probably do in 5
+minutes what he does in one. And then in
+that way, you know, progress really,
+really quickly over to some, you know,
+desired goal. In my case, if I had more
+cold email infrastructure, I could do
+the same thing. So, at this point, scale
+is more or less all you need. This
+allows you to run hundreds of tests with
+literally zero human involvement. I
+mean, I'm not even in the loop anymore.
+And to be clear, like if I was in the
+loop, would I be making better decisions
+than the AI model? Like probably. I'd be
+a much more efficient optimizer. But
+that doesn't really matter because the
+reality is I take a lot more time to
+optimize than a model does. I also eat,
+sleep, have to go to the washroom, and
+do a variety of other things with my
+day. AI agents don't. You could very
+quickly and easily set this up on,
+again, an hourly loop and have this run
+24 times a day, whereas realistically,
+if you were to try and do it all
+yourself, you could only do it a couple
+times. And so in that way, whatever
+metric that you're tracking goes up over
+time, right? In my case, reply rates
+significantly go up. You know, test one,
+I might be at a 1.5%, test 12, I might
+be at a 2.7%. Before you know it, I
+reach literally like the optimal quality
+possible for my set of cold emails and
+then their audiences. And you can apply
+this, as mentioned, to a bunch of other
+strategies. So, what are those
+strategies? The requirement that you
+need is anything that has an objective
+metric you can track
+and an API or application programming
+interface that you can send a request to
+to get. Okay? So, some brief examples of
+this. Cold email copy. Obviously,
+fantastic. Why? Well, because in our
+case, we have the Instantly API. The
+Instantly API allows us to query
+metrics, and so I can give the agent the
+ability to call a quick tool, call up
+the Instantly API, see how the
+performance was relative to you know the
+the challenger in the base campaign.
+At the same time, you know, I have a
+very clear metric, which in my case is
+reply rate.
+Okay, how about landing pages? Let's say
+you're doing some form of CRO, which is
+conversion rate optimization, and you
+want to test to see how you can make
+your landing pages as efficient as
+humanly possible. Well, you can now
+completely automate it with auto
+research. What you do is you pick the
+metric that you want, which in our case
+would literally just be conversion rate,
+okay?
+And then if your website is hosted
+locally or it's hosted using some API or
+something like that, let's say a website
+builder like Wix or or or or WordPress
+or Webflow, what you can do is you can
+give it access to the API, and then you
+can say, "Hey, change this according to
+this resource of best practices that
+other agents have done. Make your
+change, test that for, I don't know, a
+day, depending on how much volume you
+have, and at the end
+consolidate the winner and then get rid
+of the loser." You can do the exact same
+thing for ad creatives, okay? What's the
+main thing that you want for ad
+creatives? Obviously, it's going to be
+some form of conversion rate as well,
+whatever specific type of conversion
+rate is, that's up to you, okay? But all
+you need to do is query some sort of
+API. Now, you know, a lot of these ad
+platforms like Facebook and Google
+basically already do this for you. Mind
+it, granted I don't think they do it
+anywhere near as effectively as you can
+with modern models like Opus 4.6 or GPT
+5.4. What you can do is you can give it
+the API to call a specific ad resource,
+and then you could also just give it the
+metric to optimize for, which is CVR,
+and then it'll crush.
+How about some form of customer
+satisfaction for chatbot scripts? Maybe
+use some sort of customer satisfaction
+score, and then, you know, now you just
+adjust the main template, okay, that all
+customer service agents, whether human
+or AI, are are going off of. That's
+super simple and easy to do. How about
+product descriptions for some sort of
+e-comm? If you have like, I don't know,
+Amazon FBA or something like that, you
+know, maybe they don't necessarily have
+APIs, but maybe now you set up what's
+called Chrome DevTools MCP,
+give it a very tightly scoped list of
+steps that has to do to update the
+actual body of the landing page, and
+then based off of metrics like, I don't
+know, how many freaking dollars you've
+sold in the last little while, you can
+very quickly optimize and make your
+product landing page better and better
+and better. You know, in my case, I make
+a lot of YouTube content thesis. I could
+do this automatically with YouTube
+titles and the YouTube data analytics V3
+API. You know, you could optimize
+subject lines for your newsletters in
+the same way. You could optimize pricing
+pages the same way. You could optimize
+literally whatever you want. And so
+hopefully it's clear that at least for,
+you know, most sales and marketing
+purposes, and we're not even going into
+the back end here, Auto Research allows
+you to build a consolidated set of
+knowledge on what works, what doesn't,
+and then have that running in the
+background for you 24/7 with no human
+involvement. But how the heck does this
+actually work? Well, three simple steps.
+The first is we're going to clone the
+repo. I'll show you how to do that in a
+moment. We're then going to write some
+sort of test, okay? And you can call it
+test.md, you can call it whatever you
+want. But this only needs to include a
+goal, a metric, and a test method. And
+then you just give the agent the ability
+to run this on autopilot. In my case,
+I'm using a service called GitHub
+Actions, which allows me to store this
+in the cloud and then run this on
+regular intervals, like 4 hours. You can
+use GitHub Actions, you could use Modal,
+you could use a billion other providers,
+and I'll show you how to do all of that
+right now. So the first thing you need
+to do is you just need to get the Auto
+Research repo. Now I have a link, it's
+the top one or top two in the
+description, so click on that, you'll
+head over to this page. This will
+include all the information, including
+the Python training scripts, the project
+description, a bunch of other scripts,
+and then what he's calling program.md,
+where you provide the model everything
+that it needs in order to manage this
+whole research process. So you see in
+his case he says, "This is an experiment
+where you're going to do your own
+research. Work with the user to agree on
+this, create this, read that, verify
+this exists, and so on and so forth. And
+I want you to know this stuff is not
+super important. He's actually
+explicitly said that his prompt is
+probably pretty crappy and that it'd be
+very easy to make a better one. So, with
+all that in mind, now we need to go over
+to our agent. Next, head over to an
+integrated development environment or
+some sort of tool that allows you to run
+Claude code. In my case, I'm using
+what's called Antigravity. You guys
+could use Visual Studio Code. You guys
+could use like a hundred different apps,
+to be honest. Um by the way, if this
+seems like magic to you, you don't know
+what any of the buttons on the page are,
+I literally run through all of it in an
+extensive 4-hour Claude code course that
+even teaches you like what the different
+icons are and so on and so forth. Really
+holds your hand through it. So, just
+head to the top uh right-hand corner of
+the video for that. Anyway, assuming you
+have all this stuff open, we're going to
+want to create a new folder. So, I'm
+going to go here to open folder. Then
+I'm going to go new.
+I'm going to say Carpathia Auto Research
+Demo.
+And then I'll click create. Then I'm
+going to open this folder. Okay, and now
+in order to open up Claude code, I'm
+just going to double-click anywhere in
+here. Click on my little Claude code
+button. And then what I want to do is I
+basically want to clone this. So, I'll
+say, "Hey, clone this in the current
+working directory."
+What this is going to do is it's going
+to make an HTTP request over to GitHub
+and then clone this service, store that
+down below in a folder called Auto
+Research. And the reason why we're doing
+this is cuz we just want all of the
+context of this whole repo before we go
+ahead and actually define, you know,
+what it is that we're going to do on
+this. And so, what I want to do, just
+for a demonstration sake, is I'm just
+going to reproduce my cold email
+example. After that, I'm going to give
+myself a little bit of space. And now,
+because I have access to a voice
+dictation tool called uh WhisperFlow
+down over here, I'm just going to hold
+my FN key and then tell it what I want.
+Hey, I want you to use the context in
+the Auto Research folder to help me
+build a very similar idea, except
+instead of testing for validation loss
+and iterating on a machine learning
+model, I want you to do all of this, for
+cold email. The metric I'm interested in
+optimizing for is my reply rate. The
+platform I'm going to be doing all this
+stuff on is Instantly, and I'll give you
+the API credentials and everything that
+you need in a moment. And finally, the
+thing that you're going to change
+between one experiment and the other is
+going to be the copy of the cold emails.
+Finally, I want you to take all this and
+then put this on the cloud using GitHub
+Actions, so it runs once every hour and
+it has everything it needs to work on
+autopilot. Once I pasted that in, press
+enter.
+Now it's going to go through all of the
+auto research documentation. You know,
+it has a few things here that's probably
+not super important like this image
+which shows
+I don't know, the progress on Karpathy
+side. You can see here his baseline was
+validation BPB. It's some form of
+basically accuracy, how good the model
+is. Started up here, and then after just
+a few runs it got all the way down over
+here by adjusting various parameters.
+This is more or less everything that's
+going to occur except with our cold
+email. So it'll be like um, you know,
+invert this graph. Reply rate will start
+here, and then the idea is the reply
+rate will go up over time.
+Anyway, I'm going to let it run for
+however long it needs to before it does
+everything that it has to. And then at
+the end of it, we're going to have a
+fully functional auto research campaign.
+It's now asking me some questions. How
+should the system generate new email
+copy variants? So I'll say Claude. Do
+you already have campaigns running in
+Instantly or will this create everything
+from scratch? So I'm going to say from
+scratch, then click submit answers. And
+it's now going through and building the
+email-optimizer. For simplicity, I'm
+naming it similar to the other one just
+so you guys could see what's going on.
+Now it's actually building an Instantly
+client which will contain all of the API
+calls that it needs to make to Instantly
+to get the information. We also have the
+orchestrator. Now orchestrator, just for
+anybody that doesn't isn't inherently
+familiar with the language, is basically
+almost always going to be like your top
+top top level agent. And the idea is
+it's the orchestrator which
+orchestrates, okay, kind of like a
+conductor in a symphony or something,
+the function of a bunch of lower level
+agents
+or tools. And so in this case, what this
+orchestrator is doing, I'm going to try
+and draw a little blue cloud code logo.
+Didn't do a very good job there. But
+basically what's occurring is this is
+orchestrating any sub-agents that we'll
+need for maybe the purposes of writing
+copy.
+Um it'll orchestrate the calling of like
+the instantly
+API. It'll orchestrate the I don't know
+storing of documents and
+uh I don't know JSON results and
+obviously you could build in a database.
+You could do whatever the heck you want
+there.
+And so this is what is essentially going
+to be us just speaking to the
+orchestrator saying, "Hey man, here's
+what you are. You're an email optimizer
+orchestrator and you have access to all
+this stuff." Next, the utility scripts
+are just little one-off API calls like
+tools that allow it to do things like
+purge old leads, deploy in batch, test
+my parsers, and so on.
+>> [gasps]
+>> The config files here like baseline,
+resource, and in this case I fed it some
+additional documentation from a big
+course I did inside of Maker School that
+teaches people how to write good quality
+cold emails.
+This is just things that I have the
+ability to change, so I can change my
+baseline test. That's the first test the
+cold email optimizer will ever test
+against. I could change what's in
+resources, although obviously that's
+going to be added to.
+And then I also have little tokens over
+here so I can access the APIs. And then
+finally the GitHub actions workflow. All
+right, and I'm scrolling through here.
+It's doing the vast majority of the
+work, which is pretty nice.
+And in in this case it's actually
+creating some sub-agents to do it for
+me. If I open this up, you could see we
+actually have a bunch of data. So this
+is a .env.example,
+so um I'm going to ask it to basically
+set this up as a demo, meaning you guys
+can just pump in whatever the heck you
+want. And then also I'm going to add a
+Slack webhook. The reason why I'm doing
+that is because I basically just want it
+to be able to tell me how it's doing
+whenever it makes the changes. Now that
+it's doing some testing, we can
+basically go ahead. So just for
+demonstration purposes I'll say, "Great.
+Create a baseline and a challenger and
+show me dry run this is a demo. You can
+see what it's written over here as well.
+The way it works is it runs every hour
+via GitHub Actions Cron. This is a
+scheduling tool that triggers once per
+hour. There's three steps. It's going to
+harvest by collecting results from the
+previous experiment. It'll generate by
+creating a new challenger and then it'll
+deploy by creating the campaigns,
+drawing the leads from a pre-existing
+pool or database that I've given it and
+then finally activating everything. So
+you see the leads are over here. We have
+uh the usage. Then obviously we have
+like the big fat long scripts as well. I
+didn't have to write any of it. And this
+all follows very similar logic to what
+Carpathia was doing. It's just instead
+of doing this for like machine learning
+purposes, we're obviously doing this for
+financial purposes, better reply rates.
+Now because so much of this stuff occurs
+completely autonomously, I would
+recommend you always have a way to
+visualize or at least keep track of
+things as they go. And so what I've done
+is I've set up a little Slack uh ping
+via webhook that notifies me every time
+a new challenger or a baseline variant
+test is created. And so what happened is
+the other day we actually tested three
+different ones. You could see some of
+these tests were pretty small and pretty
+minor. We just made adjustments to the
+subject line and so on and so forth, but
+it stores things like the baseline and
+the challenger. And then whenever a
+harvest occurs, it tells us more or less
+which one won. Okay, and we now have the
+baseline which is a subject of quick
+question. Gives me a bunch of uh
+baseline copy here. So I actually wrote
+this initial first email.
+And then it's generating the challenger.
+The hypothesis is the baseline is too
+long. It buries the offer and it also
+lacks a specific CTA time. So it's going
+to try rewriting it to sub-75 words,
+leading with relevance, front-loading
+the risk reversal, and ending with a
+concrete time ask. You can see it's
+quite the significant change here. Hey
+first name, I drive PPC leads for a
+two-million-a-year dental marketing firm
+in Calgary. I've sent over 10 million in
+business to agencies like yours through
+cold outbound alone. Got a backlog of
+people wanting PPC right now a variety
+of verticals. I'd send you booked
+appointments and only charge if we hit a
+number you and I agree on beforehand.
+Zero risk on your end. Is this worth a
+quick call or even then gives a specific
+time. So, I mean it remains to be seen
+whether the challenger is going to be
+better than the the baseline, of course,
+but that's just part of the game. And
+you can see this is now actually been
+deployed. We have uh that same copy over
+here. And then if we go over to our
+baseline, we also have the baseline copy
+over here, which is that old cold email.
+And basically what's going to occur now
+is they're just going to test against
+each other until we figure out which one
+is better. Now, on net because this is
+an AI model we're working with, in my
+experience most challengers are not up
+to the task of the baseline. Usually the
+baseline is better because I wrote it,
+but eventually the challengers do become
+better and you start seeing significant
+improvements in the reply rate relative
+to the original, um which then you know
+makes them higher and higher and higher
+and higher over time. Then the
+challenger becomes the new baseline and
+then you just repeat. And so basically
+what this is, to be honest, is like the
+automation of like scientific
+experiments.
+Um
+you know, this is something where right
+now there's so much logistical overhead
+and friction involved in like running
+any sort of experiment, whether you're a
+marketer, a salesperson, somebody doing
+some back-end function or business or
+whatever. And this just eliminates all
+that friction. I no longer have to like
+copy and paste the leads. I no longer
+have to like do anything manually. Um
+it's all done via simple API calls. And
+now that we can put this thing on a
+loop, even though every time I run the
+orchestrator it's technically like a
+different agent, it has all the context
+from all of the previous runs, which
+allows it to grow more intelligent over
+time. I anticipate that eventually after
+something like 500 to maybe 1,000 runs,
+you'll probably have to consolidate some
+of the previous learnings so that that
+document doesn't get super long, but
+whatever you're using this for, whether
+landing pages, PPC, uh newsletter copy,
+whatever the heck, you know, SEO pages,
+hopefully you guys understand that as
+things get better, the new challengers
+are just going to be millions upon
+millions of times more profitable and
+efficacious than uh what your initial
+baseline was. Now, I should note there's
+There's other things that have to do in
+order to set this up completely, like
+for instance, I actually had to go grab
+my API keys. The way you do this on
+Instantly is pretty straightforward,
+settings, then you go integrations, then
+you go API keys down here, then you
+create an API key, say whatever the heck
+you want, select scopes all, and then
+actually copy it over. Um, you obviously
+need to do that as well with whatever AI
+model you're using to do the
+orchestration. In my case, I was using
+Claude Opus 4.6, so I just went over to
+Anthropic, got their API key. Um, and
+then, you know, if you have any other
+other services you want to use like
+GitHub for instance or whatever, you
+also have to push that up. But, agents
+will handle all that stuff for you. Just
+ask them, "Hey, you know, where do I go
+to get my API key? Okay, can you sign me
+in?" and so on and so forth, and you'll
+be good to go. The final thing I want to
+talk about are use cases that I would
+consider not ideal for some form of auto
+optimization. Um, in general, things
+that work really well are things that
+have fast feedback loops, okay? So, why
+did Karpathy's um, AI agent or like nano
+GPT loop work so well? Because it was
+literally a five-minute loop.
+You know, if you have a five-minute
+loop, technically speaking, that means
+that in 60 minutes, you could run 12
+experiments. And so, obviously, 12
+experiments is a lot of data, and
+assuming that, you know, you're running
+it on your own servers or whatever, you
+can just have that thing churn. Um, but
+basically, that means that your your
+iteration loop will be much faster
+because you'll be able to kind of draw
+like this as opposed to like this, you
+know?
+It's going to take a lot longer to
+figure out what works and what doesn't
+if you're all the way down here.
+Another good thing to keep in mind is
+you need a clear metric. So, in my case,
+reply rate was a fantastic metric. Why?
+That's objective. How many people
+actually my email campaigns?
+Click-through rate, very, very objective
+cuz, you know, obviously, this is people
+clicking through an email. All this
+stuff is automatically tracked. But, if
+you had something that was way fuzzier
+in addition to way slower, you know, the
+probability of you actually making this
+work uh, is is much lower because how do
+you subjectively measure like warmth,
+you know? You can't. It's like
+happiness. It's like you can't. What you
+have to do is you have to find proxies
+for all these things, which are usually
+like scales and metrics and analytics
+and so on and so forth.
+And then the third thing is you need
+some sort of API access to change the
+inputs. Um and if you don't have the API
+access, you could build some sort of
+Chrome DevTools or CLI based flow, but
+like you need to have that because if
+you don't, how the heck is the agent
+supposed to make any changes? What are
+they going to do? Just give you a list
+of changes to manually go in? You can do
+that, but that sort of defeats the whole
+purpose.
+Anyway, so what I'm going to do with
+this is I'm going to provide everything
+that you guys need, including the email
+optimizer repo, uh the Carpathy auto
+research GitHub repo, and everything
+else down below. Feel free to take a
+look at it, give it a click, explore it,
+and use it for your own use case.
+I'd be really interested to hear what
+you guys end up using this on.
+Um this is what all major labs that are
+working on machine learning models
+around the world are currently doing, by
+the way, in case it wasn't clear.
+They're constantly running many, many,
+many experiments behind the scenes
+overnight to like make their models
+better and so on and so forth. So, the
+fact that we're able to democratize that
+and now do that for ourselves, for our
+own businesses, and for our own own
+models is now like incredible. But I'd
+be really curious to hear what sort of
+use cases you guys have with us. And,
+you know, if it makes sense, I could
+compile a list of these use cases and
+then I could make another follow-up
+video that just goes through every
+single one and then even gives like real
+examples of them. Um because that'd be
+really dope.
+Aside from that, if you guys could do me
+a big solid, something like 73% of you
+are not subscribed to the channel, which
+really hurts cuz I try and make
+high-quality content for both
+subscribers and non-subscribers, but
+YouTube pushes my content way more
+heavily when that ratio improves. So, if
+if I gave you any value today
+whatsoever, please do click the
+subscribe button. I hate asking for it,
+but it just makes a difference on
+YouTube, so I'll do what works. If you
+guys want more on Claude Code and so on
+and so forth, definitely check that out.
+And yeah, I mean, I will catch all y'all
+in the next video. Thanks so much for
+watching, guys, per usual. See you.

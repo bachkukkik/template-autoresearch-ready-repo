@@ -1,0 +1,677 @@
+---
+source_url: https://www.youtube.com/watch?v=T6pQVgIt8ZY
+ingested: 2026-09-04
+sha256: 01a67146dca2bda67e2927411cfd377e9f25b205af4332b16d6cb8893cb7bf5d
+title: I Used Autoresearch to Fine-Tune GPT-2 Using D&D Dialogue
+---
+
+So, in today's video, we're going to be
+exploring fine-tuning AI models.
+And this will also incorporate
+auto research from Andrej Karpathy.
+First, I'm going to get up give a little
+bit of an overview of what fine-tuning
+is when you're using AI models.
+And then we're going to actually go into
+Claude code and begin this process.
+So, very basic, what is a language
+model? At its core, a language model
+predicts the next word in a sentence.
+It's trained on a massive amount of text
+from the internet, books, articles,
+websites.
+GPT-2 is 124 million parameters trained
+by OpenAI on roughly 10 billion words.
+By learning patterns in language, it can
+generate remarkably fluent text.
+So, think of it as a student who has
+read a million books. They can write
+convincingly about almost any topic, but
+they're a generalist, not a specialist
+in anything.
+The cat sat on the
+They're able to predict, based on
+previous billions and billions
+of examples, what the next word will
+likely be.
+So, what is fine-tuning?
+Fine-tuning is taking a pre-trained
+model and training it further, but on a
+smaller, specific data set.
+The model already understands language.
+Fine-tuning teaches it a specialty, and
+this requires far less data and time
+than training it from scratch.
+So, a chef
+who graduated from culinary school,
+which is a pre-training,
+then apprentices at a sushi restaurant,
+which is fine-tuning.
+They don't forget how to cook, they just
+get really good at one specific skill,
+making sushi.
+So, this is
+used by every major AI lab, OpenAI
+and then fine-tuned it into ChatGPT.
+Anthropic
+trained its base model and then into
+specific Claude models.
+Meta
+uh trained Llama and then specific Llama
+chat models.
+So, the challenge that we're going to
+face is catastrophic forgetting.
+And this is when a model learns new
+content, it can forget what it already
+knew.
+So, too much training on new data, the
+model loses grammar and coherence. Too
+little training, the model doesn't learn
+the new style at all.
+Finding the right balance is the
+essential challenge of fine-tuning.
+So, that is the balance you need to do.
+Previously, I had tried to do a project.
+You probably heard of me talking about
+this in other videos. But I was trying
+to fine-tune
+a larger language model that knew
+English
+on very specific One Piece synopsis.
+Now, I spent several days trying to get
+this project to work, but ultimately it
+couldn't because the balance was just
+too far off.
+All of the larger models that I was
+trying to use
+didn't balance well with the very small
+data set of One Piece synopsis. There's
+obviously a lot of One Piece episodes,
+but in the world of machine learning and
+AI models, that's actually not that much
+data. So, that was ultimately a failure.
+But from it, we're going to be
+creating this project
+and learning how to do fine-tuning
+properly.
+And this is how you do it with uh LoRA,
+low-rank adaptation, which is a
+technique from 2021 that changed the
+game.
+And this is for efficient fine-tuning.
+Instead of changing all 124 million
+parameters,
+we add a small adapter layers.
+Only 1 to 5% extra parameters are
+trained.
+The original model stays completely
+frozen, so the grammar is preserved by
+design.
+Only the tiny adapters learn the new
+style.
+Faster training, less memory, and safer
+results.
+Instead of rewriting a textbook, you add
+sticky notes with annotations.
+The original text is untouched, but the
+notes change how you read it. So, our
+base model is going to be GPT-2.
+And the data set that we're going to
+fine-tune it on is called Critical Role,
+which is a popular live-play D&D show.
+So, basically, this is going to be this
+kind of D&D dialogue that we're
+fine-tuning our model to.
+There's approximately 400,000 dialogue
+turns. This was published by Microsoft,
+and it's estimated to have 20 to 50
+million tokens,
+uh which is ideal for GPT-2 fine-tuning.
+And it's a mix of uh DM narration,
+player dialogue, combat role-play. So, I
+thought it'd be a fun data set to try to
+do fine-tuning.
+And even though it's smaller
+than the
+what the base model GPT-2 was trained
+on, it's still many, many, many times
+larger than the data set I had for the
+One Piece synopsis.
+So, the dual metric of measuring
+success, we need to measure two things
+at once to know our fine-tuning is
+working.
+We need to know the D&D score,
+how well the model learned the D&D
+dialogue style,
+and the grammar penalty, how much
+general English ability was lost. So,
+the combined score is the D&D score plus
+the penalty times maximum.
+So, why both? Without the grammar
+penalty, the model could cheat,
+memorizing D&D text while producing
+incoherent English.
+And that's why you need this at once,
+cuz sometimes the system can cheat the
+metrics, but the actual output is not
+very good.
+This dual metric ensures that the model
+learns D&D style while still writing
+properly.
+So, how are we going to incorporate auto
+research into this?
+So, auto research is an automated system
+that searches the best settings by
+running dozens of experiments, change
+the setting, train, measure score,
+keep or discard.
+What it searches. So, there's a bunch of
+different parameters, but these are some
+examples, learning rate, how fast the
+model adapts, adapter size,
+how much capacity it has for new
+knowledge, which layers to adapt, the
+training duration and warm-up, weight
+decay and regularization. We'll go into
+this in more detail as we
+as we go through this.
+So, why do we automate this?
+With auto research, there's dozens of
+possible combinations. Each Each
+experiment takes 5 minutes. The system
+can run overnight testing configurations
+humans would take days to do manually,
+and they did.
+And then results are logged for analysis
+later on.
+What we expect to see,
+and I don't know if we're going to
+actually get this. I haven't run this
+yet, but before finding fine-tuning,
+you're going to get something like this.
+The president announced today
+that the new policy would take effect
+immediately. Stocks rose 2% on the news.
+Just generic news-like text. It's
+grammatically correct, but there's no
+personality. There's no style to it.
+After fine-tuning, we're hoping to see
+this kind of D&D dialogue style with the
+narrator, character voice, and proper
+grammar.
+So, the goal is a model that generates
+text sounding like a D&D section
+session.
+Uh DM descriptions,
+player banter, combat narration, while
+maintaining coherent grammatical English
+throughout.
+So, that is the balance we are talking
+about.
+So, just some key takeaways before we
+get started in Claude code, fine-tuning
+is how general AI models become
+specialists. It's behind every chatbot
+you've used, and it's a very common
+practice in AI labs.
+Uh LoRA, l o r a, makes fine-tuning
+efficient and safe, preserving the
+model's core knowledge while adding
+capabilities.
+Good evaluation metrics are crucial.
+The dual metric ensures that we measure
+what actually matters.
+More data quality and quantity determine
+success.
+Enough data with a moderate domain shift
+is the sweet spot.
+An automated search, auto research, um
+systematically finds optimal settings
+that humans would struggle to discover
+manually.
+So, the same principles that power
+ChatGPT, Claude, every modern AI
+assistant,
+applied to a 20-sided die.
+So, here we are in Claude code. I'm
+using Opus 4.6, and these are the steps
+that we're going to start going. We're
+going to download the data set,
+uh explore and clean the data. Should be
+pretty clean, but we're going to check
+it to make sure.
+Tokenize
+with GPT-2's tokenizer.
+That's going to split it into the train,
+evaluation, test sections. We're going
+to measure the baseline and see what we
+get from the stock GPT score.
+And then we're going to begin the
+training
+loop. Uh right now, previously, it has
+my failed One Piece data. So, we're
+going to replace it with the D&D and
+then maintain the dual metric
+evaluation.
+Going to run the first manual experiment
+to get our baseline,
+set up the auto research loop, and then
+run the loop. So,
+uh hopefully by the end of this, we have
+a perfect fine-tuned model on D&D
+dialogue.
+Let's get started.
+Okay, so in Claude code,
+uh this is what it just did. It
+downloaded the data set. Grabbed the
+Critical Role D&D transcripts from
+GitHub.
+It came in as 280 JSON files,
+and it was 725,000
+dialogue turns.
+So, quite a hefty
+data set, actually, much larger than the
+One Piece one I was trying to work with.
+So, it built text files from this
+automatically. It extracted the raw
+dialogue into a simpler format,
+and then split it by episode.
+So, it created a training set, and then
+a validation set, and then a test set.
+The training set is what the model's
+going to learn from, so this is what
+it's actually going to be trained on.
+The validation set is going to be used
+to measure how well it's learning.
+And then test set is going to be held
+out for final evaluation. And this is
+how this kind of training regimen is
+usually organized. So, we have the data.
+That's a big step. Next, we're going to
+tokenize it, which means we're going to
+convert the text into numbers that GPT-2
+understands. The model itself doesn't
+read words, it reads token IDs. So, we
+need to do this conversion once and save
+it so training is fast. And that's true
+of any kind of model like this. Tokenize
+is something you'll hear. It converts
+the text into numbers that the model can
+understand easily.
+Then we're going to do the measure the
+baseline.
+So, we're going to run the stock GPT-2
+without any fine-tuning on the
+validation set to get a baseline score.
+So, that'll tell us how well GPT-2
+already understands D&D dialogue. And
+that's the number we need to beat by
+doing the auto research run and
+adjusting the parameters to kind of
+optimize it. And then we're going to
+fine-tune it with LoRA.
+Uh attach a small adapter layer to GPT-2
+and train them specifically on the D&D
+data, measuring both the D&D score and
+grammar preservation. So, that's the
+dual metric we were talking about. We
+want something that is both grammatical
+as English, but also has the format and
+the content that we want. So, we're
+going to continue with this now.
+Okay, so we tokenized the data, got 13.3
+million training tokens.
+Now, we're going to measure the GPT
+baseline on the validation set and then
+adapt the train LoRA Python script.
+So, now it's going to adapt this to load
+the D&D data
+instead of the failed One Piece one that
+I was trying to work.
+And after that,
+uh it's going to measure the baseline,
+which will give us the number that we
+need to beat as we do the auto research
+loop on it.
+Okay, so we ran for the baseline and
+what we basically did was load the GPT-2
+model that already knows English,
+attached the LoRA adapters.
+And these are the small trainable layers
+that we're going to use for fine-tuning.
+So, it's only 0.65% of the model. The
+vast majority is frozen and not going to
+be touched, and that's the main GPT-2
+model cuz we want proper English
+grammar, spelling, coherence. So then it
+we loaded the tokenized D&D data, which
+is what we made earlier.
+That was our training set.
+Uh we loaded the grammar validation set.
+Um but we need to fix that, but that's
+going to be used for the metric.
+And then we measured the baselines. So,
+we measured it on both validation sets.
+The D&D
+uh BPB, how well GPT already understands
+D&D dialogue. And then the grammar BPB,
+how well it handles general English.
+And we trained it for 5 minutes feeding
+the D&D dialogue through the model,
+adjusting only this small LoRA adapter
+weight to minimize prediction errors.
+So, we saw around
+uh 500,000 tokens.
+And then we ran the evaluation, which
+was mer- measuring with a dual metric
+that I talked about earlier.
+Um the combined score was 2.091,
+uh which was much worse than the
+original
+baseline.
+Uh so, there was a bug in the original
+script that Claude wrote for the
+training script. The the model was being
+trained on misaligned targets, so every
+prediction was being compared to two two
+the token two positions of head.
+Uh so, that's why the last couple runs,
+the first couple runs I should say,
+um we were seeing a lot of issues. The
+performance was actually getting a lot
+worse than the baseline, but it was just
+because there was a bug in the training
+training script. So, something to keep
+in mind if you're going to do this, to
+check for that stuff as well.
+Uh but we fixed it and the next run
+should improve.
+Okay, the fix we had worked after the
+first run
+of training.
+Uh we beat the baseline in both the D&D
+and grammar.
+So, no grammar penalty. The combined
+score
+is down from 1.132 in the baseline to
+1.05.
+So, the LoRA fine-tuning made the model
+better at the D&D dialogue while also
+slightly improving general grammar.
+So, there was zero grammar penalty. So,
+that's exactly what we wanted to see.
+The previous runs were all broken
+because the double-shifted labels bug.
+That was the bug I was talking about
+before. And here are first little
+samples here. This is after the first
+fine-tuning run.
+Uh
+Let's see. I want to see hear what you
+guys are doing. You're right, the whole
+place is pretty busy because of that.
+It's going so well. So, do we know where
+they go tomorrow? We'll be back in a
+couple days to look at this list.
+Um these are pretty good. Everything is
+grammatical. It's not perfect,
+obviously, but the formatting is
+correct. The sentences themselves are
+pretty good.
+Um there is some D&D
+content in here.
+You won't lose out unless they have an
+actual attack or something. So, this one
+will probably just end up being
+in your own hand right now anyway.
+Uh so, yeah, pretty good starting point.
+So, now we're really going to get into
+the auto research loop and try to
+optimize the hyper parameters further.
+So, since we already did the first loop,
+we don't need to do the full 30 minutes
+again.
+Uh we're going to go back to the 5
+minute per experiment. So, the things
+we're going to try to experiment with
+are the learning rate,
+uh the current one worked, but it may
+not be optimal. The LoRA target modules,
+uh trying different layers,
+and LoRA rank.
+So, as we go through this, I'll explain
+them in more detail. So, now that we
+have a working baseline, here is the
+plan. We're going to do nine
+experiments, 5 minutes each, 45 minutes
+total. So, we only needed to do the 30
+minute on the first run there just to
+get um a baseline, make sure everything
+was working. So, phase one, we're going
+to check the learning rate sweep.
+Phase two, target modules. And then
+phase three, LoRA rank. So, what do
+these things actually mean?
+The learning rate is how big of a step
+the model takes when updating its
+weights each iteration.
+So, think of it like a speed dial on
+learning.
+If it's too low, the model barely
+changes in 5 minutes. It doesn't learn
+enough. If it's too high, the model
+changes too aggressively, overshoots,
+and produces garbage.
+And so, we're testing four values to try
+to find the sweet spot in the learning
+rate there.
+And then in the second phase, we're
+doing target modules.
+And this is which parts of GPT-2's brain
+we attach the LoRA adapters to.
+GPT-2 has several layer types
+inside each transformer block.
+So, this is a little bit technical, but
+simply put, there's these different
+layer types.
+The attention layer where the model
+decides which words to focus on when
+predicting the next one.
+This is the most important layer for
+learning style. The output projection
+after attention,
+where the model combines what it focused
+on.
+Adding this gives LoRA more places to
+make adjustments. And then finally, the
+feed-forward layer,
+where the mod- model does its deeper
+reasoning and processing.
+So, adding this means we're adapting
+almost everything. So, the more modules
+you target, the more capacity to learn,
+but there's also more risk of disrupting
+the base model, the GPT-2. And then
+lastly, in phase three,
+uh we're checking the LoRA rank
+uh parameters. So, how wide each adapter
+is. So, think of it as the adapter's
+capacity.
+R4 is very small adapters. You can only
+make subtle adjustments.
+R8, which is the current setting we
+have, it's a moderate capacity. R16 can
+learn more complex patterns. R32 can has
+a lot of capacity, but you risk
+overfitting on the training data instead
+of getting a a generalized model.
+So, it's trying to find the sweet spot
+between all of these parameters.
+So, in short, we're asking three
+questions. How fast should it learn?
+What parts of the model should we adapt?
+And how much capacity should each of the
+adapters have?
+So, we're going to run these nine
+experiments. It should take around 45
+minutes and to try to find the sweet
+spot between all these parameters.
+Okay, so those nine experiments
+finished. We got all of the scores were
+better than our baseline, so that's
+pretty good. The best we got was 1.04.
+And the best overall, we found that
+learning rate mattered the most.
+The learning rate
+here
+uh one convincing convincingly was 10
+times higher than our conservative pick.
+We didn't have any grammar
+uh degradation across all the runs, so
+that's LoRA doing its job well. It froze
+the base model well
+to preserve the really good grammar.
+Having more target modules helped.
+Uh but higher rank helps, but had some
+diminishing returns.
+Um so, the 1 1e3
+was the highest that we tried.
+Uh of the four values we tested were
+these four.
+And this is actually the fastest and it
+scored the best.
+So, each jump is roughly three times
+faster learning.
+So, the pattern is clear. Higher
+learning rate was a better score.
+So, we were only had a 5 minutes of
+training, so higher learning rate meant
+that each step could make a bigger
+adjustment to the adapter weights. So,
+the model learns more in a limited
+amount of time.
+So, I think we're going to do one more
+round from the learning
+learning here. So, we're going to
+combine the winners and uh run the
+second round.
+So, basically, we're going to be doing
+seven experiments testing with higher
+learning rates, even more higher.
+The best learning rate and more modules
+and best learning rate and higher ranks.
+So, essentially, we're going to be
+asking, can we learn even faster without
+breaking?
+And does the best learning rate and more
+modules capacity compound into a better
+score? So,
+going to kick that off, do one more
+round, see if we can get a better
+uh metric.
+Okay, all seven experiments are now done
+and we got a best score again.
+That was uh using all three modules with
+the optimized learning rate.
+So, it's a 9% improvement from the
+original baseline that we had. So, the
+key takeaways that were more target
+modules was the biggest win. So,
+adapting to all three layer types with
+our higher learning rate uh dominated.
+So, the learning rate plateaued around
+what we had before 183.
+Uh going up much higher didn't really
+help and higher rank had diminishing
+returns
+and we had zero grammar degradation. So,
+the auto research
+uh loop
+has paid off. This was a slightly
+modified auto research, but the concept
+is similar. We did nine runs the first
+time and then we did
+uh seven. So, 16 rounds, 16 experiments
+all together.
+Uh let me ask for a sample from
+the
+best
+configuration.
+So, let's see if our fine-tuned model
+produced any good uh
+sample. So, this should be
+D&D style
+dialogue, basically.
+Okay, this is what we got. The door
+creaks open. You see this large black
+bearded man in a long robe that's almost
+exactly like the one Scott was looking
+at.
+Oh, no. No, wait. I mean, we're talking
+about what? What is he wearing here?
+Is something of interest to him or not?
+Where are they now when these things
+came from? Do they have robes as well?
+Laughter. So, it's properly formatted
+D&D
+uh dialogue. You can see had this this
+one sample
+fell into uh some number loop look looks
+like.
+Maybe it had to do with the roll rolling
+of the dice it fell into that loop, but
+otherwise it looks pretty good.
+Uh as you enter a tavern, your mind has
+changed to a more mundane world. You're
+now able to see through what is an
+expansive stone wall with various small
+portals of some kind.
+So,
+uh we can't walk past walls anymore. The
+windows are gone. We have no way back
+yet. So, it's proper like D&D style
+uh dialogues if you've ever read the um
+Critical Role D&D dialogues.
+This is and this was started from a just
+generic GPT-2 model and we fine-tuned it
+to get to this far. So, pretty good
+result, I would say.
+And Claude agrees, the model clearly has
+learned the D&D session style with
+speaker labels
+the DM narration from Matt
+player banter and crosstalk game
+mechanisms
+character names, laughter
+and grammatical English throughout.
+It's not perfect. Like I said, the roll
+initiative prompt default into numbers
+um and some of the grammar is not
+exactly
+perfect.
+But, um I think that was a pretty good
+example of fine-tuning and we could keep
+running this, but I think this video has
+gone on long enough. I think you just
+kind of get the idea of how to fine-tune
+and some of the concepts behind it. If
+you're interested in this cuz
+fine-tuning is a pretty important
+concept in model building and machine
+learning
+I'll probably do some other videos on
+this topic as well delving into
+different aspects, but I thought this
+was a good example of how you could use
+auto research type of loop to run
+experiments and
+optimize a fine-tuning of a model.
+Uh that's going to be it for today. Uh
+if you like the video, please subscribe,
+leave a comment, leave a like.
+Uh let me know what other types of
+experiments you're running, what you'd
+like to
+see from me and I'll see you in the next
+video.

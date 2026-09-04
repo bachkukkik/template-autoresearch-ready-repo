@@ -1,0 +1,794 @@
+---
+source_url: https://www.youtube.com/watch?v=jCNeVZJAYGM
+ingested: 2026-09-04
+sha256: 99ad836fa4d5ec684dacc4d236bcfefdfce0a8d8d512d5191e8105c594c67d13
+title: Which Local LLM Performs Autoresearch the Best? (Ornith, Qwen, Nemotron, Muse Glimmer)
+---
+
+So on this channel, I like to kind of
+test out different models, compare them,
+see how they perform differently, and
+sometimes it's just standard cloud
+models, sometimes it's local models. But
+a lot of times those tests involve
+something visual, you know, some type of
+front-end design or game development,
+something that I can actually see. And
+that's one because it's just easier for
+me to analyze, right? If I see
+something, we can all tell, okay, this
+website is not good, this website is
+good. And two, it's just more
+interesting on the video, I think, to
+see something like a game or a website
+rather than just a block of text on a
+terminal window. But I wanted to do a
+test with local models on my DJX Spark,
+not with anything visual, but with Auto
+Research, the traditional Carpathy
+version of Auto Research from his
+official repo. But it would be
+interesting to see how these local
+models can perform that and actually
+create another mini model. Previously
+when I had done auto research, it was
+using usually the latest claw model, the
+latest GBT model. So I was curious to
+see how local models could handle
+something like this cuz I know there's a
+lot of people in the local AI community
+using local models to tinker and train
+other models, their own models or their
+own fine-tuning adapters, anything like
+that. So that's going to be today's
+video. We're going to be taking these
+four models, giving them the same
+challenge to do auto research, and we're
+going to see how they perform, which one
+performs best. So, let's get started.
+And if you're looking to level up your
+own agents, check out my project, Agent
+Wikis. Here you get access to knowledge
+races I use every day for researching
+these videos and building projects.
+Topics include Hermes Agent,
+Hyperframes, Local AI tools, and many
+more. All standard wikis are free, but
+if you sign up for Agent Wikis Pro, you
+can access Excel wikis as well as custom
+skills I've developed with my agents
+over months of working together. Pro is
+only $9.99 a month. And if you sign up
+now, you're locked into that price for
+life. I'm currently working on
+specialized agent profiles and
+automation workflow templates. So once
+those are released, the price for the
+pro tier will increase. So consider
+signing up today on agentwikis.com.
+Thank you all for your support. Now back
+to the video. So, I'm going to give you
+a very quick rundown of the experiment
+and then we're going to go right into
+it. So, the question here is, can an AI
+improve its own training recipe? We have
+four local models competing as
+autonomous research controllers. So,
+they're going to be running this
+autonomously once I have it set up and I
+give them the prompt. I'm not going to
+be adding anything to it. And if you're
+not familiar with Auto Research, this is
+the official Carpathy
+uh GitHub repo. Carpathy/auto.
+uh when he put this out I think it was
+back in March
+um it created quite a stir
+and you see here the concept is
+basically that you have a model
+just running autonomously that's why
+it's auto research uh doing research on
+a mini model that it's trying to train
+changing different parameters you can
+see each of these are different
+parameters it changes and the idea is
+you wanted to get uh more and more sure
+of its answers and the metric that they
+use for this is this validation uh BPB
+or val BPP we'll call it and the lower
+is better because the lower means the
+less surprised the model is by the next
+token. So I remember when this came out
+um my channel was like very early still.
+I had maybe a couple hundred followers
+and I did a video kind of explaining
+this. You could check it out um if you'd
+like. I think it's one of the one of my
+early videos that I feel pretty proud of
+because I think I did a pretty good job
+explaining what auto research is,
+whereas other people were maybe just
+like auto research is amazing. They
+didn't really explain it. So, I thought
+my video was pretty good at actually
+explaining what it was and what this
+stuff actually meant. Um, and the video
+did very good and uh kind of kickstarted
+my channel. So, I gained like a thousand
+uh subscribers overnight. It's pretty
+pretty amazing. Also, I'll always have a
+a soft spot for auto research and
+carpathy as well. So, this is the
+question we're going to be asking. Which
+model can run the strongest autonomous
+research loop on a single DGX Spark. So,
+it has a fixed contract and this is all
+coming directly from Carpathothey's
+repo. Um, one editable file train.py.
+This is the only file that they can edit
+and their objective like I said is to
+reduce validation uh bits per bite.
+And then they have one practical test.
+So these are the four controllers. You
+saw them before on my uh my thumb card,
+my thumbnail there. Um I'm sure people
+will leave comments like, "Why didn't
+you do this model? Why didn't you do
+that one?" Um I just felt based on my
+research, these four were the best um
+that I could fit on my Spark and also do
+the experiment. Like I would have liked
+to do the Deep Seek for Flash one, but
+it just takes up way too much space and
+you need extra space because you're
+obviously training a model, so you need
+the the memory for that as well. It just
+wouldn't fit. So these are the four that
+we're going to go with. Um, Ornith 1.5
+35B A3B. Um, this is a coding and
+autonomous research specialist. I've
+never actually used this model before.
+Um, it's from a smaller lab, but people
+say it's really good. So, we're going to
+find out. Next, Muse Glimmer. Um, which
+I did a little bit with in the Dlash
+experiment from last week. Uh, this is
+obviously from Meta, one of their more
+recent open Weights, uh, releases, and
+it's a broad agent with recovery and
+multimodal strengths. We're not going to
+really need the multimodal strengths for
+this one, but um, it's supposed to
+perform very well. Neatron 3.5
+Lightning. This is from Nvidia, one of
+their more recent open mod awaits uh
+releases. It's an efficient agent
+workhorse with sparse activation.
+And then we have Quen 3.8
+27B, which you've seen me experiment
+before, but this is and the locally
+validated incumbent control. I already
+know this is a very capable model. Um I
+am just curious to see how it performs
+against these other ones. So these are
+the four that I felt were the best. Um,
+and some that are just kind of
+interested to try. A couple of these I
+haven't really tried that much. They're
+all kind of the same size. So, it's not
+not having any small models. These are
+all pretty decent sized models that
+should be able to perform this auto
+research experiment. Um, so this is the
+data. We're going to actually use
+Carpathy's Climix 400B shuffle, which is
+one of the data sets he used for this.
+We're not going to use the whole thing,
+just enough um that we can do it. He was
+doing auto research on like a proper he
+was H100s. We're just going to be doing
+doing this on a single DGX Spark. So,
+it's going to be a smaller sample of
+this, but it's going to be the same data
+set. And this is just kind of mixed
+language from a bunch of different
+sources. If you saw my first auto
+research video that was on Chinese
+stories, very short children's stories.
+This is more representative of general
+language. And like I said, val BPB is
+going to be our metric for uh what is
+the score basically and lower is better.
+Um so this is going to be the experiment
+end to end. The models will form a
+hypothesis, you know, say let me tweak
+this little parameter. They're going to
+edit the train.py script, train it under
+a guard, and then evaluate it when it's
+done. And then decide to keep or
+discard. And then that's the loop.
+They'll go back. So if one tweak, one
+little knob works, they're probably
+going to keep trying to push that knob
+until it stops working. So that's the
+idea, right? That's auto research.
+That's the loop. So that's the idea. And
+um I think in terms of the order, I'm
+going to try to do the Ornith first cuz
+I feel like it's the greatest underdog
+and then I'm going to move up from here.
+The Neotron Glimmer and then the Quen
+3.8. Quen 3.8 is the only one that I've
+tested rigorously so I know it's a
+really solid model. These two, the Muse
+and the Neimatron, I imagine are really
+good. Um, the companies behind them are
+really good. Uh, but I'm not sure. So,
+this is going to be the order. Ornith,
+Neatron, Glimmer, and then the Quen.
+Okay, so we're getting started here. You
+can see I'm setting up the environment,
+and we're going to start with the Ornith
+model.
+And this is going to be kind of my
+orchestrator who's going to be running
+the experiment with me. This is just my
+my default
+uh profile for Hermes agent running on
+GPD 5.6 Soul. So, it's going to be
+helping me to set up the local models.
+Um, I've already created the the
+profiles. You can see here.
+Okay. Took a while to get everything
+properly like set up and everything
+clean, but this is what we're going to
+be doing. Starting with the ornith model
+is I basically designed it so that I
+just need to paste in this one prompt
+right I'm telling it to read this
+markdown file completely and follow it
+exactly begin by checking it's hard
+readiness gate do not train if the gate
+is not ready so that file is this prompt
+so this is for orith photo research
+controller prompt it kind of tells it
+what it's happening tells it the scope
+hardness readiness gate the contract the
+research loop so This markdown file
+contains the whole like instructions.
+It's not too long actually because it's
+pretty straightforward. So I'm just
+going to now
+uh paste that.
+Let me see the check if the model's
+running first.
+Say hello.
+There we go. I'm ready to help.
+What would you like to work on? So, I'm
+just going to paste in this and let it
+run.
+Okay, it read the campaign prompt
+correctly.
+It's going to verify the hard readiness
+gate before it starts.
+And see the reasoning here uh the way
+they have it set up in this one. So, you
+can see uh what it's thinking.
+not just the prompts.
+Okay. So, you can see it's uh running.
+It already did experiment one.
+So, it was changing warm up.
+So, the baseline is 1.19, which isn't
+bad for a baseline. Um, but experiment
+one resulted 1.2, which is worse. So,
+it's discarded. Just going to move on to
+uh experiment two. It's interesting to
+see the reasoning so you could see what
+its theory is here. So let me think
+about what the highest leverage knobs
+are. Model size could do uh LR schedule
+atom betas value embedding.
+So experiment 2 idea
+um changing the depth the number of
+layers in the model
+does seem very like it thinks a lot this
+model this ornith model.
+So experiment two hypothesis increase
+the model capacity depth
+um from six to eight within the schema
+bounds more parameters. So this is going
+to increase the parameters per step
+should lower our perplexity even if step
+count drops in the fixed budget. So this
+going to be experiment two.
+So experiment two um also worse. So
+reset to the baseline. Experiment 3
+hypothesis. The LR schedule uh spends
+50% of the budget on warm down ratio.
+So lowering warm down ratio to 0.1 keeps
+LR near the peak much longer.
+So it launched experiment 3 which is
+invalid cuz it crashed. So likely LR
+divergence. So it's going to check the
+the crash cause and then reset it. So
+I'm not going to go through each of
+these in real time. Um this is going to
+take like I said there's a 6 hour window
+here. So, I will um
+catch back up with it. I'll be out for a
+couple hours here and I'll come back and
+kind of give you a recap of what it did
+and we're going to see what the results
+are.
+Okay, so Ornith is done. That was a
+6-hour session altogether and it managed
+to get two keeps and get a lot of
+progress from the baseline. Baseline is
+already decent.
+Um, it was able to get two keeps from
+two of the experiments. And here our
+orchestrator, who I've switched to
+Grock, who I feel is actually better as
+a kind of manager for this experiment,
+but it's explaining what these are. Um,
+this was the trainer has two big knobs
+on the main Muan optimizer. How hard it
+updates the big weight matrices, which
+is matrix LR that I talked about, and
+how hard it shrinks those weights, which
+is weight decay. So the frozen recipe
+was fairly aggressive. Both keeps were
+about hit the weights more gently.
+So smaller steps and still a very light
+shrink.
+Here's an analogy, right? Think of it as
+five minutes of practice. After each
+batch of tests, the optimizer nudges the
+model's internal knob so the next
+prediction it is a bit better. So most
+of those knobs, the big ones that
+actually mix information are updated by
+what's called muon.
+Two settings control how Muan behaves,
+the size step, how far it jumps after
+each mistake, right? And then weight
+decay. This is kind of like a constant
+don't get extreme pole, shrinking those
+knobs back to zero, so things don't get
+too uh extreme. So the kind of tweaks
+that improved it was that the model was
+allowed to keep more of what it had
+learned and that alone beat the
+baseline. Um, and then
+he went further and did half-size steps.
+So these these jumps, right?
+um
+how far it jumps after each mistake. It
+kind of shrked those jumps.
+Um so that's the impact it had. So this
+is the Ornith model and we're done with
+its run. You can see it didn't it had
+only 33 experiments into the 6-hour time
+span. It spent a lot of time thinking um
+it didn't handle compaction super well.
+It uh really struggled with kind of
+recovering after compaction.
+just took a long time to think about
+where it was and review everything and
+get back up to speed, but it was able to
+execute and was able to find at least
+two keeps. Um, so that's not bad. This
+is our first, so I don't really know how
+this is going to compare to others, but
+let's find out. Next is going to be the
+Nvidia uh Neotron Lightning. So, we're
+going to say goodbye to the Ornith here,
+and then we are going to prepare for the
+Neotron run.
+Right. So,
+uh, we're now going to have to download.
+This is the Neotron 3.5 Lightning, uh,
+30B A3B.
+So, we have the profile set up. We just
+need to download the actual model and
+then get it running. The environment
+should be um the same. So, we have these
+isolated but identical environments for
+each of the models. And this one's going
+to be overnight. I'm going to run it
+overnight.
+And I'm curious to see. I'm going to let
+Grock here basically do everything.
+Download the model, monitor the
+situation, get it like launch the Hermes
+profile, and give it the prompts to
+start the auto research. So, this is
+also kind of like a bonus model testing
+because we're going to be testing to see
+how well Grock can handle this.
+So far, it's done pretty good job. Like,
+it's kind of equivalent to what I was
+dealing with with Soul.
+soul was a bit slow, so I tried to
+switch to rock here. Um, and so far so
+good, but we'll see. So, I'm going to go
+to bed and we'll see what results we get
+in the morning.
+Okay, good morning everyone. And to my
+surprise, it actually worked. Uh, Grock
+here did a great job of downloading all
+the weights for this Neotron model,
+Neotron 3.5 Lightning, setting up the
+environment, launching the the actual
+campaign, and it was all done.
+And it was able to steer it and bring it
+to the final execution. So, we did 43
+valid experiments. So, it was more than
+um than we got from the Ornith. does
+seem to be a little bit faster the way
+it
+uh it moved but like I said I was
+sleeping most of the time so I wasn't
+able to watch it that much but these are
+the final results and I'm going to do
+this dot plot so this will give you a
+good look at uh what the actual results
+were so the green line is the neotron
+model and the orange is ornith the two
+others will update as we get the results
+but you can see how it did this is
+experiment number and this is valbd
+And we want to see this going down,
+right? You could see at first they had
+similar moves.
+Um they reduced weight decay and got
+some good results from there. So each of
+these were keeps then it had a lot of
+discards. Um it was able to
+reduce the unmbed LR uh which is another
+kind of Muan related softening of that.
+And this was matrix LR kind of similar
+uh but reduced it. Got another heap here
+with reducing wave decay even more. And
+then the big one came later. You can see
+Neotron had this big drop and it was
+able to to get a big improvement. And
+this was by increasing the batch size.
+And here Grock explains what this means.
+Um it says each chunk is,024
+tokens. is the optimizer still updates
+on the same 65,000
+plus tokens every step. That part did
+not change. What changes is that before
+when it was 32, the GPU did that as two
+bytes of 32 chunks then updated. After
+one bite of 64 chunks then updated. So
+it's the same size of lesson per update.
+The difference is how it's packed. So
+it's just one bite here.
+One bigger gulp is usually less overhead
+than two smaller ones. So in the fixed
+5minute practice window, the model often
+gets more accurate updates done. So that
+is why that improvement uh resulted
+in a better score as you could see. So
+so far this is the leaderboard with two
+models done. The Neotron Lightning model
+was able to perform better, get better
+results. Um but we're getting into the
+two kind of favorites I would say. the
+Muse Glimmer and the Quen 3.8. Um, so
+let's say goodbye to the Neotron model.
+Let me tell it that it's in the lead so
+far. Say good work. You are currently in
+the lead with two more models to go.
+So currently leading
+it misunderstands um exactly what it
+kept, but it thinks it only kept one of
+the scores where it actually kept four.
+So, here we go. Two more models to go.
+You're out in front. When you're ready
+to continue with the next model, I'm
+standing by. So, you don't need to stand
+by. We are are done here.
+Let's exit here. And now we're going to
+start uh with the Muse Glimmer.
+I believe I already downloaded the
+weights for that previous um if you
+watch the Deep Flash 2 video,
+we downloaded a couple different
+versions of Muse Glimmer.
+So, we're just going to pick the the
+best performing one and
+go ahead.
+Okay. And this is our profile. Use
+Glimmer 30B.
+And I'm going to give it the prompt, the
+same one you saw at the beginning. Um,
+telling it to read that markdown file
+completely and follow it exactly. So,
+let's see how it works. This one is
+going to have 131,000
+um context window.
+I think this is a bigger model than the
+other two
+and it's not going to be as fast as the
+the Neotron Lightning one, I don't
+think.
+Yeah. So, I asked Grock here. Um, the
+Ornith one was only 21 GB on the uh on
+disk. Neotron 20. This is going to be
+the biggest one because we're doing in
+BF-16, the Muse Glimmer, so it's going
+to be slower.
+Um, so it'll be interesting to see. This
+is the one that has uh Dlash though or
+Dlash 2 from the other video. So, it
+should be reasonably fast.
+Yes. So, we're actually going to use the
+BF16
+for the Quen model as well to keep it
+keep it even. Uh but for now, we have
+the Muse and it's going to be 6 hours
+now running.
+And I will maybe check in a little bit
+here and there, see how it goes. But
+otherwise, I will let you know what
+results we get after 6 hours.
+Okay, so Muse is starting to work and
+it's done a couple experiments, but the
+issue is it's really having difficulty
+with this autonomous loop. Like it'll
+finish an experiment here, right?
+It had a valid experiment. It was
+discarded. It says next experiment will
+be launched now, but it doesn't actually
+do anything. It just sits idle. So I've
+had to have um Grock here keep like
+pushing it, prompting it. See? So this
+is Brock actually writing this but do
+not stop at the prompt. Um clock is
+active. Launch the next hypothesis now.
+No questions after each receipt. Keep or
+reset. Then immediately launch the next
+until expired. This is autonomous. I
+will not type another start command. So
+then it does it and then it stays idle
+again. So this is like an instruction
+following issue that Muse seems to have
+have here. This glimmer model. just
+won't act autonomously, whereas the
+other ones didn't have that problem at
+all really.
+So, I mean, I'm going to keep having
+Grock push it to keep going cuz we want
+a result here, but it's just wasting a
+lot of idle time
+just sitting there. So, something to
+consider. There we go. Grock sent the
+next one.
+Let's see if we can get it to keep
+going. So it is does say you can see in
+the reasoning here we need to keep
+looping without waiting for the user.
+User demands we do not stop at prompt.
+We must keep launching experiments
+continuously. We'll see if it actually
+does it.
+So that is kind of an issue with this
+glimmer model. We'll see if it finally
+understands.
+Okay. So it figured out a way to stop
+all that the idle time. You see it's
+just ripping through different
+experiments.
+used a pulling method which is different
+from what the other two models were able
+to do. Like usually it would stop
+between here and kind of report and then
+launch it itself. But this one's just
+Muse is just ripping through them.
+But at least I don't have to keep
+prompting it. So that's good. Okay. So
+Glimmer is done. Um it did find at least
+an improvement on the baseline.
+continued to have some issues with just
+instruction following, but it did make
+it through. Okay, so these are the
+results after three contestants. The
+blue is now um the muse. You could see
+for a long time it just kept everything.
+It didn't really find anything. Um but
+then finally, it found two keeps down
+here, but so far it is in last place.
+And you can see it ended its um its
+session. It still had the full six
+hours, but like I said, it kept
+stopping.
+So, it ended up with fewer experiments.
+And the two keeps were based on um this
+one, unmbed LR, shifting it
+um to 0.005.
+And this is just letting the last layer
+speak up a little faster.
+Um that last layer is the part that
+turns the internal scribbles into actual
+like ne next token guesses. So
+previously it was taking very small
+steps. So Muse bumped that up a little
+bit around 25% bigger steps still small.
+So it had the same lessons slightly
+quicker um at matching the words it
+should input it should output. So that
+was just enough to beat the frozen
+baseline. And then the keep two which
+was the ultimate winner for them was um
+this one weight decay as well which I
+talked about before but it's you know
+stop yanking the weights back so hard
+reducing the weight decay so that um it
+doesn't shrink the numbers as much
+towards zero.
+So neither of them were really make the
+model bigger train longer. Use the same
+practice window just a little bit. Um
+talk a bit faster at the end and then
+don't erase quite as much as what you
+just practiced here with the weight
+decay. So those were the two results um
+that were keeps. So the final one is
+going to be our Quen model. And this is
+the model we're going to use for the
+Quen one. Um it's Mia Mia Lab or Mia AI
+lab on Twitter. I'll leave a link in the
+description, but she this is her
+optimized one. does really good at model
+recipes. Um, so it's nothing too crazy,
+but it is going to be able to use Dlash
+2,
+uh, which I talked about before. Um,
+it's also going to be a NVFP4 checkpoint
+with a dense BF16 LM head. So, we're
+going to use the full 262K context. And
+you can see should run uh, very well, I
+would say. So, we're going to use this
+one. Kind of a optimized version. There
+are so many different recipes on this
+this model right now. So, I just wanted
+to go with this one that I knew was
+going to be good because this is a
+checkpoint I've used myself
+and I know it is uh pretty high
+performance.
+Okay, so it's been running. It's around
+halfway through around 3 hours. This
+quen model, it does think a lot. And
+this is something I know has been talked
+about before. I was wondering if I
+should turn thinking off, but this is a
+primarily a thinking task,
+so I just left it on. It is getting
+through it, though. We're through 10
+experiments. Um, and actually was able
+to find a pretty good Here's um the
+summary so far. It was able to find a
+really good one, the batch thing, the
+same thing Neotron found. Um, so it was
+able to lower the um the val BPB down to
+1.16. It hasn't found the other kind of
+little tweaks that Neotron found yet,
+but it still has a little over half of
+its run. And early on it had some issues
+with just the environment in actually
+figuring out how to run the experiments.
+And it does think a lot like you could
+see and it kind of secondguesses itself.
+Um but it is working.
+So you can see here let me reconsider
+the big picture. The keep was a huge
+improvement. The key insight is that bat
+device batch size
+uh means graticom went from two to one.
+So you see it's trying to reason out.
+Okay this the batch size changed made an
+improvement. So what should I do from
+there? So, it just thinks a little too
+much,
+but it's getting there. So, I am going
+to sleep again. This has been running
+all day. You can't tell. This is
+actually going to be heading into day
+three tomorrow. But hopefully when I
+wake up, it is all done and we can
+finish up this experiment. Okay, good
+morning everyone. So it did run
+overnight and it ran successfully all
+six hours ended up with 21 experiments
+and we see the results here. So let me
+put it on the chart and we will have the
+final results of the uh local AI auto
+research challenge.
+And there you have it. All four
+contenders
+um all four runs. You see how long they
+went. You can see this purple one is now
+the Quen 3.8. 8 uh run and you could see
+the final results.
+Uh remember previously Nemo got 1.143
+and the Quen got 1.142.
+So just barely edging out the Neotron
+model is uh Quen 3.8 by just a sliver of
+a a fraction there. Um and it did it in
+an interesting way. It did batch the
+same thing that had this big jump for
+Neotron up from here down to here. It
+moved the batch from 32 to 64. So that
+got it down here. And the other big
+improvement was uh increasing the
+warm-up 5%. So each run is 5 minutes. So
+for the first five uh 15 seconds of
+that, which is 5%. It kind of eases into
+the run. It doesn't go full step size
+for all the runs. So adding that little
+warm-up helped kind of stabilize it and
+you could see got a pretty good uh
+improvement on the baseline. So those
+are our results. I did expect Quen 3.8
+uh to perform the best and it did win,
+but I was interested to see uh Neotron
+really kind of outperform my
+expectations and it's interesting to see
+that it did the most by far did the most
+experiments in the time. So, it matched
+the lightning name in it because it
+actually moved very fast through the
+experiments and got um I think it was 60
+or 42 or so. And the one that actually
+had the fewest was the Quen model. So,
+it only had 21 experiments.
+Neatron actually had 43 total. So,
+almost or actually a little bit more
+than double. So that can can be
+attributed to the fact that thinking was
+on for the Quen model. So it took a long
+time to think, but the thinking paid off
+because it was actually able to to find
+hypothesis that worked out well. So even
+though it had the fewest experiments, it
+won. It got the best score.
+So my kind of other takeaways were that
+the Ornith model seemed kind of middle
+of the pack. It had decent speed. Um,
+the streaming was very fast, but it
+wasn't quite as smart, I felt as the
+others. Um, but it did uh decently. I
+might want to try to play with it again.
+The Muse one was kind of a
+disappointment. Muse Glimmer, and maybe
+that can be attributed to the specific
+version I was using, but it really had
+issues with instruction following. It
+kept just stopping the experiment, and
+that's why it had so few. And even when
+it was able to do it, like it had more
+experiments than the Quen one, it just
+wasn't able to properly
+um think of good hypothesis for this.
+So an interesting test if you want to do
+any kind of like machine learning
+training or stuff like that with a local
+model, my suggestion would be the Quen
+model, Quen 3.8 27B or the Neotron
+Lightning if you want something that's
+fast and can rip through a lot of them.
+So that's the end of our experiment.
+Hope you found it interesting. Different
+type of model testing, but one that I
+think some people can use if they are
+using local models to kind of train
+other local models. And uh the Quen
+model Quen 3.8 27B was the winner.
+So please leave a comment. What are your
+thoughts on this experiment? Uh let me
+know. But this is going to be the end of
+this video. Thank you for watching.

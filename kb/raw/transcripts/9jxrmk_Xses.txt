@@ -1,0 +1,410 @@
+---
+source_url: https://www.youtube.com/watch?v=9jxrmk_Xses
+ingested: 2026-09-04
+sha256: d91aeb0ee052b809cfdef36db315b8bf8a835aea24838023f041035bfcf04a6f
+title: Karpathy's Autoresearch: We Achieved Near-Human Scores in 2 Hours!
+---
+
+So, Andre Karpathy made this
+tweet on Friday and showed this repo
+Auto Research,
+which is a small experiment he's been
+running trying to train
+a nano chat LLM. And there was a lot of
+attention and interest in this post
+because Karpathy's obviously one of the
+most known people in AI. He was a
+co-founder of OpenAI and has been one of
+the leading minds in this field.
+But a lot of people didn't really know
+what it meant or how it could be used.
+And I didn't know everything that he's
+discussing in this post, but over the
+weekend I did a little research and I
+think I have enough of an understanding.
+Um and I did this experiment myself.
+I cloned his repo and ran it on my
+laptop. So, in today's video I'm going
+to try to break down and explain what
+Auto Research is, why it's significant.
+I'm going to explain how you can do this
+on your own.
+And then I'm going to show the results
+of my my experiment which were pretty
+surprising, so watch till the end to see
+what I found.
+So, why does this matter? This is not a
+toy experiment as Karpathy says himself,
+all LLM frontier labs will do this. It's
+the final boss battle. Auto Research is
+what happens when you let an AI agent do
+the work of a machine learning
+researcher. Forms hypothesis, runs
+experiments, decides what to keep, what
+to discard, and builds on what works.
+So, Karpathy himself did this manually
+for 20 years and now he's using an AI
+agent to do it autonomously.
+And if this becomes
+widely adopted, it will really change
+the way research is done.
+So, very briefly, what is an AI language
+model cuz this is key here. A language
+model predicts what word will come next.
+That's it. That's all chat GPT does one
+word at a time over and over. To get
+good at this, the model learns patterns
+from millions of examples. The better it
+predicts, [music] the more it
+understands language. A bad model
+guesses randomly. A good model guesses
+like a human would. So, the training
+part of this is that
+you show the model examples measuring
+how wrong its guesses are and adjust
+slightly to do better. And then you
+repeat that millions and millions of
+times.
+So, what is Auto Research? This is the
+open source tool that Karpathy uh
+released. And what it does basically, it
+has a tiny LLM that reads the program
+MD, forms a hypothesis, modifies its
+training, does the training for 5
+minutes, measures its results, decides
+to keep or discard, and then repeat. The
+only file that we as humans write is
+program MD.
+That's the research plan. And the only
+file it can write is train.py.
+This Python script. It's the model
+config code.
+It really determines what it's
+experimenting on. And some a couple key
+concepts just to understand. The main
+one here is score, which is val_bpp.
+And the main takeaway is that lower is
+better. The lower score, the model is
+more confident and accurate in
+predicting text. If you get a two,
+that's just random guessing. The first
+baseline that we got was 1.17.
+>> [music]
+>> Human level predicting is 0.5.
+So, when we started, it was barely
+better than guessing.
+And what is it trying to guess? This is
+for our case, we were running on my
+laptop GPU. So, we were using this um
+data set. It's from Karpathy himself.
+It's called Tiny Stories.
+And it's just very simple
+very simple stories.
+Um you see, once there's a little boy
+named Jack who was only 3 years old and
+had lots of things he wanted to do. You
+can read this, but it's a very simple
+children's story and there's a whole
+bunch of data sets um with the same kind
+of format.
+It's a very easy text, obviously, that
+you're training this on.
+But for my
+mid-range laptop
+uh GPU, this is the best we can do.
+Karpathy himself was doing, I believe,
+Tiny Shakespeare, which is obviously a
+lot more of an involved text, but he was
+running on an H
+100, which is a much more powerful
+chip um from Nvidia.
+So, how do you do this on yourself? Um
+so, what you first need to do is come to
+this GitHub. This is the auto search by
+Auto Research
+uh repo and you can you're going to have
+to clone it.
+But doing it as is is not going to
+be great unless you do have a H 100. So,
+he recommends
+these uh forks that he has for if you
+have a Mac or I have a Windows, so I did
+this one on the bottom.
+Uh Auto Research Win RTX cuz my
+laptop had an RTX and was able to able
+to run it. So, you can check out in the
+in the bottom
+of his repo, it has this kind of fork
+for your machine. And he recommended
+doing Tiny Stories when using this, so
+that's what we did.
+So, basically, you're going to do get
+clone.
+Um this was the Windows version, but you
+can choose whichever repo fits your
+machine.
+And then you get into that directory.
+You're going to install a bunch of
+dependencies, which is uv sync. Download
+the training data. Uh this was Tiny
+Stories, like I said, for us. You do
+this by doing uv run prepare.py.
+And then you're going to write your
+research plan in program MD. So, this is
+program MD right from the repo.
+Uh but it gives basic rules of what it
+can and cannot do.
+It has very clear guidelines.
+And
+right here under experimentation, you
+can kind of modify this to what you want
+it to do. This is the base prompt, which
+is the goal is simple, get the lowest
+val bpp [music]
+key score,
+which we described before.
+And it basically is wide open.
+Everything is fair game, change the
+architecture, optimizer, hyper
+parameters, [music]
+batch size, model size.
+Uh it leaves things wide open.
+And these are what I added. Phase one
+was vocab size sweep.
+Phase two is minimum viable model.
+Optimizer split. Phase four was
+hypothesis driven experiment.
+And [music] let me explain a little bit
+of what all these mean. There's a lot of
+terminology, I know.
+Uh when it talks about depth, it that is
+how many processing stages the model
+had. It starts at eight and then the
+agent tried a depth of six, four, three,
+two.
+Vocab size is how many unique word
+pieces the model knows. If it's too
+small, it can't express express nuance.
+If it's too large, it's harder to learn.
+Batch size is how many examples the
+model sees before adjusting itself. The
+smaller the batches, the more frequent
+updates and the faster learning on a
+simple data.
+So, this was our research plan, five
+phases. Phase one was the vocab size
+sweep. Test five different sizes, find
+the best one.
+Phase two was the minimal viable model.
+How shallow can we get? This is talking
+about depth.
+How shallow can we get and still
+perform? Phase three were optimizer
+experiments trying mu on on different
+layer combos.
+Phase four was hypothesis driven and
+this is where it spent most of its time.
+It basically I let the agent write its
+own theory and just experiment as it
+went on.
+And it experimented with a lot of
+different parameters.
+So, you can adjust this by yourself. You
+can do a little bit research and see
+what kind of parameters you want to
+experiment with, but it's all just in
+the program MD as plain English.
+You don't need any code or anything like
+that. Just write instructions to your AI
+researcher. So, then once you have
+program MD, then you just launch. I used
+Claude code, so I just did this in
+Claude. I know Codex had some issues
+with it.
+Uh but if you have Claude, you can just
+do it in Claude and just point it at
+program MD, point it at the code base,
+and it will just [music] run by itself.
+It'll run in a loop and you don't really
+have to do any input. It'll just keep
+iterating iterating on itself based on
+the results it gets. So, I let it run
+for a couple hours to see what kind of
+results we would get and everything was
+logged automatically and this is what we
+got from our actual run.
+And this is running specifically on my
+new laptop I bought around last year.
+And it's a uh
+RTX
+4060 with 8 gigs of VRAM. So, it was
+one of the chips that was in the repo
+and said that it could run in the fork,
+so I ran it. And you can see what we got
+here. We started at 1.173 as the
+baseline and that's not very good. It's
+not much better than guessing, but it
+very quickly found
+the correct direction to go. It realized
+that vocab size at 512 had a slight
+gain. And then it saw a lot big
+jump here
+when it put vocab at 4096 and it changed
+the depth.
+And if you remember, depth is talking
+about how many processing stages there
+are. And it actually found that the less
+if it went to depth three,
+we got a much higher score.
+And that's because the the data set we
+were running it on, those Tiny Stories,
+are much easier to process. The stories
+are so simple that if you went further
+on and had more processing levels, it
+would just add complexity and not really
+benefit.
+It also found that batching the batches
+improved the score a lot when it had
+smaller batches, which means it's
+making adjustments after a fewer amount
+of examples.
+When it had a smaller batch size, it
+kept improving the scores as self.
+And then in the final stage, it started
+to add all these small things, but a lot
+of the progress had been got on higher
+levels, but it kept trying to write new
+hypothesis and made marginal
+improvements, but it still made
+improvements. In the end, we got 0.511
+as the end result
+after like half a day, I guess, of
+running.
+But it reached
+these levels fairly quickly. The last
+couple hours were just trying to
+slightly tweak it down
+and refine it a little bit more.
+So, that was our result. Um and Karpathy
+has run this on his own models. This is
+a quote from him. He says, "Seeing an
+agent do this entire workflow end to end
+and all by itself as it worked through
+approximately 700 changes autonomously
+is wild.
+It really looked at the sequence of
+results of experiments and used that to
+plan the next ones."
+So, he found in his results his agents
+were finding bugs that he had missed
+for years
+from manual tuning, wrong optimizer
+betas, missing regularization, attention
+was too diffuse.
+And he also found that it had 11% faster
+training.
+So, what's next? He had kind of a
+follow-up today
+to his tweet and he's talking about
+possibly doing agent swarms. Many AIs
+collaborating in parallel promoting the
+best ideas to a larger model. And that's
+what he's working on now. It's pretty
+interesting research.
+And to give you an idea of in the end
+>> [music]
+>> where we started and where we ended up,
+this is where we went. This is our
+baseline.
+Um I'll just read a line of this. It
+said, "Once upon a time a little boy
+named Whiskers, there was a big tree.
+They tried to play near the shop. One
+day he asked, "That means that?" Her dad
+smiled and Wally's a big bear do not
+have a lesson, but she said, "I can have
+fun." Like, okay. Obviously gibberish.
+No clue what's going on in there. But
+this was our optimized version. It's not
+perfect, but it's pretty good. Once upon
+a time there's a little girl named Lucy.
+She loved to dance and play with her
+friends. One day Lucy and her friends
+decided to have a race in the park. Lucy
+was very competitive. She wanted to win
+a prize. Her friend said, "I know you
+can be the best."
+So, it goes on like that. You can see
+obviously pretty good grammar.
+There's a coherent character and story
+going on here.
+And that's what our optimized
+tiny LLM was able to find.
+After only a couple hours of training,
+it made this
+it made this huge improvement. So, you
+can see why people are excited.
+It was able to see what was not working
+and optimize itself in just a couple
+hours really. So, this breaks down what
+we got. Like I said, 0.51, a 56%
+improvement in prediction accuracy,
+which is pretty good. And almost
+human-level prediction on this data set
+because human level is considered 0.5.
+We got 0.51. Pretty close.
+Um and what made a difference? Like I
+said before, depth was a major factor,
+batch size, and vocab, and some other
+smaller things. And the nice thing is
+that none of these were obvious. The
+agent found them by running the
+experiments and reasoning about what it
+saw.
+It's exactly a human researcher would
+do, but it was just the AI.
+So, this is AI research that runs
+itself.
+Not in the lab, not on H100s on your
+desk overnight for the cost of a few API
+calls. This is what the future of
+research looks like and you can run it
+today. And that's what's exciting about
+this is that I was able to run this on
+my mid-level laptop and actually train a
+model and see real result results. And
+obviously people are running this on
+more heavy-duty machinery and getting
+incredible results, but as Karpathy
+says, all LLM frontier labs will do
+this. It's the final boss battle.
+So, this was kind of a technical video.
+Tried to explain it in as simplest terms
+as possible, but I thought it was an
+interesting post when I saw it, so I
+wanted to try it myself. So, please um
+if you have a machine that can run this,
+try to
+find the repo, try to do your own
+experiments and see what you can do.
+AI is a really interesting field right
+now.
+Lots of advancements and stuff like this
+may seem a little bit dry or
+maybe a little bit confusing, but this
+is really what is going to be driving
+the future
+progress that we're going to
+be lucky enough to enjoy.
+So, that's it for today's episode. Um I
+hope you found it interesting. Please
+leave a comment if you run these
+experiments yourself or if you have any
+kind of question. I'll try to answer.
+I'm not a expert in this field, just
+someone who's kind of interested and
+likes to play around in it.
+But please subscribe to the channel. Uh
+leave a comment like I said. Like the
+video.
+And I'll see you in the next one.

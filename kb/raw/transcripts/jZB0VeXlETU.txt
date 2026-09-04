@@ -1,0 +1,436 @@
+---
+source_url: https://www.youtube.com/watch?v=jZB0VeXlETU
+ingested: 2026-09-04
+sha256: 781687bdb62f65ca757e96933f8e32bcf501cdf75a9011cd8dc599ff056b13f0
+title: Build My Own ChatGPT? Testing w/ Karpathy's Nanobot Model Training
+---
+
+I saw this tweet about Andre Karpathy
+using auto research to tune nano chat
+and that got me looking into this nano
+chat
+repo that he has here. This is an open
+source GitHub repo called nano chat
+and simply put nano chat is a simple
+experimental harness for training LLMs.
+The whole concept is to build kind of a
+mini chat GPT
+and it's designed to run on a single GPU
+node. The code is minimal, covers all
+LLM stages including tokenization,
+pre-training, fine-tuning, evaluation,
+inference, and chat UI.
+And unlike auto research which required
+me to use cloud code and use a frontier
+model, I was using Opus, this doesn't
+require any actual model, frontier model
+or otherwise to do this training. This
+is all just math on your running on your
+GPU.
+So, I've been having fun with those
+experiments using auto research. So, I
+thought it'd be fun to try to create
+this little nano chat chat GPT
+um chatbot on my computer training it
+myself. Obviously, it's probably not
+going to be as smart or performative as
+what they're getting here cuz they're
+searching for GPT-2 capability. But,
+we'll see what we get.
+Um so, this is nano chat train your own
+chat GPT from zero.
+Uh what is nano chat? It's built by
+Andre Karpathy like I said.
+Uh ex-OpenAI, creator of nano GPT. He
+calls it the best chat GPT that $100 can
+buy.
+Uh it trains a real GPT from scratch,
+tokenizer, pre-training like I said.
+One dial controls everything, depth
+which is the number of transformer
+layers.
+And it's minimal, hackable, and
+educational.
+So, why does this matter?
+In 2019, it cost $43,000 to train a
+GPT-2
+model and right now what Karpathy and
+other researchers are doing is they're
+doing the same result with just $48
+using cloud GPUs. He's specifically
+using
+this H100 GPU
+um that cost $48 I guess to run for 2
+hours. We're going to try to do this for
+free except for my own
+uh
+my own laptop cost. We're going to run
+it on my local
+uh
+gaming laptop GPU. So, it will cost us
+zero
+to actually do the training.
+So, you can see they're having kind of a
+little competition to see who can um
+get to GB2 GBT2 levels quickly as
+possible. And in 2019, it took 168 hours
+to get there. Now we're seeing the last
+couple months or even this month
+uh less than 2 hours by the auto
+research AI agents doing that.
+The AI agents are now improving on the
+training, so they're able to do it
+faster.
+So, this is what I'm going to be working
+on. This is Shrimple's laptop. Like I
+said, this is a gaming laptop I bought
+last year
+around $2,000. Um
+it's runs on an RTX 4070.
+Um has a decent 8 gigs of VRAM you can
+see.
+Uh we're going to be have to run this on
+WSL 2.
+So, that's what we're going to be doing.
+Um so, this is not a server farm. It's
+not a cloud cluster. It's just a gaming
+laptop. It's a decent gaming laptop, you
+know, $2,000, but it's not anything
+crazy.
+So, this is the data set we're using.
+This is Nvidia's 400 billion token mixed
+data set called Climb Mix 400B. It
+includes web pages, books, codes, and
+more.
+>> [music]
+>> Um we downloaded eight shards.
+>> So after you activate the environment,
+you need to install your GPU
+dependencies. This is going to depend a
+lot on what you're using.
+And you this you might run into some
+issues here if you I just asked my open
+claw agent and she was able to guide me
+through this, but
+this is going to depend on your GPU and
+your machine of what you need in terms
+of dependencies.
+So then you download this
+command right here.
+You're going to download, in my case,
+eight shards of the climb mix 400b.
+And then we're going to train the
+tokenizer.
+And the tokenizer in this case it
+converts the raw text that you get from
+this data set into numbers or they call
+it tokens
+that the model can understand.
+So before training the actual GPT model,
+you need a vocabulary. You know, you
+need to [music] map
+a mapping of text chunks to IDs.
+But that process doesn't take that long.
+It took around 40 seconds.
+>> [music]
+>> And once you do that, you're ready to
+train the model. So this is like I said,
+it's going to depend on your hardware
+what exactly
+you want to
+do in terms of these depths and
+these parameters, but this is what it
+was found to be the best for my
+4070 GPU.
+This Python command.
+So then you're going to put that in
+and then it's going to run and it's
+going to do the main training.
+It's going to be estimated 2 to 3 hours.
+>> [music]
+>> To be honest, it's still running right
+now. I did this earlier.
+We are 75% of the way through.
+But similar to
+auto research, you're going to start
+with a vowel BPB. Ours started around
+three, and now at 75% uh we're down
+slightly under one. So, to get to chat
+uh to GPT-2 level, it wants to get down
+here to
+point uh 74-ish
+or even lower.
+So, I don't know how low it'll be able
+to go in our run, but
+we will see.
+So, I'm going to let this run, finish
+the training, and then we're going to
+try to chat to our mini
+nano chat uh
+little chat GPT.
+>> [music]
+[music]
+>> So, back on Shrimple's laptop here,
+it finished the training session. It
+took total time of 142 minutes, so 2
+hours 22 minutes roughly. That's around
+what you'd expect. They said on the the
+repo around 2 to 3 hours it's going to
+run.
+So, we started at a validation
+uh BPB of 3.17.
+That was the baseline. And after the
+full evaluation, we got down to 0. 94,
+which is is not too bad.
+The um the official ones, Karpathy and
+his other fellow researchers, are
+getting down to like like I said before,
+1.74-ish
+to get to actual uh GPT-2 levels, but
+not too bad.
+So, now it's just evaluating the
+training,
+and then hopefully we'll be able to chat
+with it and see
+what it can how it will talk about. I'm
+kind of interested to see what the final
+result will be here.
+I'm not expecting much training it just
+on my local
+local laptop.
+But hopefully it'll have a conversation
+or at least be
+relatively coherent. So, like I said
+before, this is not I did not use any
+This is not in cloud code. This is just
+in WSL, the terminal.
+This does not require any LLM to train.
+This is just training it on its own
+uh based on the math and based on
+judging the uh the data it had.
+In simple terms, that what that means is
+that the the model reads the text,
+the actual data, the text, and tries to
+predict the word the next word or what
+it calls a token over and over. That's
+basically it. It's just a loop where it
+grabs a chunk of text, shows it to the
+current model, tokens one through
+whatever, asks it to predict the next
+token, um compares the prediction with
+the real answer, and then adjusts the
+model's weights slightly to make it less
+wrong the next time. And that's kind of
+the foundation of
+how uh machine learning is done and this
+kind of model training.
+So, after you do that millions of times,
+then it gets better and better at
+predicting.
+So, it's obviously similar in concept to
+auto research. They're both just
+optimization loops. So, with the nano
+chat training we did here, it tries to
+predict the next token. It measures how
+wrong it was and then adjusts the
+weights and then repeats it over a bunch
+of times. With auto research, it was
+trying to make a parameter change, then
+it measured the the val BPP,
+and then just kept it if it was better
+and then just kept repeating that,
+changing different parameters to see how
+it do. Both are just making a guess,
+measuring the result, and updating it
+based on the feedback. Uh the difference
+is just what gets adjusted. With nano
+chat here, it adjusts the model's
+internal weights.
+Auto research was adjusting the training
+recipe itself. So, slightly different,
+but pretty pretty similar in in concept.
+Okay, so once you complete the training,
+you're going to want to do is test it
+out. I did python.m
+uh scripts.chat_web
+source space. This is
+the command to actually start the
+chatbot. And it did start up.
+Um however,
+it just basically when I said hello to
+it,
+it produced this kind of stream of
+consciousness, I guess. Just a bunch of
+sentences in a row. It's not really a
+chatbot yet. That's what we have right
+now.
+And what we need to do after this
+process is called uh SFT supervised
+fine-tuning.
+And that'll get it closer to an actual
+chatbot.
+And what you're going to do is you're
+going to download this identity first.
+Uh which is from Karpathy himself.
+And then you're going to do this command
+down here.
+Now this is all in the repo.
+And this is going to do the SFT
+supervised [music] fine-tuning.
+Now this is going to take a little bit
+of time as well.
+So this is running now. What this is
+doing basically is it loads the base
+checkpoint from what I had already
+trained and then it's going to read the
+identity conversations.jsonl,
+which is what I downloaded from the
+previous step. And that'll create a um
+that's a synthetic synthetic chat data
+with human and assistant turns and then
+it'll give it a personality.
+>> [music]
+>> Then it fine-tunes for a small number of
+steps. It teaches it how to respond in a
+chat format instead of just the
+completing text that we saw earlier.
+Okay, so I had some issues with the SFT
+super supervised fine-tuning.
+Um I tried to run it normally how you
+would, but obviously this is designed
+for a much more powerful machine, so
+it would if I had run it to the end, it
+would have taken like 10 hours.
+So I did a short version, only like
+an hour or so.
+But we should get something that more
+closely resembles a chat chat GPT.
+Or at least a a chatbot of some sort.
+So when I tested this before it would
+degrade. As you can see it started out
+the message started out okay. Then it
+would degrade. So I'm going to do this.
+This is how you start the
+the of the chat. Then I'm going to do
+max tokens 150 just to make sure it
+keeps its messages
+short. Okay, so this is take two.
+Trying to limit the number max tokens so
+it doesn't
+go off the rails so much.
+Then hello. Hello, how can I help you
+today?
+Encouraging. I said what is your
+favorite animal?
+Let's break down the world of animals,
+but the animal kingdom is not entirely
+unique or exclusive.
+Uh there are truly unique creatures with
+distinct behavioral traits.
+It doesn't really answer my question,
+but it goes on to talk about animals at
+least.
+In way too much detail.
+I like dogs.
+Dogs and people have distinct traits
+motivations and motivations that can be
+used just to to justify animal cruelty.
+>> [music]
+>> That's terrible.
+Um so it does kind of talk about the
+topic that we're talking. Obviously not
+a great chat chat GPT, but I didn't
+really expect it to be the same thing.
+Um
+Do you read books?
+See you try to change a different topic.
+Yes, you read books. Many people read
+books, but they do not delve into animal
+behaviors.
+Okay.
+It's actually it is functioning as a
+chatbot at least. We got something.
+Obviously the answers are kind of off
+track. Um
+is to be expected I I guess with my
+limited uh GPU.
+Remember Karpathy is running his on
+eight uh H100s.
+It's a much much more heavier heavy
+heavier duty hardware. And he's doing it
+with the full data set and with the full
+supervised fine-tuning. You remember, I
+only did 10 steps cuz I I couldn't do
+the whole 10 hours or whatever how long
+it would take.
+But, the end result, we have something.
+Uh what are your
+thoughts on AI? See if he has any
+thoughts on AI.
+Yes, I think it is likely that your
+thoughts on AI have influenced the
+development of animal behavior. Well,
+it's still remembering that I asked
+about animals.
+Okay. So, this was my result. Obviously,
+um not not anything to write home about,
+but at least you can tell I I give real
+results on this channel. I won't make
+stuff up.
+Um I just wanted to test this Nano Chat
+training
+loop and see what we can get. Um
+it's kind of fun, you know, training it
+on your own GPU without any use of any
+actual LLMs or AI models.
+And I can improve upon this. Right now,
+what Karpathy's doing
+is he's actually using Auto Chat on top
+of Nano Chat in order to tune it.
+He did it for 2 days.
+And that's been his method recently. He
+had this tweet about it. And this tweet
+got me thinking about it.
+So, [music] uh if the viewers if you
+guys like this video and
+want to see more about trying to mess
+[music] around with this chatbot, the
+next step would be trying to run Auto
+Research
+>> [music]
+>> actually on the model that I had created
+to try to
+refine the parameters cuz I right I just
+used kind of the default or recommended
+for my GPU. But, if I ran Auto Research
+on it through Claude, I could really
+hone in on the best parameters on very
+very
+refined level.
+Uh that would be the next step.
+So let me know if you're interested in
+that.
+>> [music]
+>> Let me just let it say goodbye here.
+Okay.
+Say
+goodbye to the
+audience.
+Yes, you can say I've seen individuals
+use their unique skills, but I think
+that others may be different.
+Okay. Well, wise words from
+a kind of broken nano chat chatbot. But
+thank you for watching. I hope you like
+the video.
+Let me know in the comments what you
+think. Uh if you tried this out
+yourself,
+what kind of results you've gotten.
+Please subscribe. [music] Please
+uh like the video. I'll have a bunch
+more uh research, like auto research and
+other kind of little experiments I have
+planned using AI and agents. So stay
+tuned for that.
+And thank you for watching.

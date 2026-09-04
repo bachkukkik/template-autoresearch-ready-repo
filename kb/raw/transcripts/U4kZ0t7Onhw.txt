@@ -1,0 +1,499 @@
+---
+source_url: https://www.youtube.com/watch?v=U4kZ0t7Onhw
+ingested: 2026-09-04
+sha256: b12730ce5b2b8ed54ecdeef98d993ef3146986c598e37e6fbca950c2d6d57601
+title: Autoresearch Experiment: Metrics Looked Great — Then I Saw the Code
+---
+
+So, a couple days ago I did a video
+about my experiment with Auto Research
+from uh
+Andrej Karpathy.
+And I just used the Tiny Stories repo
+that he had uh presented for smaller
+GPUs. And I got a pretty good result. I
+got 56% improvement in performance in
+just like 2 hours. And this was a fun
+little experiment, but
+it got me really thinking
+what else can I do with this?
+I was able to train my model to go from
+this baseline, which is pretty much
+gibberish, into this very coherent
+uh grammatical story.
+So, I was able to train it using this
+these stories, but I wanted to see what
+else I could do. So, I think we're going
+to run a couple different experiments
+over the next uh couple weeks cuz I got
+I kind of got addicted to this whole
+training my own little mini models. So,
+today what we're going to do is we're
+going to do with code. So, for the data
+set for this, we're going to be using
+Code Parrot Clean, which is a
+small code base or data set uh Python
+scripts
+or Python code.
+Um
+it's a data set of Python files from
+GitHub.
+And this should hopefully work out well.
+We're going to use a sample of this. So,
+I know Python myself, so I'll be able to
+tell at least if something looks wrong
+or
+looks right. So,
+um so, I had to step one was I had to
+get Claude to review this
+data set, download the data set, check
+over everything over, and then kind of
+reconfigure
+the prepare.py file so that it could fit
+this data set, the Python
+code instead of the Tiny Stories.
+But, it's done that. It's completed step
+one, downloading the Python files.
+And then it's going to do the prepare
+script. Uh so, I just confirmed that
+it's it's ready.
+And now it's going to run prepare.py
+to prepare the training.
+Uh you need this uh
+pip install uv,
+which I didn't have on this machine.
+So, in the program.md file, I'm not
+changing anything really. The only thing
+I'm adding is a note about the data set
+that it's a Python source code.
+And it's more complex and varied than
+Tiny Stories. Expect a higher baseline
+and slower convergence. Uh which is to
+be expected here. I don't think we're
+going to get as quickly as a a huge jump
+in performance that we got with the Tiny
+Stories. But, that's basically it. I'm
+going to let the agent just kind of run
+with it and try different hypothesis.
+Okay, so step two is done.
+The tokenizer trained on the code data.
+Um
+so, next is going to kick off the
+training.
+Go ahead. Let me
+know the baseline.
+Yeah, and once again, just to give you
+an idea of what where what it's training
+on, these are the the Python scripts
+that it's using or the code snippets you
+can see here.
+Stuff like this.
+Okay, so it's training. The way this is
+going to run, I'm going to kind of just
+let it run, try different hypothesis.
+I'll let you know I'll check back in and
+let you know which ones it decides to
+keep.
+Um which ones show significant
+improvement. And we'll see how
+how much we can improve on our baseline.
+We're going to find out what our
+baseline is right now.
+So, the baseline completed.
+And these are the results. The key
+metric is this val
+uh BPB,
+which our baseline is going to be 1.84.
+So, it's writing a sample script so that
+it can output what the current version
+of the model would produce in terms of
+code.
+And then once we finish the training
+and the val PPP goes down,
+we'll be able to compare it with what we
+have
+after the training.
+So, let's see what we have.
+So, you can see the snippets here um
+based on these prompts, import torch.
+I mean, I'm not a Python expert, but I
+don't think that's going to work.
+Um it's mostly incoherent.
+Yeah, I mean, some of these classes it
+tries to define.
+But, yeah, this is not going to be
+workable code.
+Um so, yeah, and Claude says it himself.
+Here are the samples from the baseline
+model.
+As expected with only 5 minutes of
+training,
+the output is mostly incoherent. It
+picked up some structural patterns,
+imports, comments, license headers, but
+it can't produce any meaningful code
+yet.
+So, this is the baseline.
+And we're going to see if we can
+actually improve upon this with the Auto
+Research and to produce something that
+is actual looks actually like code.
+So, we're going to run the training
+loop. It's going to read the program.md
+file, which
+um it's going to retrain pui fully, set
+up the branch, and then begin the
+training.
+So, I pretty much let it
+develop its own hypothesis.
+If you remember in the previous
+episodes, some of the key factors, key
+metrics that we saw were depth and batch
+size [music]
+when we were doing the Tiny Stories and
+the music the sheet music one. Those
+were two key factors
+that really impacted the score.
+Okay, so there was the first run, the
+baseline. That's going to be logged,
+1.85. This is taking a bit longer than
+each one is taking more than 5 minutes.
+Um
+not too long, around 8 minutes.
+Um
+this is certainly the code is more
+complex than we were doing with Tiny
+Stories
+or with the sheet music.
+So, the first thing it's going to try to
+do is mess around with the depth from 8
+to 12 layers. More layers should help
+with the code structural complexity. And
+we have the VRAM headroom.
+So, they're going to try to do more
+depth.
+Which
+as I described before means more
+processing stages. And we found that
+with the Tiny Stories at least, less
+depth actually had a better result
+because the stories were so simple. But,
+because the code is complicated and the
+our data set is a lot more diverse,
+perhaps having more depth in this case
+will actually have a better result.
+But, we'll see.
+So, the result was actually worse. It
+went up to 1.87 by increasing the depth.
+So, the deeper model hurt it due to
+fewer training steps in the time budget.
+So, now it's going to try increasing the
+learning rate.
+Um the for the matrix learning rate.
+It's going to try to bump it up a little
+bit. So, let's see what it gets from
+there.
+And this matrix learning rate, I think
+I've discussed it before, but
+it's basically how big of a step the
+model takes when it's updating its
+internal transformation tables during
+training.
+So, basically if the number is too high,
+the nudges are too big and the model
+overshoots and never really settles.
+If it's too low, it's the the nudges are
+tiny and the training just takes
+forever.
+So, what you want is just like a steady
+improvement with each step. So, it's
+adjusting the the matrix learning rate
+here to try to find that just right
+amount.
+Okay, with the learning rate, we dropped
+down to 1.83
+versus the baseline. So, that's a good
+drop. So, now it's going to push it even
+further with a higher learning rate.
+Okay, we saw another decent improvement.
+So, it's going to try even higher
+learning rate.
+Okay, so it found that increasing matrix
+learning rate to .10
+had a better score, but when it went to
+14, it overshot it. So, now it's going
+to try to test the warm-up ratio
+to add a 10% warm-up warm-up ratio to
+stabilize the early training. We're
+going to be in a big improvement by
+reducing batch size
+down to 1.619.
+So, more steps with a smaller batch size
+is much better.
+So, that's good.
+Once again, batch size is a key is a key
+metric here.
+So, we're down.
+And we're going to try to reduce batch
+size even more. See if that helps.
+So, it's just continued to kind of lower
+the batch size and we've been really
+getting good results from
+uh point 1. 61 down to 1.67, kept
+lowering it, 1.03, and then the last one
+was 0.88. So, really great progress.
+So, now it's trying to lower it again
+and see if we can get an even better
+score. But, this has been the big
+winner.
+From where we started to basically all
+the way down to 0.88,
+main factor was the batch size,
+decreasing it. And like I've explained
+before, batch size is how many
+uh samples or segments the model will
+see before making adjustments. So,
+seeing fewer
+um fewer samples before making an
+adjustment here has
+paid off
+really well.
+Another slight improvement, but you can
+see the gains are starting to
+it's uh diminishing returns on the batch
+size reduction.
+But, it did go down from .88 to .87. So,
+it's going to try to go another level,
+uh 2 to the 13th,
+and see if we can squeeze out a little
+bit more. But, it seems like we might be
+at the
+the end of the batch size optimization.
+Okay, so we finally hit the wall with
+the batch size. The last one went up.
+>> [music]
+>> So,
+uh 2 to the 14th was the sweet spot for
+that. So, now it's going to try a
+different axis, increasing embedding
+learning rate from 0.6 to 1.
+Embeddings may need faster learning for
+code tokens. So, the embedding didn't
+work that well.
+Increasing it didn't gave us a slightly
+worse
+result. So, now it's going to try warm
+warm down ratio. It's probably going to
+try a bunch of random stuff.
+We might be at the end of like major
+gains, but I'm going to let it try out a
+couple things and see if we can
+get this number down a little bit more.
+It's already pretty good. It's down over
+50%
+from where we from the baseline.
+But, let's try to squeeze that a little
+bit more here. Now, it's going to do um
+warm down ratio.
+Decrease the warm down ratio at the end.
+So, let it running at full learning rate
+for longer.
+Okay, so it tried a couple other things
+from there. It didn't After the warm
+down, it did weight decay. It tried
+that, didn't work. Tried changing the
+window. It's the sliding windows to make
+it more long range, didn't work. Tried
+to adjust the head dim, didn't work.
+Aspect ratio didn't work. It finally
+found a good
+uh parameter in depth. It lowered the
+depth.
+You remember at the beginning, it
+actually tried to increase the depth and
+it didn't work. So, it kind of abandoned
+the depth
+approach from there. But, then it came
+back at the end and tried to lower the
+depth
+and it actually increased or rather
+decreased
+improved the results by decreasing the
+val BPP.
+And
+we ended up getting uh 0.82.
+And that's down from the baseline of
+1.85. So, that's a pretty impressive
+improvement in only 20
+20 experiments.
+Uh the key findings were that the
+batch size was the biggest lever.
+We went from uh 2 to 19 to 2 to 14 to
+cut the val uh
+BPP in half.
+Depth four beats eight because more
+steps matter
+more than the model capacity in the
+current time budget.
+And the other tweaks didn't really move
+the lever
+one way. So, we did have a pretty good
+result
+in terms of improving
+on the um the original baseline. Okay,
+so the optimized output was this. You
+can see import torch and then then a
+bunch of CH. It got stuck in this weird
+loop.
+And as Claude explains, it's a heavy
+rep- repetition.
+This is the classic issue with greedy
+low temperature sampling on small
+models. So, basically, it's just been
+way overfit. And you can see this was
+another attempt at import torch and then
+just a bunch of W's.
+The model's too small and undertrained
+for coherent generation, but the bigger
+issue was the batch size was just too
+small.
+It just created these these kind of
+loops. So,
+we tried to find one that was a little
+bit better
+that had diversity in the output.
+But, that was actually
+even if it had a higher
+val BPD. And this is what we came up
+with.
+Uh so,
+this was trying to find like a a good
+balance. So, this one the the
+>> [clears throat]
+>> BPP was 1.66, which is better than our
+baseline.
+And you can see the output here, import
+torch.
+And this is not perfect either,
+but it more closely resembles what a
+Python script would look like than what
+our [music]
+um our first baseline was.
+Here, you can see it's trying to define
+terms.
+Max length, it's
+not perfect, obviously. If you ran this
+as code, it wouldn't work.
+But, it is an improvement on what we had
+in the baseline.
+So, this is kind of a good example.
+I asked uh Claude about this
+about why the our optimized val BPP one
+created such loops.
+So, it comes down to the difference
+between evaluation and generation.
+Uh
+BPP evaluation uses teacher forcing. At
+every position, the model get gets the
+real previous tokens and just predicts
+the next one.
+So, it's measuring given perfect
+context, how surprised you by the next
+byte. So, generation is autoregressive.
+The model feeds on its own inputs. So,
+any small error compounds because the
+next prediction is based on wrong
+context.
+So, even though the evaluation was fine,
+um when you're actually trying to
+generate code or generate something, it
+doesn't it may not necessarily have the
+best output. So,
+low BPP does not necessarily mean good
+generation.
+BPP rewards predicting common patterns.
+Generation requires learning the full
+conditional distribution,
+which needs model capacity and stable
+training.
+So, in simple terms, think of it like a
+student taking a multiple choice test
+versus writing an essay.
+The BPP evaluation is like a multiple
+choice. You're shown real code and asked
+what comes next.
+The tiny model got really good at always
+guessing the most popular answer.
+And since common tokens like space
+through self-death appear everywhere,
+always guessing popular stuff scored
+very well on average, but generation is
+like writing an essay from scratch.
+Now, the model has to build on what it
+just wrote.
+If all of it learned was these tokens
+are popular, it just writes the same
+popular token over and over. And that's
+why we saw the CH CH CH and just running
+into those loops.
+Bigger models actually learn full
+patterns.
+But, this tiny model, this these coding
+snippets were just not suitable. So,
+this was a learning process certainly
+for me. Um
+I didn't know going into this whether or
+not it would be successful.
+And even though we got the evaluation
+score down a lot lower, the actual
+output was obviously not not better in
+the fully optimized version.
+So, not every experiment's going to be
+successful fully successful. The music
+one worked out great, but this one uh
+didn't have the same great great output
+at the end.
+Uh but like I say, this shows I'm not
+faking results. I'll show something even
+if it doesn't work. And even though this
+one failed, we kind of learned a lot
+here about why you need different kind
+of processes for different data sets
+and what works best. So, I asked Claude,
+why did this process work better for
+children's stories? The children's
+stories are simple and repetitive, and
+so was the sheet music.
+So,
+even a small fast trained model can
+learn the actual pattern. Something like
+um this auto research that I'm running
+just on my consumer
+computer, not any major chips or
+anything, no huge GPUs,
+um trying to trying to
+train a coding agent in this environment
+just didn't work out. Whereas, something
+like children's stories was much
+simpler.
+But, I hope you learned something. I
+learned something certainly about in
+this experiment.
+Sometimes learn more when you fail at
+the end.
+But, thank you for watching. We're going
+to keep trying these experiments. See
+what works, see what doesn't work, and
+learn across the way. I have a couple
+other
+kind of auto research um concepts
+planned. Now, I can use the what we
+learned here in the coding experiment to
+try to
+guide those next experiments so they
+could be more successful.
+But, thank you for watching. Please
+subscribe, leave a like, leave a
+comment. How have you been using auto
+research?
+And I'll see you in the next video.

@@ -1,0 +1,363 @@
+---
+source_url: https://www.youtube.com/watch?v=bMoNOb0iXpA
+ingested: 2026-09-04
+sha256: 9cf470dd390280d8cadfacb0997a1ff30d8ffe4deed870ac39b0efc58c8c7bad
+title: Can You Auto-Research Everything?
+---
+
+This is auto research. It's a get
+repository made by Andrej Karpathy and
+the whole point is that you have a
+script that the LM should optimize. It
+gets 5 minutes to do it and you can do
+quick experiments in succession. The LM
+will have to try to figure out new ideas
+and new ways to make things better and
+by having this loop, the idea is that
+you might have a way to semi-automate a
+research task. So I figured I should
+give it a spin too and I have. Here's
+the results. To a large extent, you can
+see that it indeed does seem to work.
+You know, line goes down so that's good,
+but your mileage might actually vary and
+I want to share a few lessons that I've
+learned because there are a couple of
+problems for which this approach will
+work very well and there's a couple of
+problems for which you may want to take
+a step back to. Now, about the problem,
+I figured I might revisit the traveling
+Santa problem from 2018. This is a
+Kaggle problem and normally a Kaggle
+problem would be all about machine
+learning. In this case, you're going to
+be solving a traveling salesman problem.
+In fact, you're going to tackle it for
+this image. As you can see, there's lots
+of small dots here and the whole problem
+is to take all of those dots to connect
+them into a tour, but to do that in a
+way that is going to minimize the total
+distance. And in fact, there's also an
+extra thing on top on this one because
+there's a prime paths addition to all of
+this. You have to visit every city
+exactly once. There's a Euclidean
+distance, but there's an addition step
+number mod 10 becomes 10% more lengthy
+unless it is coming from a prime city
+ID. And it's actually that bit that
+makes it very hard for standard solvers
+to try and tackle this problem. So that
+felt like, you know, a hard enough
+problem to see if maybe we could auto
+research this. So what I did is I copied
+the Andrej Karpathy repository and
+that's where I started working from. And
+at this point, it helps to explain how
+the repository set up. So there is this
+one train.py file. That's the file the
+LM can touch, but the entry point for
+the LM is this program.md file. It's a
+markdown file and you can put whatever
+you want in it, but there's a couple of
+things I want to point out here that
+Andrej added. As it's explaining the
+experiment to the LM, it makes it very
+clear that there's a fixed time budget
+of 5 minutes. If it takes longer, tough
+love. The whole name of the game here is
+to do quick iterations. So you don't
+want the experiment to take very long.
+You want it to be very short and you
+want the LM to try out lots of different
+ideas in quick succession. What the LM
+is allowed to do is modify train.py, but
+there is also this other file prepare.py
+and that one should be considered to be
+read-only strictly. And that is because
+it contains all the evaluation code as
+well as the data loading and the moment
+that the LM is allowed to touch this
+file, that's also the moment that the LM
+can start cheating. So that's what we
+want to prevent. So be very clear about
+that. If you're going to modify this
+file, definitely feel free to add full
+caps here. Another nice touch in this
+file that I do recommend you add as well
+is that again, you do stress that you
+are only allowed to take 5 minutes, but
+there is also a simplicity criterion.
+All things being equal, a small
+improvements that adds an ugly
+complexity is not worth it. And it helps
+to give the LM this trade-off
+explicitly. That said, the task that is
+being explored here is more related to
+torch and doing things very quickly.
+That's a bit different than what I'm
+doing. So what I did is I again, I
+copied this repository and I started to
+make some changes. I added a little bit
+of code so that we could use this
+traveling Santa problem. But then one
+thing I noticed as I was telling the LM
+to make some improvements is also that
+the number of ways that you could go
+about solving a traveling salesman
+problem, that is pretty vast. And I also
+started thinking that it might be useful
+if I would let the LM have one file
+that's more like a library with all
+sorts of heuristics that the LM could
+try. And then I have this other file
+where it's able to take those heuristics
+and apply them one by one because
+otherwise you get this risk that it's
+going to rewrite the whole thing all
+over the place. And I actually saw it do
+that a couple of times. So the
+prepare.py file contains all the
+boilerplate that we need in order to
+validate the experiment and to actually
+calculate the right cost. But I also
+added this TSP utilities file, which
+granted, it's a mess because it's all
+vibe coded. But here are all the
+heuristics that you potentially could
+use to generate a tour or to take an
+existing tour and to make an improvement
+in it. So there's the candidates tour
+that's made with nearest neighbors.
+That's an approach that you could take.
+I'm doing a lot of things with number by
+the way to make sure everything is nice
+and fast. But then we get to the
+territory where algorithms like two-opt
+make an appearance. And this is also the
+point in time where I felt that there
+was maybe a little bit too much distance
+between me and the algorithm. So what I
+did is I also had it construct a
+notebook. Now the whole point of this
+notebook is to explain to me the
+algorithms with, you know, charts and
+stuff. So I could actually see, okay, if
+we're going to initialize using the
+Morton curve, this is what you could
+kind of expect. So you can see some of
+the artifacts. You can also see that
+using this initialization algorithm is
+going to be imperfect. And it's a small
+touch, but I do like to think if I want
+to be able to steer an algorithm, it
+does help to understand what the
+algorithm is actually doing under the
+hood. So there's a big section here
+where it's all about how do you generate
+your first candidate. But then if you
+scroll a bit more down, then you're
+going to get to the moment where we're
+not just interested in generating a full
+tour. We're interested in taking a
+existing tour and then making a change
+to it. So two-opt is one of those
+classic algorithms. The whole point is
+that you're going to try and find a long
+arc and you're going to see if you can
+find another arc where they are crossing
+and improvement that you're always able
+to make if two lines are crossing is you
+can uncross them and that is always
+going to lead to a shorter tour. So
+that's how this algorithm works. It
+tries to find the longest line that is
+crossing another line and it's going to
+swap them. There are lots of variations
+on this and I'm definitely hand-waving a
+little bit here because there's a lot of
+details to still get right. But you can
+see an example down below where you take
+the Morton initialization and if you
+apply two-opt a whole bunch of times,
+you do see a tour that's just a lot more
+reasonable. Now, what I've just
+described takes us to about over here.
+So we made a couple of light
+improvements at the beginning, but this
+is then where we were at. Now one quick
+thing about this summary notebook by the
+way that has this chart,
+there is a watcher in here. So Marimo
+has this really cool watch flag that you
+can add on top of a file. And then every
+time that this file here were to update,
+this variable is also going to update
+and because cells in Marimo are
+reactive, if you use that variable in
+any other cell like what I'm doing down
+below over here, if this variable were
+to update, this entire cell runs and
+effectively that means that whenever
+that file updates, whenever the
+algorithm is able to find a new tour,
+this chart will also just update. So you
+can kind of use this notebook as a very
+fancy live dashboard. That's something
+you can totally do. But anyway, as far
+as the story goes, we are about here
+right now. And one thing that I started
+to notice is that, you know, there was
+some progress, but it was a bit limited.
+The big change that let us jump down
+over here was to say, well, suppose
+algorithm A has a solution. Well, what I
+then probably wouldn't want to do is
+start algorithm B from scratch, have it
+figure out some sort of a starting tour
+and then only give it 5 minutes to make
+all the improvements. Now instead, what
+would be maybe a bit better is to take,
+you know, one of the better performing
+models so far and to see if you can take
+that as a starting point to maybe make
+an improvement. So you're going to not
+start from scratch every time. You're
+going to take the previous solution and
+you're going to see if you can make some
+iterations on top of it. You can do that
+in a really greedy way. I tried to do
+that in a not necessarily so greedy way,
+but that's where you could see a lot of
+jumps down take place. So that was
+definitely good. And then at some point
+I also told it, look, if you're going to
+make all of these different
+improvements, maybe also let the
+5-minute thing loose a little bit
+because again, it's a very big tour that
+we're evaluating so it might actually
+need a lot of time to find an
+improvement. So then I said, okay,
+you're allowed to take 10 minutes and
+once again, we saw a pretty nice jump.
+So you know,
+it's going down. That's definitely cool.
+So we're definitely down here now. And
+this is all still black box. Like I'm
+staring a little bit at the notebook
+that explains all these different
+approaches, but I'm not writing any of
+this code by hand. I'm just observing if
+it were. And then it looks like we were
+plateauing for a bit. And this is also
+where I started having a little bit
+deeper look at the code. One thing I
+noticed was that we were really just
+solving this traveling salesman problem
+with default heuristics. That aspect of
+the prime path wasn't used at all. So
+then I started saying, look, LM, you've
+got to consciously make a few changes
+now that really pin down that prime
+number thing. So come up with a couple
+of heuristics that only address the
+prime number aspect of it. And that's
+where we started going down over here.
+This is also the point in time where I
+started getting a little bit cocky
+because I figured, hey, maybe we can
+actually do this in parallel. Wouldn't
+that be fun? That's where my best
+solution actually got lost. These 10
+started running in parallel and this is
+also the point in time where the code
+base has become a little bit of a mess
+and things started getting a bit
+unwieldy. I didn't take the time to
+write any tests. So as far as hey, we
+are able to make a bit of an improvement
+here, I'm satisfied to see that this
+auto research definitely has a good idea
+in it, but it also felt like maybe what
+would be good to do now is to also just
+maybe look back at this Kaggle problem
+just to see what the leaderboard scores
+were. And one thing that was pretty cool
+if I look at the score that I have here
+and if I look at the score that I landed
+on, it did fall within the 5 to 6%
+margin, you could say. Like I was, you
+know, pretty close to the solution doing
+a super black box thing. But then if I
+actually started looking at these
+solutions that people have provided,
+they were just using completely
+different algorithms than the algorithms
+that Claude was actually using on my
+behalf. So one thing that I think in
+hindsight would have been better is if I
+just did a little bit of research. Just
+find the names of the algorithms to
+consider and to feed those to Claude
+beforehand. There is a bit of a risk
+that Claude is just going to do the
+standard algorithms and odds are that
+that's just not going to be sufficient.
+Another thing I noticed as I read these
+solutions is that the greedy approach
+doesn't necessarily win. So a lot of
+these approaches work by just letting
+tons of cores run for the longest time
+ever, but also to kick a solution that
+is to say consciously cause a suboptimal
+thing to happen and that way the
+algorithm might explore different
+allocations. And another thing is also
+worth mentioning here. I was super happy
+that I actually took the effort to also
+save the best route found so far because
+as a human you can still sometimes just
+eyeball when something is amiss. So one
+thing you can very clearly see here is
+that in this allocation there's just a
+couple of lines that, you know, don't
+form a correct tour. There's like a
+massive jump from all the way down here
+all the way up there. Another one over
+here, another one over here, right? So
+this auto research, again, I like the
+idea but maybe if you want auto research
+to really work it definitely does help
+if you take the effort to properly
+research and to maybe also make a nice
+little library. One that has unit tests
+and maybe also one that takes a
+principled approach when it comes to
+coming up with solution A that then
+informs how solution A prime is going to
+be and that you're always able to sort
+of rely on [snorts] this graph of
+previous solutions as you look for the
+search space. And the current setup that
+Andre Karpathy uses, it's great but it
+doesn't do all of this stuff which does
+make a bit more sense where you're doing
+traveling salesman problems because
+again, sometimes you do have to throw of
+compute at it. This repository is up if
+you're interested in learning more. The
+code is incredibly sloppy because I
+tried to go full vibe code on this one.
+But if you want to give this a spin, the
+one bit of advice that I do have is that
+you do benefit a lot from adding
+watchers like this to see live updates
+and to also add all the tools that you
+can to inspect what the best solution so
+far is because that can actually help
+inform how you're going to steer the
+algorithm as it explores different
+options. So fun exercise.

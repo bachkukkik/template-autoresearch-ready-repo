@@ -1,0 +1,601 @@
+---
+source_url: https://www.youtube.com/watch?v=ZhMGNlCU4qc
+ingested: 2026-09-04
+sha256: a7852dcd1b2edff9ad458b4c1f4cfe093813ccac186b1c874776a6822c863634
+title: I Built a Digital Brain Upload Using Karpathy's LLM Knowledge Base
+---
+
+So, if you watched my earlier videos
+about the LLM Wiki idea or knowledge
+base
+from Andrej Karpathy,
+you saw me build this kind of
+trading-based
+LLM Wiki, and it has a lot of
+information about trading methods and
+stuff like that.
+And it's very useful for this one
+specific task, compiling knowledge about
+trading methods.
+But, I've actually been applying this
+LLM Wiki idea to a lot of different
+projects that I have and have been using
+it in a lot of different ways. It's
+really versatile
+mainly because it's so simple in its
+concept. You can adapt it to a lot of
+different things.
+So, I've been thinking a lot more on the
+concept, and this was a couple of weeks
+ago, but this kind of exchange between
+Jen and
+Andrej Karpathy got me thinking about
+this.
+Jen was uh talking about building a
+second brain on Obsidian using the Wiki
+idea.
+And then uh Andrej Karpathy responded
+talking about it being kind of a
+practical form of a brain upload, which
+is obviously a popular topic in sci-fi
+movies and series, but
+what he's talking about is kind of an
+approximate version just using LLM
+simulators.
+He proposes that they could kind of do
+it through detailed video interviews
+using that data. But, it got me thinking
+about this idea
+more of a personal type of LLM Wiki or
+knowledge base
+that really does become your second
+brain or digital upload.
+And then there was this post by Bryan
+Johnson
+who is famous obviously for recording
+everything about his own health and
+body.
+So, he actually
+put all the data points he has into this
+kind of knowledge base.
+And you can see here the post is kind of
+funny. He gets very obsessed with AI,
+which
+anyone who first touches this and gets
+really into using it will know that
+experience.
+But, he used all of his data points to
+become a functional database and
+queryable, and he was able to really
+unlock a lot of insights by doing this.
+And he was able to use it to ask
+questions about him- himself.
+So, this idea got me thinking a lot
+more. And I obviously don't have the
+data points that Bryan Johnson does,
+especially in terms of my health.
+But, a lot of us spend a lot of our time
+online, especially if your job is mainly
+through online interactions, email,
+Slack, other forms of communication.
+So, in today's video, I'm actually going
+to try to create a digital upload of
+myself, creating my second brain
+through knowledge bases.
+Let's get started.
+And if you like this video, please
+subscribe to my free weekly newsletter
+where I give my honest thoughts about
+the week's AI news that I can't share
+here, as well as interesting research
+and papers that I found, and what
+projects I've been building behind the
+scenes.
+There's a link in the description, or go
+to onchainaigarage.com.
+Every word is written by me, mistakes
+and all. So, if you're sick of AI slop
+articles or all hype with no substance,
+subscribe and give AI Garage Weekly a
+shot. Now, back to the video.
+So, I'm here in Claude Code where I
+built my original LLM Wiki, and we're
+going to be basing it on that format,
+but obviously this is a different type
+of knowledge base, and this is what
+we're going to be using in terms of raw
+sources to begin.
+Um a lot of times obviously I'm working
+a lot in Claude Code. So, there are
+files that include all of your prompts,
+basically, all of the sessions. So, this
+is going to be one of the main sources
+cuz every day this is where I'm mainly
+working in Claude.
+Um I just got a Codex account, so I will
+have to add those as well, but
+mainly in Claude Code, so we can use
+these the JSONL files
+and drop those into the knowledge base.
+That'll include all of my current work,
+right? And also my voice, how I write,
+how I talk when I'm using TTS, what my
+interests are, what kind of projects I'm
+doing.
+Um the other thing, email, and um I use
+Gmail,
+so you can export your emails.
+And I'm mainly going to be focused on my
+work emails
+and
+the ones for Tombi Studio.
+Um but, this will have all of your
+information about your work, your
+progress, who you're working with.
+And then open Claude logs.
+And this doesn't have to be specifically
+open Claude, any agent, Hermes agent,
+I'm going to put in those logs as well.
+And these agents usually will record the
+full sessions in raw data.
+So, this is similar to Claude. I'm just
+talking to an agent, to an AI, and it'll
+have a lot of my voice and my interests.
+And then lastly, for my case, most
+people won't have this, but since I do
+YouTube,
+I have a bunch of my transcripts in the
+subtitle SRT files.
+That'll obviously have a lot of my
+interest and what I'm talking about, and
+also just my voice.
+So, this is going to be the format that
+we're going to try to do this with. We
+may need to change it. I'm doing this
+live, so I'm not sure exactly how well
+this will work. Uh but, because I'm
+working in Claude, Claude can
+automatically extract the prompts. The
+rest of them, I'm going to show you how
+to get these files.
+And needless to say, when you're doing
+something like this with personal data,
+you need to be very careful about
+storing it. Uh keep it local,
+keep it very secure,
+and don't accidentally uh commit it to a
+to a public repo or anything like that.
+So, for the initial ingestion, um you're
+going to want if you're going to do
+email, you're going to go to
+takeout.google.com,
+and this will bring out you to your
+Google account takeout page, and this is
+where you can export a copy of your
+content. It doesn't have to be email,
+basically any Google kind of data,
+calendars, anything like that.
+Um you can
+your browser history, stuff like that,
+you can export your own data.
+For live updating the the Wiki or
+knowledge base, you can use the API from
+your from your agent. If you want to
+check my previous videos about
+agents and using Google Workspace, you
+can do that. But, just for like a bulk
+import for the initial ingestion,
+this is probably the easiest way, the
+quickest way to do it. So, you scroll
+down here, you can see everything that
+all the data you have access to.
+We're looking for mail.
+Where is it? Mail. Here we go.
+So, all mail data included.
+We scroll down.
+Next step.
+You can see you do your You can actually
+do it every 2 months for 1 year.
+Every 2 months you can update it if you
+want. Um we're going to send download
+link via email. We're going to download
+it.
+Zip file.
+File size.
+Uh 2 gigs should be fine.
+Do create export.
+There we go.
+That is how you uh export your email
+data.
+And you see Claude is still working
+here.
+Okay, this is what we got, all mail
+including spam and trash, and it's a
+.mbox. We're going to have to clean this
+file a little bit.
+So, you can see in the YouTube folder
+here, this is all the the transcripts
+for a lot of my videos.
+And the the video editing software that
+I have automatically makes these, so
+I just needed to copy and paste them
+into the proper knowledge base folder.
+See, now it's pulling um the prompts
+that I gave it from these different
+projects.
+AI Trenches Survivor was the original
+name of uh AI
+Agent Trenches Royale.
+And then my other random business ideas.
+This is mostly going to be text-based,
+but if you have something
+obviously, none of us are at Bryan
+Johnson level, but if you have some like
+health data from if you have an Apple
+Watch, I believe you can import some of
+that data, at least basic stuff.
+Um you could also add that to the
+knowledge base to kind of
+enrich it even more, so it knows even
+more about you.
+Okay, so we can see the scaffolding is
+complete here.
+Um and this is the basic structure in
+the personal KB
+knowledge base
+uh directory. You have your Claude file.
+I'm using Claude still, so it depends on
+whatever LLM you're using that has a
+prompt like that.
+I think we're going to try to put this
+or actually give this access to my
+Hermes agent, but for now I'm building
+it in Claude.
+And then these are the raw files,
+the Claude sessions, emails,
+um our my agent logs, and YouTube.
+So, for the agent logs, if you're using
+open Claude,
+uh you're going to want to check your
+.openclaude, and then go to agents, and
+then main.
+Um and then you're going to have to
+check the sessions directory, and those
+will have all of your logs, and that's
+raw data though.
+So, you're going to need whatever LLM
+you're using to kind of clean that.
+And these are all going to be the raw
+sources for the knowledge base, for your
+second brain.
+And this is just going to be the
+foundation.
+You can continue to add to it
+uh as you get more data.
+Okay, here's the sessions
+folder. These are all of my
+open Claude and
+See all of the These are raw
+sessions. These are also need to
+clean because this data is going to have
+a lot of um the actual agent's
+[clears throat] response.
+So, that my LLM here is building uh like
+different scripts to try to clean the
+data. But, once you have these scripts
+created, um you can just run them every
+time [clears throat] you use the same
+data.
+But, okay, you see what we have so far.
+Bunch of prompts. Emails are a little
+bit lighter.
+I just don't use email that much. Um my
+YouTube transcripts is probably the best
+cuz it's just me talking for
+for hours
+in terms of capturing my voice and what
+I'm interested in.
+And in terms of other sources of
+information you could use, like I said,
+if you're using Slack, you can use those
+logs. If you tweet a lot, you can
+uh export your tweets.
+I believe you may need to use the API
+for that, but
+you can do it. Other messaging
+apps I imagine also have an export
+function.
+But some of them are more difficult.
+Line is the most difficult.
+Uh but Telegram has a pretty good export
+tools. I've used it a lot. And WhatsApp
+has pretty decent.
+Like for a lot of them you can back up
+your chat history to Google Drive and
+then just take it from there. So now we
+got the full royal inventory. And I
+think this is enough data
+to ingest and then kind of see the the
+knowledge base, the second brain.
+Okay. So now the agent is
+reading through all the raw sources.
+And it's going to be a lot, so it's
+going to try to narrow down which ones
+it
+are really important and which ones
+aren't.
+Okay. So it's been writing the different
+files to fill out the knowledge base. It
+did um about my voice, which will be
+interesting to see.
+Um it did one about my working style.
+Now it's working on about the projects
+and the YouTube channel.
+And the different uh kind of like
+experiments I've run.
+It'll be interesting to see how well it
+captures my thoughts
+at the time of each project as my my
+first brain here is
+getting older.
+Um
+I don't quite remember exactly what I
+was thinking
+or what my reaction was for a lot of the
+projects and stuff that I've been
+working on
+or specific reasons that certain
+projects didn't fail. But having these
+logs and actual conversations of when I
+was building them
+uh would be interesting and something I
+could go back and ask
+the agent to look at.
+So I could see definitely a lot of
+different use cases for this type of
+second brain or digital upload.
+It's kind of framed here in this tweet
+um as kind of something your children
+could inherit as an interactive map
+of your mind and passions, obsessions,
+work, fascinations. It is kind of an
+interesting way to think about a second
+brain.
+Or as uh Karpathy describes it here as a
+brain upload.
+If we decide to get real creepy, I could
+make it speak in my voice and then use a
+voice cloning
+um software or something like that, so
+it actually speaks as me
+in my real voice cloned
+and with my same tone.
+But that might be a little too creepy
+for me. Okay. The ingestion is complete.
+It took a while.
+Uh it took like a half hour.
+But there were a lot of files there. A
+lot of uh a lot of data.
+Some of this I'm going to actually have
+to blank out cuz it's actually a bit
+personal. But that's what this is
+supposed to be. It's supposed to be your
+digital upload.
+And here we go. It's formatted um just
+the way you need for the Obsidian Wiki.
+So it's the same thing here. This is the
+raw files. This is the Wiki.
+It has my goals, my interest, people who
+I've been communicating with, my
+profile, projects, summary.
+So it was able to like if I look at my
+interests,
+it has a lot of my interests here. Agent
+frameworks, collectibles, creator
+economy,
+open source LLMs, Solana crypto, travel,
+hacking.
+So like here's the entry on agent
+frameworks.
+Um
+So you can see what I've been talking
+about with Hermes agent and open claw.
+Hot takes.
+I don't really do many hot takes, but
+this is a lot of this is coming from my
+the YouTube videos
+as well.
+So you can see how it all produced this
+kind of Wiki
+about my my work on these different
+different frameworks.
+And it's all related. They have links to
+other
+projects. If we look at the projects
+here,
+um has a lot of the different projects
+that I'm working on. Some of these have
+been abandoned. Some of these are still
+still working. Like this AI
+trenches survivor. This is actually um
+agent trenches royale.
+The original name was this.
+So this is actually great cuz I forget a
+lot of the details of this project cuz
+it was a while ago.
+Um but it has all of the details um
+about what I was thinking while I was
+there. Gemini flash performed
+surprisingly well in the game.
+You can see a lot of this the profile.
+I'm not going to show you this cuz it's
+a little bit personal. It has my
+background um and this is stuff I've
+been talking about with
+uh other people on my email and in
+Telegram and some of my messaging apps,
+my skills, my values, my voice.
+Let me see if I can show you any of
+this. This is kind of interesting. It's
+a list of my my values.
+Open source and local first, craft over
+hype.
+This is stuff that isn't like
+specific like solid data like my
+projects and stuff like that. This is
+more soft information about myself. Uh
+build
+don't just talk.
+I would say that's a value of me.
+Honesty about limits.
+Generous with learners.
+Okay. I'm going to have to block out
+some of this as like my email details
+and stuff.
+But um
+like my voice, let's see.
+When I'm prompting Claude, I'm a terse
+operator. Short, directive, low
+ceremony.
+Acknowledges with one-word replies.
+I think that's accurate. I don't go
+keep it very short with Claude.
+Save up my tokens.
+So
+some of this is pretty funny.
+It recorded when I was yelling at Claude
+for uh
+assorted reasons.
+I'll have to blank out some of the
+expletives here.
+Uh but then it has my tone when I'm in
+YouTube, which is more of a warm
+teacher.
+I'm not as not as harsh.
+Try to be more positive.
+So email is more warm brief.
+Uh has a lot of my vocabulary patterns
+and stuff like that. So interesting. I
+didn't tell it specifically to do this.
+Let's look at some of my goals here.
+Um
+So see some of these are for my YouTube
+channel, some of the series that I want
+to complete.
+Some of these are project goals.
+Uh like let's look.
+There's Ashi King, which is
+uh project I'm working on right now. So
+this is
+my goal.
+You can see it has the goal, has why I'm
+building it, has my progress.
+And because I'm building this in Claude
+code, it's going to have a lot of the
+progress involved. Yeah. So it's a good
+goals tracker as well.
+So let's actually ask some queries of it
+through the LLM and see what kind of
+answers we get.
+So I'm going to ask it uh what were my
+thoughts on the different AI models in
+Humans Among AI, which is a project I
+did like around a month ago or so. Um
+I've been releasing the episodes weekly.
+Um it was a fun project. It was kind of
+a game experiment. Didn't didn't do very
+well on the channel, but I thought it
+was a fun project. Um
+Here's the models I was using, these
+three different models. So it has all of
+my recorded thoughts here by model.
+Gemini 2.5 flash. We had some issues
+with Gemini.
+Um you can see some of the bugs. Deep
+Seek V3
+uh silently fails sometimes.
+So this is good to go back and actually
+have this information. Let's ask it a
+little bit. Where do I often get
+frustrated in machine learning
+experiments?
+This is kind of more of an emotional
+question.
+Be kind of interesting. I don't
+obviously remember
+specific uh moments.
+So you can see it picked up some of the
+information. Unverified hallucinated
+numbers after a long run.
+Um it found a specific quotes for me.
+Um
+Here's Here's a little insight. Way
+before you waste another hour of my
+life, double-check everything for any
+more stupid mistakes. So I get
+frustrated with that when it has
+hallucinations, especially after long
+run training run. Uh Claude going deep
+without stepping back. Infrastructure
+getting in the way of the actual
+experiment. That's just my limitations,
+but
+that is frustrating. Um so interesting
+insights here into my personality. The
+frustration isn't machine learning being
+hard, it's wasted iteration time
+or scope drift. Yeah.
+This is just kind of interesting stuff.
+Looking back at past conversations. So
+you could use this kind of like second
+brain like I was using it before for
+like goal tracking, tracking progress of
+whatever projects or goals you have in
+life, keeping track of emails and
+conversations about that, or stuff like
+this where you could just ask it about
+yourself, stuff you may not even
+realize. And I think that's what Brian
+Johnson was talking about a lot. Um
+obviously he's using health data.
+But this is more about uh my emotional
+health, I guess.
+But it is more of like a a digital
+upload than a strict knowledge base,
+which is like what we did in the the
+first episodes with the trading
+the trading LLM Wiki.
+Yeah. And back to the the Brian Johnson
+post, he can ask it questions about
+psyche, behavioral patterns, biology,
+protocol. I don't have biology data, but
+you can certainly tell from my
+conversations a little bit about my
+psyche and behavioral patterns.
+Patterns across my life I couldn't
+previously connect. So that's the kind
+of data you get with this kind of
+digital upload. So it's a different
+approach and kind of interesting if you
+if you mess around with it and you have
+this data. So that's going to be it.
+In this episode, I built my own second
+brain and digital upload by ingesting my
+emails and my logs of agent and Claude
+code conversations, transcripts from my
+YouTube channels
+to gain insights into my goals and my
+work process, my voice, and my thoughts
+on different projects. So this has been
+an interesting experiment.
+So if you're interested, please try to
+build this out for yourself. Let me know
+what you found, how you could use this
+beyond just curiosity about yourself.
+So, if you like this video, please
+subscribe. Leave Leave a like. Please
+leave a comment.
+Like to hear your thoughts on this one.
+Yeah, but this is going to be it for
+this one and I will see you in the next
+video. Bye, everyone.
