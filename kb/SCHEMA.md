@@ -7,17 +7,21 @@
 
 ## Domain
 
-> Replace with this project's knowledge domain. Be explicit about scope — the domain
-> statement is what stops the KB from accreting general-purpose material that belongs
-> in a model's head, not in this repo.
+The **template-autoresearch-ready-repo** KB: autonomous research (Karpathy's
+autoresearch pattern) and the agentic-ready repo doctrine
+(bachkukkik/template-agentic-ready-repo). Specifically —
 
-The **[project]** repo: [what the KB is about]. Specifically —
+- autoresearch: the three-file contract (`program.md` / `train.py` / `prepare.py`),
+  the keep/discard experiment loop, metrics (`val_bpb`), budgets, and design choices
+- the autoresearch ecosystem: platform forks, parallel/adjacent systems, and the
+  evaluator-legitimacy / judgment-preservation research thesis
+- worked examples and video corpus: what the loop achieves per domain, what fails,
+  and lessons for humans and agents
+- the document funnel doctrine: stages, funnel rules, harness adapter, PRD→SC→test→CI
 
-- [subject area 1]
-- [subject area 2]
-
-Out of scope: general language/framework/runtime knowledge, and anything not specific
-to how *this* project behaves.
+Out of scope: general language/framework/runtime knowledge, nanochat internals
+beyond what the loop exposes, and anything not specific to how *this* template
+repo or the autoresearch pattern behaves.
 
 ## Purpose
 
@@ -181,8 +185,7 @@ validation, off-taxonomy tags, stale content (>90 days), contradictions,
 
 ## Tag Taxonomy
 
-> Replace with this project's tags. Only tags in this table may be used. To add a tag,
-> add the row **first**, then use it.
+> Only tags in this table may be used. To add a tag, add the row **first**, then use it.
 
 | Tag | Meaning |
 |-----|---------|
@@ -191,6 +194,11 @@ validation, off-taxonomy tags, stale content (>90 days), contradictions,
 | `decision` | Recorded choice + rationale |
 | `integration` | External services and contracts |
 | `ops` | Deployment, CI, runtime concerns |
+| `autoresearch` | The Karpathy autonomous-research loop pattern |
+| `research-method` | Evaluation, metrics, budgets, experimental design |
+| `agentic` | Agent harnesses, skills, instruction files, delegation |
+| `example` | Worked objectives / video corpus lessons |
+| `doctrine` | The agentic-ready repo funnel and governance |
 
 ## Conventions
 

@@ -1,0 +1,562 @@
+---
+source_url: https://www.youtube.com/watch?v=-Ip9EtoBjbk
+ingested: 2026-09-04
+sha256: ce7f8657be1d4e5c4a44d40abe11fdf2f1fcc0f21fa9f75e89cc31f46993bfd2
+title: I Used Karpathy's Autoresearch to Train a Music-Generating AI Model!
+---
+
+So, in this video I'm going to be using
+Karpathy's auto research tool to
+optimize a model for sheet music.
+And just to give you an idea, this is
+the baseline that we have.
+>> [music]
+>> It's kind of all over the place. I don't
+know if you'd call that a good song.
+Sounds like my child running on a piano.
+But stick to the end of the video to see
+what the optimized output will be cuz
+you'll be shocked. I was shocked myself
+about how good the song actually became.
+So, stay tuned to the end of the video
+for that.
+So, early in the week I ran an
+experiment using auto research from
+Andre Karpathy and I used his tiny
+stories
+uh data set
+with my mid-range laptop GPU and we got
+some pretty good results. Um you could
+see here, this is where we started at
+the baseline. Pretty much gibberish. And
+by the end in two two hours or so, we
+were able to get a completely coherent
+story training a model to basically
+create or produce these little
+children's stories.
+I was pretty impressed by the result.
+The AI agent took the original baseline,
+tested a lot of different hypotheses,
+changed a lot of different metrics, and
+was able to find an optimized version
+that was near human level in terms of
+performance. So, it was a lot of fun to
+try to chase these lower and better
+scores in the validation BB BPB.
+And it got me thinking what other kinds
+of experiments or data can I use to do
+this? So,
+I think over the coming weeks I'm going
+to try to run a couple different
+experiments. I have a fun one planned
+for today.
+This one I don't know how well it's
+going to go, but I'm interested to see.
+Thinking outside the box. Okay, it did
+stories. What else can it do? So, today
+we're going to test with music,
+specifically this
+uh Sand Woods
+uh Irishman, which is a data set of ABC
+notation sheet music for traditional
+Irish uh folk music.
+This is a very large data set, but you
+can see this is how it's formatted.
+Just like that.
+Just with the letters, numbers, some
+other notation. But, when you put it
+into
+This is just a browser-based ABC player,
+you get something like this.
+>> [music]
+[music]
+>> There you go. So, that's a little Irish
+just a MIDI, if you know
+um that format. So, that's what the
+sheet music is going to be doing, and
+what I'm going to try to train my model
+on is creating music like that using
+this this data set. So, I have no clue
+if this is going to work or it's not
+going to work, but we're going to try it
+out. I think it'll be fun to see what we
+start with and what we can get in the
+end.
+So, we're going to get started in Claude
+Code. I just
+um
+cloned the repo,
+the Windows version, Windows fork of the
+Auto Research repo,
+to this directory, an empty directory,
+and then I told Claude I want to use the
+Auto Research function to train on this
+data set. So, now it's going to
+just kind of review the code base, and
+then get the data set, and then we will
+start to prepare.
+Okay, so Claude is just adjusting the
+prepare.py
+script
+to accommodate the Irishman
+sheet music data set that we're going to
+be using.
+Okay, it installed all the dependencies
+that it needs. Now, it's downloading the
+the data, and it's doing the prepare.py.
+Okay, so it did that. It downloaded the
+data set and the tokenizer trained
+successfully.
+So, now it's going to run a 5-minute
+training to get our baseline.
+It shouldn't be too difficult. This The
+data sets themselves you can see are
+very small.
+Like it's just this
+It's actually probably smaller than the
+tiny stories.
+Just in a different format obviously cuz
+it's sheet music not not written text.
+But, we should be able to run through
+each training session pretty quickly.
+So, it did the first run the baseline
+and we're at
+about BP
+B of 2.08
+pretty high
+considering and this this is going to be
+the key metric that you need to
+understand.
+Um the basic thing you need to know is
+that lower is better. So, a 2.108
+is pretty high.
+And basically this measures how
+surprised the model is by the next
+token.
+So, the lower is the better. It means
+the less surprised it is and the
+better it is at predicting it.
+So, at a two over two means it's
+basically lost. But, that's okay. This
+is just the baseline.
+But, to give you an idea of what this
+actually sounds like
+>> [music]
+[music]
+>> You can just kind of compare it to
+the what it was the actual
+>> [music]
+>> folk song.
+>> [music]
+[music]
+>> Yeah, much more of sounds it much more
+like a melody than what we had
+previously.
+But, that's okay. That's our baseline.
+And we're going to see if we can get a
+nicer sounding melody and
+importantly for our metrics, a better
+score than the 2.08.
+Okay.
+Let's begin
+the training loop.
+So now it's going to start
+changing metrics one by one, forming
+hypothesis. It's going to read the pro
+met program instructions.
+And that's the file you can alter if you
+want to. I didn't for this case. I just
+left it as is.
+Basically letting the agent try try
+different things, form its own
+hypothesis
+rather than trying to um
+give it direction. Let's just let it
+figure it out itself.
+So it's going to start experimenting.
+The baseline only did 24 steps with
+batch size of eight.
+So there's huge headroom. The first
+experiment will be to increase the depth
+to maximize model capacity within B RAM
+budget.
+So it's going to try depth of 12. Depth
+you remember from the previous video was
+a key factor in the tiny stories
+experiment. And it's basically how many
+processes
+you'll go about, how deep.
+This was a This was our biggest win in
+the tiny stories. It's how many
+processing stages the model had.
+And in the tiny stories case we found
+that the lower the depth
+it was actually a better outcome. So the
+sweet spot was the depth of three.
+But we will see
+if the sheet music has a different
+outcome.
+So the experiment finished and it
+got worse
+the score. So it's going to discard
+that.
+So increasing the depth didn't help.
+Uh
+the deeper model was too slow.
+The data set itself is small, so the
+model can see it quickly.
+Key bottleneck is throughput. We need
+more steps in 5 minutes.
+May just because my computer is a little
+bit older.
+So right now it's going to try to do
+batch size.
+Reducing the global batch size
+uh down from 19 to 17,
+which will be from
+uh 524k tokens down to 131k. So, it'll
+give it four x more optimizer steps.
+Batch size, if you remember, that was
+also a factor in our first experiment.
+And it's basically how many examples the
+model sees before adjusting itself. So,
+smaller batches mean more frequent
+updates.
+So, let's see what it does how it does
+with this.
+Okay, so I saw a big improvement after
+reducing the batch size. We're down to
+1.44. It's a huge huge jump down from
+where we started, 2.08. So, it's going
+to now try to keep going in that
+direction
+and reduce the batch size even more.
+Okay, we had another big improvement
+down to 1.03
+by reducing the batch size. So, it seems
+like for this
+data set, batch size is really
+important. So,
+now it's going to
+reduce it even more in the next run,
+going down to 2 to 14, 16k tokens per
+batch.
+So, we're going to do the next one.
+But you can see we're already down
+half of where we started in just five
+steps, or four steps,
+down from 2.08 down to 1.03.
+Pretty good. Very fast to improve that
+much.
+Okay, so we had another improvement, but
+only slightly.
+You can see.
+So, we're going to keep that batch size,
+but it's going to try different axis cuz
+maybe I
+it may be the best we can get using
+batch size. So, it's going to try depth
+10 now with the smaller batch, going
+from eight to 10. So, it's going to be a
+bigger model and more step steps might
+be the sweet spot. So, let's see what we
+can get. So, increasing the depth
+actually created a worse score. So, now
+it's going to test out matrix learning
+rate
+to see because these sheet music is
+simpler or more regular language, it
+might tolerate a higher learning rate.
+So, let's see how it does with that.
+So, the learning rate didn't help and
+now it's going to try aspect ratio.
+Um the thesis is that because the Irish
+man tunes are short,
+um you can try to reduce the aspect
+ratio down to 32. It halves the model
+width, but keeps the depth at eight. So,
+it should result in a much smaller,
+faster model that can do more steps.
+So, we will see.
+Okay, so we have an improvement down to
+0.99. Pretty good. Broke through one.
+The smaller model, 107 steps, much
+better convergence. So, we're going to
+keep that. And smaller and faster is
+winning, so it's going to try aspect
+ratio of 24.
+Even smaller, even more steps.
+So, to understand this aspect ratio, you
+need to understand what head is called
+in this context
+uh cuz the aspect ratio is how much
+information each head can hold uh while
+it's asking which other words matter for
+understanding this word. So, basically,
+a head
+is one of the questions it might ask
+while trying to understand.
+So, like imagine you're reading a
+sentence and you want to understand one
+word,
+you might ask several different
+questions about it at once. Who is doing
+the action? What is being acted on? When
+is this happening? So, each head is one
+of those questions. Having multiple
+heads means the model looks at the text
+from several angles simultaneously. So,
+>> [music]
+>> more heads means more perspective, but
+that's also more compute. So, going on a
+lower aspect ratio
+means we're
+looking at a faster model, but one that
+is not necessarily asking as many
+questions.
+And less complex questions.
+So, I hope that makes sense. So, a
+bigger aspect ratio in this sense, you
+have more complex, nuanced questions it
+can ask, smaller, simpler questions, but
+it's faster to answer. And with a text
+data set like these sheet music,
+uh it seems like it's getting a better
+outcome, but let's see how this goes.
+So, the reduced act ratio did decrease
+it very very slightly. So, we're going
+to keep that one, but we're getting
+diminishing returns on shrinking the
+model. So, well, it's going to try a
+different axis, add warm-up with 793
+steps and a warm-up ratio of zero, the
+optimizer starts at full learning rate
+immediately.
+So, with this small batch, some warm-up
+could help stability.
+Okay, so let's see if that helps.
+Okay, so the warm-up helped down to
+9.97.
+I was going to add more. Try to add more
+warm-up.
+And to explain warm-up ratio, when the
+training starts, the learning rate,
+which is how big each update step is, it
+starts very small and then gradually
+ramps up to full speed. The learning
+rate. So, the warm-up ratio is just how
+much total training time you spend in
+that kind of ramp-up phase. So, it's
+like a car engine, you let it warm up
+before flooring it. So, you skip the
+warm-up and you risk wild unstable
+updates early that can mess up the whole
+training run.
+>> [music]
+>> So, now we're going to try adjusting the
+warm-up ratio and see
+if increasing that warm-up, that kind of
+ramp-up phase, can give us better
+results.
+Uh so, the increased warm-up didn't
+help. So, 5% was the
+optimal one. Now, it's going to try
+reducing warm-down from 50% to 30%.
+There's only 850 steps, half the
+training warm-down. Might be too
+aggressive for this data small data set.
+So, similar, just the opposite, warming
+down
+instead of warming up.
+Obviously, um at the end of training it
+gradually slows the learning rate back
+down to near zero, and that's the
+warm-down.
+So, it's like easing off.
+So, we're going to try to reduce that
+warm-down so it's running at full
+learning rate for a longer period.
+So, reducing the warm-down didn't help.
+We still got 0.99.
+So, we're that and now it's going to try
+something different. Window pattern SSSL
+has sliding windows for most lay-
+layers. ABC notation,
+which is the sheet music uh format we're
+using is sequential and local.
+Let me try all sliding windows, SSSS,
+since the full [music] attention on the
+last layer might be wasted for short
+documents.
+So, basically what this means um what
+it's talking about window pattern is
+that for the S pattern, it's each word
+only looks at its nearby neighbors.
+Long, L,
+is a long range. Each word can look at
+everything else in the entire sequence.
+But, because these sequences are so
+short, just keeping everything local
+will make it faster and in theory could
+make it more effective.
+But, that's well, we'll see.
+So, the sliding windows thing didn't
+help it at all.
+Slightly made it worse.
+But, um now it's going to work on weight
+decay and I'm going to just let it kind
+of explore it here. I'm not going to go
+through everyone, but
+let's see what
+I'm just going to let it run and step
+away and then I'll come back and I'll
+let you know
+what made it made a difference if we
+were able to improve on this. We already
+are over
+uh 50% impro- improvement, but let's see
+if we can get a little bit better.
+So, we tried a couple different things
+after the sliding windows. It tried
+reducing weight decay. It tried to mess
+around with different depth and aspect
+ratio. Tried to disable value embeddings
+entirely. Tried
+just to tweak things and it couldn't
+really find anything. Reduced head dim.
+None of these really improved on it.
+Finally, kind of tweaking again
+with the aspect ratio and head dim, it
+was able to slightly get a better model
+than we had previously. So, we're down
+to 0.978.
+And kind of hard to get any
+further at this point.
+Um I can just let it run. I'll probably
+keep running after this video, just
+overnight, see how it goes. But, this is
+the best.
+Uh 53% improvement, pretty great
+improvement. Um the best config aspect
+ratio 32 head dim 40
+uh
+64 depth of eight batch uh two to 14 and
+warm up at 5%. So, I tweaked all this
+through 18 experiments we did. Took a
+little while, longer than 5 minutes per
+run cuz my
+my computer is kind of old. But, we were
+able to see pretty clear improvement
+over time starting from 2.08
+down
+to uh 0.97.
+So, last thing I'm going to have it make
+a a music model
+or a model
+or rather use the model to produce a
+snippet of the sheet music and then
+we'll play it and see if it's any
+better. If you remember, this was the
+baseline that we had.
+>> [music]
+>> Yeah, I mean it sounds like my kid when
+he's running on the piano, but
+hopefully we have something more uh um
+that sounds more like music.
+Okay, so let's see what we got here.
+So, this is the optimized version.
+>> [music]
+>> That's pretty great.
+That sounds that might have to be the
+theme song
+for the show now.
+I'll have to replace the base music
+underneath with that. That's pretty
+impressive.
+>> [music]
+>> So, a a
+uh clear melody and improvement on what
+we had, which once again, the baseline
+was
+>> [music]
+[music]
+>> So, that's the before and this is the
+after.
+>> [music]
+>> That's great. Like a clear melody, you
+know.
+Clear rhythm, much better.
+Here, they gave me a couple samples. So,
+this is the second uh improved sample.
+>> [music]
+>> So, that's more of an upbeat, but that's
+definitely more of a better melody than
+we had before.
+>> [music]
+>> Yeah, that's nice.
+But, I still think this one is my
+favorite.
+>> [music]
+[music]
+>> Yeah, that's pretty good. Uh so, that
+was sample sample two, I think.
+That produced that one. So, yeah, big
+improvement over the baseline, as you
+can see.
+Um and Claude here agrees with me. As
+well-formed headers, everything is
+correct. Chord symbols, the model now
+generates chord progressions that are
+musically coherent.
+Uh everything, bar structure, It's still
+not perfect.
+Uh Uh, but the substantial jump from the
+garbled baseline output, and I think you
+we all saw that. Yeah, so this was the
+second, uh, experiment using Karpathy's
+auto research using sheet music.
+You can see we had a pretty good
+um, good result as well, going from 2.08
+all the way down to 0.97.
+So, and the key wins were the smaller
+batch size,
+which was the biggest win by far,
+going with a smaller model, dropping the
+aspect ratio, and the warm-up, and then
+a little bit of the head dim.
+But, that worked on this data set with
+my
+my GPU.
+So, the key insight was that this is a
+small structured low entropy data set.
+ABC notation is highly regular.
+Limited character set, rigid syntax,
+lots of repeated patterns. The optimal
+strategy was to make a model small and
+fast enough to see the data many times
+within the 5-minute budget, rather than
+building a large model that barely gets
+through one pass.
+So, that was the findings for this
+experiment. Hope you enjoyed watching.
+We're going to do
+um, a bunch of other experiments I have
+planned, lots of data sets that I'm
+going to want to run.
+Maybe I'll try to use a more powerful
+computer than the one I had here, so we
+can try to do bigger models on bigger,
+more complex data sets.
+But, we still had a great result that,
+uh, went from this
+>> [music]
+>> to this.
+So, that's going to be it for today. Uh,
+thank you for watching. Please
+subscribe,
+leave a like, leave a comment. What kind
+of experiments are you doing with auto
+research? There's a lot of excitement, a
+lot of interest in this field. So, thank
+you for watching, and I'll see you in
+the next one.
