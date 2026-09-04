@@ -84,4 +84,6 @@ Rules:
 
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
-| — | _none open_ | — | — | — |
+| 02 | [Autoresearch contract files do not exist](02-contract-files-missing.md) | prd ↔ code | open | 2026-09-04 |
+| 03 | [Funnel/KB governance tests missing](03-governance-tests-missing.md) | prd ↔ code | open | 2026-09-04 |
+| 04 | [Corpus-integrity tests missing](04-corpus-tests-missing.md) | prd ↔ code | open | 2026-09-04 |
