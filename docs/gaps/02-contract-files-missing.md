@@ -1,8 +1,9 @@
 # 02 — Autoresearch contract files do not exist in the codebase
 
 **Layers:** prd ↔ code
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-09-04
+**Resolved:** 2026-09-04 — contract files implemented; see [docs/02](../02-autoresearch-contract.md)
 
 ## Observation
 
@@ -20,15 +21,14 @@ no contract files
 
 ## Impact
 
-The template's core value proposition (an autoresearch-ready repo) is intent-only.
-A human cloning it today gets a scaffold + knowledge base, not the loop itself.
-Until files exist, `docs/prd/02` SC1–SC6 carry the `[PLANNED]` marker and cannot
-be verified.
+The template's core value proposition (an autoresearch-ready repo) was intent-only:
+a human cloning it got a scaffold + knowledge base, not the loop itself. Until the
+contract files landed, `docs/prd/02` SC1–SC6 carried the `[PLANNED]` marker and
+could not be verified.
 
 ## Resolution
 
-Code change + test — next implementation run authors the contract files at repo
-root (per KB contract: `kb/concepts/autoresearch-contract.md`,
-`kb/raw/articles/autoresearch-program-md-reference.md`) with the `AC-TPL-*` tests
-in `tests/unit/`. This gap closes when those files and tests land. Tracked as the
-lead item of the "implement autoresearch template contract" build.
+Code change + test — **DONE 2026-09-04**: the contract files ship at repo root
+(`program.md`, `prepare.py`, `train.py`) with the `AC-TPL-*` tests in
+`tests/unit/`; all pass and are CI-enforced. Verified in
+[docs/02-autoresearch-contract.md](../02-autoresearch-contract.md).

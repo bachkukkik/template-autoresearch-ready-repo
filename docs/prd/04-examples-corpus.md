@@ -27,20 +27,20 @@ wikilinks + `^[source]` footers.
 
 - **SC1** — All 11 requested transcripts are ingested to `kb/raw/transcripts/` with
   valid frontmatter (`source_url`, `ingested`, `sha256`) and no sha drift.
-  _Verify:_ `tests/unit/test_corpus_integrity.py` (AC-EXC-001..003). `[PLANNED]`
+  _Verify:_ `tests/unit/test_corpus_integrity.py` (AC-EXC-001..003). ✅ implemented 2026-09-04
 
 - **SC2** — The upstream `program.md` reference and the research-conclusions
   article are ingested to `kb/raw/articles/` with valid frontmatter and sha stamp.
-  _Verify:_ `tests/unit/test_corpus_integrity.py` (AC-EXC-011). `[PLANNED]`
+  _Verify:_ `tests/unit/test_corpus_integrity.py` (AC-EXC-011). ✅ implemented 2026-09-04
 
 - **SC3** — Layer-2 synthesis is complete and cataloged: 8 concepts, 2 entities, 4
   comparisons, all listed in `kb/index.md`, no orphans, no broken wikilinks, all
   tags in the SCHEMA taxonomy. _Verify:_ `tests/unit/test_kb_synthesis.py`
-  (AC-EXC-021..023). `[PLANNED]`
+  (AC-EXC-021..024). ✅ implemented 2026-09-04
 
 - **SC4** — Every layer-2 claim traces to a raw source (`sources:` frontmatter +
   `^[raw/...]` footers), so no assertion floats unsupported.
-  _Verify:_ `tests/unit/test_kb_synthesis.py` (AC-EXC-024). `[PLANNED]`
+  _Verify:_ `tests/unit/test_kb_synthesis.py` (AC-EXC-024). ✅ implemented 2026-09-04
 
 ## Test Mapping
 
@@ -61,13 +61,12 @@ wikilinks + `^[source]` footers.
 
 ## Confidence
 
-**High** — the corpus is already ingested and synthesized (verified 2026-09-04:
-14/14 pages indexed, no orphans, no broken wikilinks, all 13 raw sources
-sha-verified). The `[PLANNED]` tests harden that verification inside the pytest
-tier.
+**High** — the corpus is ingested and synthesized (verified 2026-09-04: 14/14
+pages indexed, no orphans, no broken wikilinks, all 13 raw sources sha-verified)
+and the `AC-EXC-*` tests now harden that verification inside the pytest tier.
 
 ## CI/CD Gate
 
 The `sources-readonly.yml` job guards `kb/raw/**` on every PR; `secret-scan`
-guards `kb/` content. When the `[PLANNED]` corpus-integrity tests are written they
-join the `unit` job in `.github/workflows/ci.yml`. No PR merges with a red test.
+guards `kb/` content. The `AC-EXC-*` corpus-integrity tests run in the `unit`
+job of `.github/workflows/ci.yml`. No PR merges with a red test.

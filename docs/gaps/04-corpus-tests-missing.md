@@ -1,8 +1,9 @@
 # 04 — Corpus-integrity tests do not exist in the pytest tier
 
 **Layers:** prd ↔ code
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-09-04
+**Resolved:** 2026-09-04 — AC-EXC-* tests implemented; see [docs/04](../04-examples-corpus.md)
 
 ## Observation
 
@@ -28,7 +29,8 @@ gate (`sources-readonly.yml`) covers file edit/delete, not content drift.
 
 ## Resolution
 
-Code change + test — next implementation run authors `tests/unit/test_corpus_integrity.py`
-and `test_kb_synthesis.py` per the AC-EXC-* IDs in `docs/prd/04`. The 2026-09-04
-verification scripts in `scratchpads/autoresearch-research/` are the reference
-implementation for these tests. Tracked with gaps `02`, `03` in the same run.
+Code change + test — **DONE 2026-09-04**: `tests/unit/test_corpus_integrity.py`
+and `test_kb_synthesis.py` ship with the AC-EXC-* IDs in `docs/prd/04`; all pass
+and run in the CI `unit` job (the 2026-09-04 verification scripts in
+`scratchpads/autoresearch-research/` were the reference implementation). Verified
+in [docs/04-examples-corpus.md](../04-examples-corpus.md).

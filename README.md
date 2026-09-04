@@ -73,6 +73,9 @@ act push -j unit && act push -j integration && act push -j secret-scan && act pu
 .
 ├── AGENTS.md              # Agent instructions (read first) — CANONICAL
 ├── CLAUDE.md              # symlink → AGENTS.md
+├── program.md             # Autoresearch contract — human-edited skill file
+├── prepare.py             # Autoresearch contract — immutable evaluator + data side
+├── train.py               # Autoresearch contract — the agent-edited artifact
 ├── .agents/               # Repo-scoped agent assets — CANONICAL
 │   └── skills/            # Skills pinned to this repo (root-cause ships here)
 ├── .claude/               # skills, plugins → symlinks into ../.agents/
@@ -117,6 +120,7 @@ adding a harness never forks the content:
 
 - [x] Skeleton doctrine (funnel, harness adapter, CI gates)
 - [x] `kb/` built: raw sources ingested + layer-2 pages synthesized (2026-09-04)
-- [ ] PRD topics for example objectives (docs/prd/)
+- [x] PRD topics 01–04 (docs/prd/) — scaffold, autoresearch contract, funnel governance, examples corpus
+- [x] Autoresearch contract implemented (`program.md` / `prepare.py` / `train.py` + `AC-TPL-*` tests)
+- [x] Governance + corpus integrity tests (`AC-FUN-*`, `AC-EXC-*`) — 34/34 unit tests green
 - [ ] Examples stage / worked objective workspaces (planned funnel stage 7)
-- [ ] Services and tests adapted to the autoresearch contract
