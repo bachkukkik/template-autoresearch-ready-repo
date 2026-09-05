@@ -125,6 +125,7 @@ anything else           GitHub issue, or a comment on an existing issue
 | A hunch, a scratch calculation, a paste buffer | `scratchpads/` |
 | An external doc / spec / transcript that describes the project | `kb/raw/` |
 | A stable fact about how this project works | `kb/raw/` → `llm-wiki ./kb/` |
+| A component runbook (how to run/use/update a service or package — e.g. `service/`) | `service/README.md` (component README, beside root `README.md`; not a funnel-stage doc) |
 | A thing we want to build | `docs/prd/` |
 | "The PRD says X but the code does Y" | `docs/gaps/` |
 | "I ran it; here is what worked and what failed" | `docs/NN-slug.md` |

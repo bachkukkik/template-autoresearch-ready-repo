@@ -10,6 +10,16 @@ services:
       AUTH_BEARER_TOKEN: ${AUTH_BEARER_TOKEN:-}
       RESEARCH_JOBS_DB: ${RESEARCH_JOBS_DB:-data/jobs.db}
       RESEARCH_RUN_TIMEOUT: ${RESEARCH_RUN_TIMEOUT:-30}
+      RESEARCH_MAX_CONCURRENT_JOBS: ${RESEARCH_MAX_CONCURRENT_JOBS:-4}
+      RESEARCH_WORKSPACES_DIR: ${RESEARCH_WORKSPACES_DIR:-data/workspaces}
+      RESEARCH_CORPUS_ROOT: ${RESEARCH_CORPUS_ROOT:-/kb-raw}
+    volumes:
+      # Read-only corpus mount — serves research topics from the repo's
+      # kb/raw/transcripts out of the box.
+      - ./kb/raw:/kb-raw:ro
+      # Read-only canonical-contract mount — the service executes contract/
+      # directly (single source of truth; no vendored copy in the image).
+      - ./contract:/app/contract:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s

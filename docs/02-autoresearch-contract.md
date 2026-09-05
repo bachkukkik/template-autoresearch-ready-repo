@@ -2,7 +2,7 @@
 
 ## What
 
-The three-file autoresearch contract at the repo root: `program.md` (human-edited skill), `prepare.py` (immutable anti-cheat evaluator + data side), and `train.py` (agent-edited artifact), plus the untracked `results.tsv` ledger.
+The three-file autoresearch contract in `contract/`: `program.md` (human-edited skill), `prepare.py` (immutable anti-cheat evaluator + data side), and `train.py` (agent-edited artifact), plus the untracked `results.tsv` ledger.
 
 ## Why
 
@@ -26,7 +26,8 @@ metric is evaluated — is the product (PRD 02, grounded in
   `dataloader()`, and `evaluate_bpb(logits, target_ids, token_bytes,
   mask_ids)` = total per-token cross-entropy in nats / (log 2 × total utf-8 byte
   length of targets), special tokens masked; raises `ValueError` on zero bytes or
-  length mismatch. Runs as `python3 prepare.py` to print a dataset summary.
+  length mismatch. Runs as `python3 contract/prepare.py` to print a dataset
+  summary.
 - **`train.py`** — stdlib-only, the only file the agent edits: imports
   `evaluate_bpb` from `prepare` (never redefines), reads `prepare.TIME_BUDGET`
   dynamically at run time, prints the upstream summary block
@@ -39,12 +40,17 @@ metric is evaluated — is the product (PRD 02, grounded in
 ## Verification
 
 ```bash
-python3 -m pytest tests/unit -v            # 34 passed — incl. AC-TPL-001..004,
-                                           # 011..013, 021..023, 031, 041..042
-python3 prepare.py                          # prepare.py OK — TIME_BUDGET=300s, vocab_size=31
-python3 train.py                            # prints summary block → real val_bpb
-git check-ignore results.tsv                # -> results.tsv  (untracked ledger)
+python3 -m pytest tests/unit -v            # 59 passed (2026-09-05, incl. contract
+                                           # location + AC-TPL-001..004, 011..013,
+                                           # 021..023, 031, 041..042)
+python3 contract/prepare.py                # prepare.py OK — TIME_BUDGET=300s, vocab_size=31
+python3 contract/train.py                  # prints summary block → real val_bpb
+git check-ignore results.tsv               # -> results.tsv  (untracked ledger)
 ```
+
+_Verified 2026-09-05 after the contract/ relocation: same 13 AC-TPL behaviors
+green at the new location; root-md funnel allowlist updated (program.md is no
+longer a root file)._
 
 ## What Works
 
@@ -52,8 +58,8 @@ git check-ignore results.tsv                # -> results.tsv  (untracked ledger)
   hooks, `evaluate_bpb` math (hand-computed uniform-logits and perfect-prediction
   cases), train-loop summary + exact results.tsv format + crash row, domain hooks
   (train imports the evaluator, no redefinition).
-- `python3 prepare.py` and `python3 train.py` run end to end on a stock python3
-  (stdlib only — no numpy/torch).
+- `python3 contract/prepare.py` and `python3 contract/train.py` run end to end
+  on a stock python3 (stdlib only — no numpy/torch).
 - `results.tsv` stays out of git; scale artifacts land under official test tiers.
 - Budget is monkeypatchable for tests: `run()` reads `prepare.TIME_BUDGET` at call
   time, so CI never waits 300s (tests run in ~0.1s wall-clock).

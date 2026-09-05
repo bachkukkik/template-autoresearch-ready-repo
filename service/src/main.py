@@ -17,12 +17,20 @@ auth is enabled (``AUTH_DISABLED`` respected, token never logged).
 
 Security posture: no shell, constant-time token compares, no hardcoded
 secrets — everything comes from the environment.
+
+PRD-06 concurrency: multiple topics run concurrently, each in its own
+provisioned workspace. ``RESEARCH_MAX_CONCURRENT_JOBS`` caps the scheduler's
+default executor thread pool, and corpus files are validated fail-fast at
+start (missing file -> 400/tool error) before a job is ever queued. Handlers
+remain ``sync def`` by design (PRD-06 SC4): the scheduler thread pool, not
+the event loop, does the research work, so async handlers would buy nothing.
 """
 
 import json
 import os
 from contextlib import asynccontextmanager
 
+from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastmcp import FastMCP
@@ -33,6 +41,9 @@ from .jobs import JobStore
 from .runner import ResearchRunner
 
 PORT = int(os.environ.get("PORT", "8000"))
+
+# PRD-06: cap on concurrently executing research jobs (scheduler thread pool).
+MAX_CONCURRENT_JOBS = max(1, int(os.environ.get("RESEARCH_MAX_CONCURRENT_JOBS", "4")))
 
 # Per-endpoint MCP tool flags (SC1): True means the operation is ALSO exposed
 # as an MCP tool under the same name. /health is a REST probe — never a tool.
@@ -82,6 +93,11 @@ def research_start(
 ) -> dict:
     """Create a queued job, schedule its execution, and return the job dict."""
     params = params or {}
+    # Fail fast on missing corpus files (PRD-06 SC5): ValueError -> 400/tool error.
+    from .workspace import corpus_spec_from_params, validate_corpus_files
+
+    spec = corpus_spec_from_params(params)
+    validate_corpus_files(spec)
     job = _store.create_job(topic, params, idempotency_key=idempotency_key)
     if job["status"] == "queued":  # an idempotent replay returns the existing job
         _scheduler.add_job(_run_job, args=[job["id"]])
@@ -122,7 +138,22 @@ def _run_job(job_id: str) -> None:
     if job is None or job["status"] != "queued":
         return  # cancelled or unknown before the run began
     _store.set_status(job_id, "running")
-    report = _runner.run_loop()
+    # PRD-06: run in a per-job provisioned workspace so concurrent topics
+    # never share working state.
+    from .workspace import corpus_spec_from_params, provision_workspace
+
+    spec = corpus_spec_from_params(job["params"])
+    try:
+        work_dir = provision_workspace(job_id=job_id, topic=job["topic"], spec=spec)
+        report = _runner.run_loop(work_dir=str(work_dir))
+    except Exception as exc:
+        report = {
+            "status": "failed",
+            "val_bpb": None,
+            "output": f"workspace provisioning failed: {exc}",
+            "duration_s": 0.0,
+            "command": "python3 prepare.py && python3 train.py",
+        }
     try:
         _store.set_result(job_id, report)
         _store.set_status(job_id, report["status"])
@@ -198,7 +229,11 @@ def create_app() -> FastAPI:
     global _store, _scheduler, _runner
     _store = JobStore()
     _runner = ResearchRunner()
-    _scheduler = BackgroundScheduler()
+    _scheduler = BackgroundScheduler(
+        executors={
+            "default": ThreadPoolExecutor(max_workers=MAX_CONCURRENT_JOBS)
+        }
+    )
 
     # FastMCP v4 streamable-HTTP app (stateless), mounted by splicing its route
     # into the FastAPI app; its lifespan is entered explicitly below because
@@ -223,7 +258,11 @@ def create_app() -> FastAPI:
 
     @app.post("/api/v1/research", status_code=202, dependencies=[Depends(_bearer_dependency)])
     def _rest_start(body: ResearchRequest) -> dict:
-        return research_start(body.topic, body.params, body.idempotency_key)
+        try:
+            return research_start(body.topic, body.params, body.idempotency_key)
+        except ValueError as exc:
+            # Corpus validation failure (PRD-06 SC5): missing file -> 400, not 500.
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.get("/api/v1/research/{job_id}", dependencies=[Depends(_bearer_dependency)])
     def _rest_status(job_id: str) -> dict:
