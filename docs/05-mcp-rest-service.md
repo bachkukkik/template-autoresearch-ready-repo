@@ -22,7 +22,7 @@ job store, bearer auth, and a uv-managed container.
 |-----------|------|-------|
 | FastAPI app + FastMCP mount | `service/src/main.py` | `TOOL_FLAG`, `ROUTE_TO_OPERATION`, `_BearerGuard` on `/mcp`, APScheduler in lifespan |
 | Job store | `service/src/jobs.py` | SQLite WAL, idempotency keys, transitions `queued→running→completed\|failed\|cancelled\|timeout` |
-| Runner | `service/src/runner.py` | subprocess `prepare.py` then `train.py`, explicit args, timeout, parses `RESULT val_bpb=` |
+| Runner | `service/src/runner.py` | executes the canonical contract at `contract/` directly (prepare.py then train.py), explicit args, timeout; parses `val_bpb` from the summary line (`val_bpb: 3.795531`) or legacy `RESULT val_bpb=`; workload dir resolved via `RESEARCH_WORKLOAD_DIR` → `repo/contract` (dev) → `/app/contract` (compose ro mount) |
 | Auth | `service/src/auth.py` | `hmac.compare_digest`, fail-closed, `AUTH_DISABLED=1` opt-out, `/health` open |
 | Packaging | `service/pyproject.toml`, `service/uv.lock` | fastapi, uvicorn, fastmcp 4.x, apscheduler, pydantic |
 | Image | `service/Dockerfile`, `service/.dockerignore` | pinned `ghcr.io/astral-sh/uv:0.12.9`, two-stage `uv sync`, venv binary CMD |
@@ -53,13 +53,18 @@ bash tests/run.sh --with-e2e                         # RESULT: PASSED
 act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
 ```
 
-Verified 2026-09-05: 59 unit + 13 integration + 3 e2e green; all four act jobs
-succeeded; container healthy in ~8s.
+Verified 2026-09-05: 66 unit + 16 integration + 4 e2e green (counts include
+PRD-06 additions — see [docs/06-multi-topic-concurrency.md](06-multi-topic-concurrency.md));
+all four act jobs succeeded; container healthy in ~8s.
 
 ## What Works
 
 - Full job lifecycle over REST and over an MCP client: start → queued → running
-  → completed with `result.val_bpb = 1.234` (~1s reference workload)
+  → completed with `result.val_bpb ≈ 3.795` (canonical contract loop, ~0.1s)
+- Single source of truth: the service runs `contract/` directly — the runner
+  resolves `repo/contract` on the host and `/app/contract` in the container via
+  the compose read-only bind mount; no vendored workload copy. Custom workloads
+  override via `RESEARCH_WORKLOAD_DIR` (or the legacy `service/workload` drop-in).
 - Idempotent dispatch (same `idempotency_key` returns the existing job)
 - Cancel on queued and running jobs (queued→cancelled added, AC-MCP-014)
 - Bearer auth on REST and the `/mcp` guard: 401 + complete JSON body when

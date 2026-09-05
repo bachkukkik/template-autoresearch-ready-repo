@@ -3,11 +3,11 @@ import os
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
-PROGRAM_MD = os.path.join(REPO_ROOT, "program.md")
+PROGRAM_MD = os.path.join(REPO_ROOT, "contract", "program.md")
 
 
 def _read_program_md():
-    assert os.path.isfile(PROGRAM_MD), "program.md missing at repo root"
+    assert os.path.isfile(PROGRAM_MD), "contract/program.md missing"
     with open(PROGRAM_MD) as f:
         return f.read()
 

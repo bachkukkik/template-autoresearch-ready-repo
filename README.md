@@ -73,9 +73,7 @@ act push -j unit && act push -j integration && act push -j secret-scan && act pu
 .
 ├── AGENTS.md              # Agent instructions (read first) — CANONICAL
 ├── CLAUDE.md              # symlink → AGENTS.md
-├── program.md             # Autoresearch contract — human-edited skill file
-├── prepare.py             # Autoresearch contract — immutable evaluator + data side
-├── train.py               # Autoresearch contract — the agent-edited artifact
+├── contract/              # Autoresearch contract — program.md / prepare.py / train.py
 ├── .agents/               # Repo-scoped agent assets — CANONICAL
 │   └── skills/            # Skills pinned to this repo (root-cause ships here)
 ├── .claude/               # skills, plugins → symlinks into ../.agents/

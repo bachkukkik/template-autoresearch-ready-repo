@@ -44,6 +44,7 @@ Three sources feed this PRD set. When they conflict, this doctrine resolves:
 | 03 | Document Funnel & KB Governance | [docs/prd/03-funnel-kb-governance.md](docs/prd/03-funnel-kb-governance.md) | Active — verified in CI + [docs/03](docs/03-funnel-kb-governance.md) |
 | 04 | Examples Corpus | [docs/prd/04-examples-corpus.md](docs/prd/04-examples-corpus.md) | Active — verified in [docs/04](docs/04-examples-corpus.md) |
 | 05 | REST + Streamable-HTTP MCP Service | [docs/prd/05-mcp-rest-service.md](docs/prd/05-mcp-rest-service.md) | Active — verified in [docs/05](docs/05-mcp-rest-service.md) |
+| 06 | Concurrent Multi-Topic Service | [docs/prd/06-multi-topic-concurrent-service.md](docs/prd/06-multi-topic-concurrent-service.md) | Active — verified in [docs/06](docs/06-multi-topic-concurrency.md) |
 
 ## Verification Policy
 
@@ -78,3 +79,4 @@ encodes the tier, per the table above.
 | 0.2.0 | 2026-09-02 | Test tiers made executable; ID ranges encode the tier. |
 | 1.0.0 | 2026-09-04 | Real repo identity + four topic PRDs (01–04) grounded in the populated `kb/`; placeholder example PRD replaced. |
 | 1.1.0 | 2026-09-04 | PRDs 02–04 un-`[PLANNED]`: autoresearch contract implemented (program.md/prepare.py/train.py), governance + corpus tests added; verified in docs/02–04. |
+| 1.2.0 | 2026-09-05 | PRD-06: concurrent multi-topic service — per-job workspace isolation, corpus delivery (texts + files), concurrency cap, async decision locked; verified in docs/06. |

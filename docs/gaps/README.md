@@ -85,3 +85,4 @@ Rules:
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
 | 05 | [Dual REST + MCP service not implemented](05-dual-exposure-not-implemented.md) | prd ↔ code | resolved | 2026-09-04 |
+| 06 | [Single-topic, shared-workspace runner (no isolation)](06-single-topic-no-isolation.md) | prd ↔ code | resolved | 2026-09-05 |

@@ -5,9 +5,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Product/doctrine files allowed at repo root (funnel rule 1). program.md may or
-# may not exist yet — tolerating absence/presence is handled by the allowlist.
-ROOT_MD_ALLOWLIST = {"AGENTS.md", "README.md", "PRD.md", "program.md"}
+# Product/doctrine files allowed at repo root (funnel rule 1). program.md is
+# not a root file anymore — the autoresearch contract lives in contract/.
+ROOT_MD_ALLOWLIST = {"AGENTS.md", "README.md", "PRD.md"}
 
 HARNESS_ENTRY_POINTS = [
     "CLAUDE.md",

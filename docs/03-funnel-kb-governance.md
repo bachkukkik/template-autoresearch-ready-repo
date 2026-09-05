@@ -45,8 +45,9 @@ act push -j secret-scan                   # Secret Scan ✅
 
 - All 6 AC-FUN tests pass against the current tree, and the two CI jobs
   (`doctrine`, `secret-scan`) pass under act.
-- Root `.md` allowlist is explicit: `AGENTS.md`, `README.md`, `PRD.md`,
-  `program.md` (+ LICENSE if present) — a stray `NOTES.md` at root now fails CI
+- Root `.md` allowlist is explicit: `AGENTS.md`, `README.md`, `PRD.md`
+  (+ LICENSE if present) — the autoresearch contract lives in `contract/`, so
+  `program.md` is no longer a root file; a stray `NOTES.md` at root now fails CI
   at the pytest tier, not just by instruction.
 - Harness entry points (`CLAUDE.md`, `.github/copilot-instructions.md`,
   `.claude/skills`, `.claude/plugins`) are asserted symlinks with resolvable
