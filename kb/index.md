@@ -3,7 +3,7 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-09-04 | Total pages: 14
+> Last updated: 2026-09-04 | Total pages: 18
 
 ## Concepts
 
@@ -14,7 +14,9 @@
 | Domain Adaptation | [concepts/domain-adaptation.md](concepts/domain-adaptation.md) | medium |
 | Evaluator Legitimacy | [concepts/evaluator-legitimacy.md](concepts/evaluator-legitimacy.md) | medium |
 | Fixed Time Budget | [concepts/fixed-time-budget.md](concepts/fixed-time-budget.md) | high |
+| MCP Streamable HTTP Transport | [concepts/mcp-streamable-http-transport.md](concepts/mcp-streamable-http-transport.md) | high |
 | Problem Selection | [concepts/problem-selection.md](concepts/problem-selection.md) | medium |
+| Research Job Pattern | [concepts/research-job-pattern.md](concepts/research-job-pattern.md) | high |
 | Skill Self-Improvement | [concepts/skill-self-improvement.md](concepts/skill-self-improvement.md) | medium |
 | Val-BPB Metric | [concepts/val-bpb-metric.md](concepts/val-bpb-metric.md) | high |
 
@@ -22,6 +24,7 @@
 
 | Entity | File | Confidence |
 |--------|------|------------|
+| FastMCP | [entities/fastmcp.md](entities/fastmcp.md) | high |
 | Karpathy Autoresearch | [entities/karpathy-autoresearch.md](entities/karpathy-autoresearch.md) | high |
 | Template Agentic Ready Repo | [entities/template-agentic-ready-repo.md](entities/template-agentic-ready-repo.md) | high |
 
@@ -33,6 +36,7 @@
 | Autoresearch Video Corpus | [comparisons/autoresearch-video-corpus.md](comparisons/autoresearch-video-corpus.md) | medium |
 | Autonomous Research Systems | [comparisons/autonomous-research-systems.md](comparisons/autonomous-research-systems.md) | medium |
 | Local LLM Controllers | [comparisons/local-llm-controllers.md](comparisons/local-llm-controllers.md) | medium |
+| REST vs MCP Dual Exposure | [comparisons/rest-vs-mcp-dual-exposure.md](comparisons/rest-vs-mcp-dual-exposure.md) | high |
 
 ## Queries
 
@@ -46,6 +50,7 @@
 |--------|------|----------|
 | upstream program.md reference | [raw/articles/autoresearch-program-md-reference.md](raw/articles/autoresearch-program-md-reference.md) | 2026-09-04 |
 | deep-research conclusions | [raw/articles/autoresearch-template-research-conclusions.md](raw/articles/autoresearch-template-research-conclusions.md) | 2026-09-04 |
+| MCP service deep-research conclusions | [raw/articles/mcp-autoresearch-service-conclusions.md](raw/articles/mcp-autoresearch-service-conclusions.md) | 2026-09-04 |
 | transcript — music AI model | [raw/transcripts/-Ip9EtoBjbk.txt](raw/transcripts/-Ip9EtoBjbk.txt) | 2026-09-04 |
 | transcript — can you autoresearch everything | [raw/transcripts/bMoNOb0iXpA.txt](raw/transcripts/bMoNOb0iXpA.txt) | 2026-09-04 |
 | transcript — best local LLM | [raw/transcripts/jCNeVZJAYGM.txt](raw/transcripts/jCNeVZJAYGM.txt) | 2026-09-04 |
@@ -60,10 +65,10 @@
 
 ## Stats
 
-- Concepts: 8
-- Entities: 2
-- Comparisons: 4
+- Concepts: 10
+- Entities: 3
+- Comparisons: 5
 - Queries: 0
-- Raw sources: 13
+- Raw sources: 14
 - Archived: 0
-- Total: 14
+- Total: 18

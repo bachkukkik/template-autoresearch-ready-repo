@@ -1,0 +1,19 @@
+[project]
+name = "autoresearch-service"
+version = "0.1.0"
+description = "REST + streamable-HTTP MCP service for the autoresearch loop"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "fastmcp>=4.0.0,<5",
+    "apscheduler>=3.10,<4",
+    "pydantic>=2",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

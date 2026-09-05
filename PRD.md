@@ -43,6 +43,7 @@ Three sources feed this PRD set. When they conflict, this doctrine resolves:
 | 02 | Autoresearch Template Contract | [docs/prd/02-autoresearch-contract.md](docs/prd/02-autoresearch-contract.md) | Active — implemented + verified in [docs/02](docs/02-autoresearch-contract.md) |
 | 03 | Document Funnel & KB Governance | [docs/prd/03-funnel-kb-governance.md](docs/prd/03-funnel-kb-governance.md) | Active — verified in CI + [docs/03](docs/03-funnel-kb-governance.md) |
 | 04 | Examples Corpus | [docs/prd/04-examples-corpus.md](docs/prd/04-examples-corpus.md) | Active — verified in [docs/04](docs/04-examples-corpus.md) |
+| 05 | REST + Streamable-HTTP MCP Service | [docs/prd/05-mcp-rest-service.md](docs/prd/05-mcp-rest-service.md) | Active — verified in [docs/05](docs/05-mcp-rest-service.md) |
 
 ## Verification Policy
 

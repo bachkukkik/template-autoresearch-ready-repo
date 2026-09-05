@@ -84,4 +84,4 @@ Rules:
 
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
-| — | _none open_ — 02/03/04 resolved 2026-09-04; to be archived after merge | — | — | — |
+| 05 | [Dual REST + MCP service not implemented](05-dual-exposure-not-implemented.md) | prd ↔ code | resolved | 2026-09-04 |
