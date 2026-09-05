@@ -1,7 +1,10 @@
 # PRD 01 — Template Scaffold & CI
 
 > Intent for the verified scaffold: `service/` example, three-tier tests, CI gates.
-> Verified reality: [docs/01-service-architecture.md](../01-service-architecture.md).
+> Verified reality: the service is documented in
+> [docs/05-mcp-rest-service.md](../05-mcp-rest-service.md) +
+> [docs/06-multi-topic-concurrency.md](../06-multi-topic-concurrency.md); the
+> CI/governance gates in [docs/03-funnel-kb-governance.md](../03-funnel-kb-governance.md).
 > Grounded in: [template-agentic-ready-repo](../../kb/entities/template-agentic-ready-repo.md),
 > [document-funnel-doctrine](../../kb/concepts/document-funnel-doctrine.md).
 
@@ -18,15 +21,16 @@ binding by default, no live credentials tracked.
 
 ## Success Criteria
 
-- **SC1** — The repo ships a minimal Python HTTP service behind Docker Compose that
-  answers `/health` → 200, `/` → 200, unknown path → 404, and reports healthy to
-  Docker. _Verify:_ `tests/unit/test_routing.py` (AC-EXM-001..003),
-  `tests/integration/test_service_endpoints.py` (AC-EXM-201..203),
-  `tests/e2e/example.bats` (AC-EXM-101, AC-EXM-102).
+- **SC1** — The repo ships a healthchecked Python HTTP service behind Docker Compose
+  with a three-tier test suite (unit, integration, E2E). The live service answers
+  `/health` → 200 (unauthenticated) and exposes the `/api/v1/research` lifecycle over
+  REST + MCP. _Verify:_ `tests/unit/test_routes.py` (AC-MCP-001..006),
+  `tests/integration/test_service_endpoints.py` (AC-MCP-211..215),
+  `tests/e2e/service.bats` (AC-MCP-101..104).
 
 - **SC2** — Every test tier has a runner in `tests/run.sh` and a CI job in
   `.github/workflows/ci.yml`; no tier is a stub. _Verify:_ `tests/run.sh` +
-  `ci.yml` jobs `unit`, `integration`, `e2e` (AC-EXM-* suite passes end to end).
+  `ci.yml` jobs `unit`, `integration`, `e2e` (AC-MCP-* suite passes end to end).
 
 - **SC3** — `kb/raw/**` is add-only: a PR that modifies or deletes a raw source
   fails unless labeled `ingest`; additions always pass. _Verify:_
@@ -43,23 +47,22 @@ binding by default, no live credentials tracked.
 
 | Expected behavior | Test file | Test IDs |
 |---|---|---|
-| `/health`, `/`, unknown path map to 200/200/404 | `tests/unit/test_routing.py` | AC-EXM-001, AC-EXM-002, AC-EXM-003 |
-| Running container answers the endpoints over HTTP | `tests/integration/test_service_endpoints.py` | AC-EXM-201, AC-EXM-202, AC-EXM-203 |
-| Container answers via `docker compose exec` | `tests/e2e/example.bats` | AC-EXM-101, AC-EXM-102 |
+| REST + MCP routing surface (health, research ops, /mcp) | `tests/unit/test_routes.py` | AC-MCP-001..006 |
+| Live service over a real socket: health + research lifecycle | `tests/integration/test_service_endpoints.py` | AC-MCP-211..215 |
+| Running container answers via `docker compose exec` | `tests/e2e/service.bats` | AC-MCP-101..104 |
 | `kb/raw` edits/removals blocked without `ingest` label | `.github/workflows/sources-readonly.yml` | job `check-raw-readonly` |
 | Symlinks resolve; funnel tracked; no secrets in tree | `.github/workflows/ci.yml` | jobs `doctrine`, `secret-scan` |
 
 ## Assumptions
 
-- The scaffold service is intentionally minimal and is **not** the product; it
-  exists to prove the pipeline. `[ASSUMPTION]` — keep it minimal, per
-  karpathy-guidelines simplicity.
+- The scaffold proved the pipeline with a minimal example; the example service has
+  since evolved into the product (PRD-05 REST + MCP, PRD-06 concurrency), documented
+  in `docs/05`/`docs/06`. This PRD retains the tiering + CI-gate intent.
 
 ## Confidence
 
-**High** — every SC is already verified today; see
-[docs/01-service-architecture.md](../01-service-architecture.md) (verdict:
-`partial`, last verified 2026-09-02) and the live CI jobs.
+**High** — every SC is verified by the live service suite (`docs/05`, `docs/06`)
+and the CI gates run on every PR.
 
 ## CI/CD Gate
 
