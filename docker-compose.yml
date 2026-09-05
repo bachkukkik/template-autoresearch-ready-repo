@@ -3,6 +3,13 @@ services:
   # ─── Python microservice ────────────────────────────────────
   service:
     build: ./service
+    environment:
+      # Passthrough defaults — dev runs auth-disabled out of the box;
+      # override via the host environment (e.g. `AUTH_DISABLED=0 AUTH_BEARER_TOKEN=... docker compose up -d`).
+      AUTH_DISABLED: ${AUTH_DISABLED:-1}
+      AUTH_BEARER_TOKEN: ${AUTH_BEARER_TOKEN:-}
+      RESEARCH_JOBS_DB: ${RESEARCH_JOBS_DB:-data/jobs.db}
+      RESEARCH_RUN_TIMEOUT: ${RESEARCH_RUN_TIMEOUT:-30}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s

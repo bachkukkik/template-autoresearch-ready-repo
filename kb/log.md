@@ -25,3 +25,6 @@
 | 2026-09-04 | create | kb/entities/karpathy-autoresearch.md, kb/entities/template-agentic-ready-repo.md | Layer-2 synthesis: entities |
 | 2026-09-04 | create | kb/comparisons/autonomous-research-systems.md, kb/comparisons/autoresearch-platform-forks.md, kb/comparisons/local-llm-controllers.md, kb/comparisons/autoresearch-video-corpus.md | Layer-2 synthesis: comparisons |
 | 2026-09-04 | update | kb/index.md | Catalog all 14 layer-2 pages + 13 raw sources |
+| 2026-09-04 | ingest | kb/raw/articles/mcp-autoresearch-service-conclusions.md | Deep-research conclusions: MCP streamable-HTTP service for the autoresearch loop (2026-09-04 run) |
+| 2026-09-04 | create | kb/concepts/mcp-streamable-http-transport.md, kb/concepts/research-job-pattern.md, kb/entities/fastmcp.md, kb/comparisons/rest-vs-mcp-dual-exposure.md | Layer-2 synthesis: MCP service knowledge for PRD-05 |
+| 2026-09-04 | update | kb/index.md | Catalog 18 layer-2 pages + 14 raw sources |

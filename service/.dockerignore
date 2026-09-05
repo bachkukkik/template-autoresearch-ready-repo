@@ -1,0 +1,11 @@
+# Build-context exclusions for the service image (context = service/).
+# The host test venv must NEVER enter the image: its scripts carry host-path
+# shebangs that break `uv run uvicorn` inside the container.
+.venv
+venv
+
+# Runtime state — the SQLite job store and caches never belong in the image.
+data
+__pycache__
+*.pyc
+.pytest_cache
