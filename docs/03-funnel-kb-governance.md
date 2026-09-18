@@ -41,6 +41,11 @@ act push -j doctrine                      # Doctrine Integrity ✅
 act push -j secret-scan                   # Secret Scan ✅
 ```
 
+_Verified 2026-09-18: the pytest line reports `6 passed` and both act jobs report
+`Job succeeded` with their assertions printing ("All harness entry points
+resolve.", "Document funnel fully tracked.", "No secret values under kb/.",
+"No live credential files tracked.", "No hardcoded secret assignments.")._
+
 ## What Works
 
 - All 6 AC-FUN tests pass against the current tree, and the two CI jobs

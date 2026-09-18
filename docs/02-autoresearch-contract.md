@@ -40,17 +40,19 @@ metric is evaluated — is the product (PRD 02, grounded in
 ## Verification
 
 ```bash
-python3 -m pytest tests/unit -v            # 59 passed (2026-09-05, incl. contract
-                                           # location + AC-TPL-001..004, 011..013,
-                                           # 021..023, 031, 041..042)
+python3 -m pytest tests/unit -v            # 68 passed (2026-09-18; the AC-TPL block:
+                                           # 001..004, 011..013, 021..023, 031, 041..042)
 python3 contract/prepare.py                # prepare.py OK — TIME_BUDGET=300s, vocab_size=31
-python3 contract/train.py                  # prints summary block → real val_bpb
+python3 contract/train.py                  # val_bpb: 3.795531 + full summary block
 git check-ignore results.tsv               # -> results.tsv  (untracked ledger)
 ```
 
-_Verified 2026-09-05 after the contract/ relocation: same 13 AC-TPL behaviors
-green at the new location; root-md funnel allowlist updated (program.md is no
-longer a root file)._
+_Verified 2026-09-18: 68 unit tests green (repo-wide; 17 of them AC-TPL) and all
+four commands above reproduce their stated output. The 2026-09-05 verification
+after the `contract/` relocation is unchanged in substance — same AC-TPL
+behaviors green at the new location, root-md funnel allowlist updated
+(`program.md` is no longer a root file); the unit count grew with the
+governance, corpus, workspace and runbook suites added since._
 
 ## What Works
 

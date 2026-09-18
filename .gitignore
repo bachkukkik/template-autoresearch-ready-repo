@@ -83,6 +83,12 @@ scratchpads/*
 # committed. The `doctrine` job in .github/workflows/ci.yml fails the build if it
 # happens, so a local override here will not go unnoticed.
 
+# === codegraph local index (local SQLite artifact; upstream ignores the whole dir) ===
+# The directory is ignored wholesale: CodeGraph rewrites a nested .codegraph/.gitignore on
+# every validating command, and a nested ignore file cannot be re-included from this file.
+# .codegraph/.gitkeep is tracked (force-added once) so a clone still gets the directory.
+.codegraph/
+
 # === graphify cache ===
 graphify-out/cache/
 graphify-out/.graphify_python

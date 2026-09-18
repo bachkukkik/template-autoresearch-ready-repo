@@ -28,3 +28,7 @@
 | 2026-09-04 | ingest | kb/raw/articles/mcp-autoresearch-service-conclusions.md | Deep-research conclusions: MCP streamable-HTTP service for the autoresearch loop (2026-09-04 run) |
 | 2026-09-04 | create | kb/concepts/mcp-streamable-http-transport.md, kb/concepts/research-job-pattern.md, kb/entities/fastmcp.md, kb/comparisons/rest-vs-mcp-dual-exposure.md | Layer-2 synthesis: MCP service knowledge for PRD-05 |
 | 2026-09-04 | update | kb/index.md | Catalog 18 layer-2 pages + 14 raw sources |
+| 2026-09-18 | ingest | kb/raw/articles/codegraph-mcp-code-intelligence.md | CodeGraph v1.6.0 evidence: MCP surface, per-harness wiring, telemetry, .codegraph/ policy, alternatives (source stamped 2026-09-16; added to this KB 2026-09-18) |
+| 2026-09-18 | archive | kb/_archive/raw/articles/codegraph-mcp-code-intelligence.md | Superseded upstream v1, ingested so the v2 correction note resolves |
+| 2026-09-18 | create | kb/entities/codegraph.md, kb/concepts/agent-code-graph-search.md, kb/comparisons/codegraph-vs-graphify.md | Layer-2 synthesis: CodeGraph as primary agent graph search + graphify coexistence |
+| 2026-09-18 | update | kb/index.md | Catalog 21 layer-2 pages + 15 raw sources |

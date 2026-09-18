@@ -1,9 +1,14 @@
-"""Unit tier — bearer auth core. IDs: AC-MCP-031..033.
+"""Unit tier — bearer auth core. IDs: AC-MCP-041..043.
 
 Pure logic, no transport, no fastapi required for the core. The module reads
 its config from the environment at import time, so each test configures the
 env via monkeypatch and reloads ``src.auth`` to re-read it — deterministic
 control over the fail-closed behaviour without global state.
+
+IDs 041..043 are the unit-tier auth block: 031..037 belong to the
+workspace/corpus isolation suite (PRD-06), 221..223 to the integration auth
+suite (PRD-05 SC6). The three IDs above are the mapping recorded in
+docs/prd/05-mcp-rest-service.md.
 """
 import importlib
 
@@ -37,7 +42,7 @@ def auth_env(monkeypatch):
 
 
 def test_verify_token_correct_and_incorrect(auth_env):
-    """AC-MCP-031: verify_token accepts the configured token, rejects wrong/None/empty."""
+    """AC-MCP-041: verify_token accepts the configured token, rejects wrong/None/empty."""
     auth_env(token="s3cret-token", disabled="0")
     assert auth.AUTH_TOKEN == "s3cret-token"
     assert auth.auth_enabled() is True
@@ -48,7 +53,7 @@ def test_verify_token_correct_and_incorrect(auth_env):
 
 
 def test_fail_closed_token_unset(auth_env):
-    """AC-MCP-032: no token configured (and not disabled) => nothing verifies
+    """AC-MCP-042: no token configured (and not disabled) => nothing verifies
     and the dependency denies every request — fail closed."""
     auth_env(token=None, disabled=None)
     assert auth.AUTH_TOKEN is None
@@ -81,7 +86,7 @@ def test_require_bearer_accepts_exact_token(auth_env):
 
 
 def test_auth_disabled_env_authorized(auth_env):
-    """AC-MCP-033: AUTH_DISABLED=1 turns auth off — dependency passes without a header."""
+    """AC-MCP-043: AUTH_DISABLED=1 turns auth off — dependency passes without a header."""
     auth_env(token="s3cret-token", disabled="1")
     assert auth.AUTH_DISABLED is True
     assert auth.auth_enabled() is False

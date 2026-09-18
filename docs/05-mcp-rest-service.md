@@ -34,16 +34,29 @@ REST surface: `GET /health` (no auth), `POST /api/v1/research` (202 + job),
 `research_results`, `research_cancel` at `/mcp` (FastMCP v4 streamable HTTP,
 stateless 2026-07-28 path).
 
+### Upgrade paths
+
+None of the upgrades below are implemented — v1 is the batteries-included
+posture. Each names the seam that keeps the upgrade local (PRD-05 SC8).
+
+| Area | v1 (implemented) | Upgrade path | Seam |
+|------|------------------|--------------|------|
+| Job durability | SQLite WAL file via `RESEARCH_JOBS_DB` (`service/src/jobs.py`) | Postgres — same table shape, swap the connection + DDL | `JobStore` is the only writer of job rows; handlers call it, never SQL directly |
+| Scheduling | `BackgroundScheduler` in-process, `ThreadPoolExecutor(max_workers=RESEARCH_MAX_CONCURRENT_JOBS)` | BullMQ / Celery / an external queue worker | `_run_job` is the single dispatch entry point; the scheduler only calls it |
+| Auth | Static bearer token, `hmac.compare_digest`, fail-closed (`service/src/auth.py`) | OAuth 2.1 via a hosted IdP (FastMCP MultiAuth); per-sender keys | `require_bearer` is the one FastAPI dependency; `/health` stays outside it |
+| Loop sandbox | Subprocess (`prepare.py` → `train.py`), explicit argv, always a timeout, per-job cwd | Docker/WASM boundary with read-only fs, egress allowlist, cpu/memory budget | `ResearchRunner.run_loop` owns process creation; no handler spawns processes |
+| Workspace lifetime | Workspaces retained under `data/workspaces/` after terminal jobs | TTL sweeper over `data/workspaces/` | Provisioner + runner address workspaces by `job_id` path only |
+
 ## Verification
 
 ```bash
 # tiers 1+2 (no container)
-python3 -m pytest tests/unit tests/integration -q   # 59 + 13 passed
+python3 -m pytest tests/unit tests/integration -q   # 68 + 16 passed (2026-09-18)
 
 # tier 3 (needs the stack up — run.sh does NOT start it)
 docker compose up -d --build
 docker compose ps --format '{{.Health}}' service    # healthy
-bats tests/e2e/                                      # 3 ok
+bats tests/e2e/                                      # 4 ok
 docker compose down
 
 # everything (CI-shaped; install tests/requirements.txt into system python first)
@@ -53,9 +66,12 @@ bash tests/run.sh --with-e2e                         # RESULT: PASSED
 act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
 ```
 
-Verified 2026-09-05: 66 unit + 16 integration + 4 e2e green (counts include
-PRD-06 additions — see [docs/06-multi-topic-concurrency.md](06-multi-topic-concurrency.md));
-all four act jobs succeeded; container healthy in ~8s.
+Verified 2026-09-18: 68 unit + 16 integration + 4 e2e green
+(`bash tests/run.sh --with-e2e` → `RESULT: PASSED`), all four act jobs report
+`Job succeeded`, container healthy under `docker compose ps`; the unit count
+grew from 66 by the runbook-coverage test added with the PRD-06 SC6 fix — see
+[docs/06-multi-topic-concurrency.md](06-multi-topic-concurrency.md).
+Originally verified 2026-09-05 at 66 + 16 + 4.
 
 ## What Works
 
@@ -64,7 +80,8 @@ all four act jobs succeeded; container healthy in ~8s.
 - Single source of truth: the service runs `contract/` directly — the runner
   resolves `repo/contract` on the host and `/app/contract` in the container via
   the compose read-only bind mount; no vendored workload copy. Custom workloads
-  override via `RESEARCH_WORKLOAD_DIR` (or the legacy `service/workload` drop-in).
+  override via `RESEARCH_WORKLOAD_DIR`; `resolve_workload_dir()` otherwise falls
+  back to `<service-root>/workload`, a directory this repo does not ship.
 - Idempotent dispatch (same `idempotency_key` returns the existing job)
 - Cancel on queued and running jobs (queued→cancelled added, AC-MCP-014)
 - Bearer auth on REST and the `/mcp` guard: 401 + complete JSON body when

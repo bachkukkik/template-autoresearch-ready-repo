@@ -62,16 +62,23 @@ execution; security stack introduced fully.
 - **SC6** — Auth: bearer token required on REST and MCP (FastMCP MultiAuth /
   `Authorization: Bearer`), configurable via env; unauthenticated requests get
   401; `/health` stays unauthenticated by design (FastMCP custom route).
-  _Verify:_ `tests/integration/test_auth.py` (AC-MCP-221..223).
+  _Verify:_ `tests/integration/test_auth.py` (AC-MCP-221..223),
+  `tests/unit/test_auth.py` (AC-MCP-041..043 — the fail-closed core:
+  `verify_token`, unset-token denial, `AUTH_DISABLED=1`).
 - **SC7** — The service is `uv`-managed and the whole surface lives in
   `service/`: `pyproject.toml` + `uv.lock` + `Dockerfile` + sources all under
-  `service/`; container starts with `uv run --locked uvicorn`; `docker compose
-  up -d --build` yields a healthy container. _Verify:_
+  `service/`; the image installs with `uv sync --locked` and the container
+  starts with `uv run --no-sync --no-dev uvicorn` (no runtime re-sync — a
+  runtime `uv run --locked` can uninstall the entrypoint mid-boot, see
+  [docs/05](../05-mcp-rest-service.md) *What Fails*); `docker compose up -d
+  --build` yields a healthy container. _Verify:_
   `tests/e2e/service.bats` (AC-MCP-101..103).
 - **SC8** — Deployment posture: no external infra required (SQLite + APScheduler
   in-process); upgrade paths (Postgres/BullMQ, hosted OAuth 2.1) documented in
-  `docs/05-*`. _Verify:_ `tests/e2e/service.bats` (AC-MCP-103),
-  docs checklist in code review.
+  the *Upgrade paths* sub-section of [docs/05](../05-mcp-rest-service.md).
+  _Verify:_ `tests/e2e/service.bats` (AC-MCP-103); the docs sub-section is
+  checked in code review (the runbook's machine-checkable surface is
+  `tests/unit/test_service_readme.py`, AC-MCP-044..045 — see PRD-06 SC6).
 
 ## Test Mapping
 
@@ -83,6 +90,7 @@ execution; security stack introduced fully.
 | Durable SQLite job store + idempotency | `tests/unit/test_job_store.py`, `tests/integration/test_service_endpoints.py` | AC-MCP-011..013, AC-MCP-215 |
 | Sandboxed runner, no code-exec tool | `tests/unit/test_runner.py` | AC-MCP-021..023 |
 | Bearer auth on REST + MCP, /health open | `tests/integration/test_auth.py` | AC-MCP-221..223 |
+| Auth core fail-closed (token, unset, disabled) | `tests/unit/test_auth.py` | AC-MCP-041..043 |
 | uv-managed container healthy via compose | `tests/e2e/service.bats` | AC-MCP-101..103 |
 
 ## Assumptions
