@@ -13,19 +13,24 @@
 
 | # | Topic | Verdict | Updated | Covers | PRD | Gaps |
 |---|-------|---------|---------|--------|-----|------|
-| 05 | [MCP REST Service](05-mcp-rest-service.md) | works | 2026-09-05 | `service/`, `docker-compose.yml`, `tests/{unit,integration,e2e}`, `.github/workflows/` | [05-mcp-rest-service](prd/05-mcp-rest-service.md) | [05-dual-exposure-not-implemented](gaps/05-dual-exposure-not-implemented.md) |
-| 06 | [Concurrent Multi-Topic Service](06-multi-topic-concurrency.md) | works | 2026-09-05 | `service/src/{workspace,runner,main}.py`, `contract/` (consumed by the service), `tests/unit/test_workspace.py`, `tests/integration/test_multi_topic.py`, `tests/e2e/service.bats`, `service/README.md` | [06-multi-topic-concurrent-service](prd/06-multi-topic-concurrent-service.md) | [06-single-topic-no-isolation](gaps/06-single-topic-no-isolation.md) — resolved |
-| 02 | [Autoresearch Template Contract](02-autoresearch-contract.md) | works | 2026-09-05 | `contract/program.md`, `contract/prepare.py`, `contract/train.py`, `results.tsv`, `tests/unit/test_{program_md,prepare_py,train_loop,val_bpb,domain_hooks}.py` | [02-autoresearch-contract](prd/02-autoresearch-contract.md) | [02-contract-files-missing](gaps/02-contract-files-missing.md) — resolved |
-| 03 | [Funnel & KB Governance](03-funnel-kb-governance.md) | works | 2026-09-04 | `AGENTS.md`, `PRD.md`, `kb/`, `docs/gaps/`, `tests/unit/test_{funnel_structure,kb_layout,gaps_lifecycle}.py`, `.github/workflows/{ci,sources-readonly}.yml` | [03-funnel-kb-governance](prd/03-funnel-kb-governance.md) | [03-governance-tests-missing](gaps/03-governance-tests-missing.md) — resolved |
-| 04 | [Examples Corpus](04-examples-corpus.md) | works | 2026-09-04 | `kb/raw/` (13 sources), `kb/{concepts,entities,comparisons}/` (14 pages), `tests/unit/test_{corpus_integrity,kb_synthesis}.py` | [04-examples-corpus](prd/04-examples-corpus.md) | [04-corpus-tests-missing](gaps/04-corpus-tests-missing.md) — resolved |
+| 05 | [MCP REST Service](05-mcp-rest-service.md) | works | 2026-09-18 | `service/`, `docker-compose.yml`, `tests/{unit,integration,e2e}`, `.github/workflows/` | [05-mcp-rest-service](prd/05-mcp-rest-service.md) | — (resolved; archived 2026-09-18) |
+| 06 | [Concurrent Multi-Topic Service](06-multi-topic-concurrency.md) | works | 2026-09-18 | `service/src/{workspace,runner,main}.py`, `contract/` (consumed by the service), `tests/unit/test_{workspace,service_readme}.py`, `tests/integration/test_multi_topic.py`, `tests/e2e/service.bats`, `service/README.md` | [06-multi-topic-concurrent-service](prd/06-multi-topic-concurrent-service.md) | — (resolved; archived 2026-09-18) |
+| 02 | [Autoresearch Template Contract](02-autoresearch-contract.md) | works | 2026-09-18 | `contract/program.md`, `contract/prepare.py`, `contract/train.py`, `results.tsv`, `tests/unit/test_{program_md,prepare_py,train_loop,val_bpb,domain_hooks}.py` | [02-autoresearch-contract](prd/02-autoresearch-contract.md) | — (resolved; archived 2026-09-18) |
+| 03 | [Funnel & KB Governance](03-funnel-kb-governance.md) | works | 2026-09-18 | `AGENTS.md`, `PRD.md`, `kb/`, `docs/gaps/`, `tests/unit/test_{funnel_structure,kb_layout,gaps_lifecycle}.py`, `.github/workflows/{ci,sources-readonly}.yml` | [03-funnel-kb-governance](prd/03-funnel-kb-governance.md) | — (resolved; archived 2026-09-18) |
+| 04 | [Examples Corpus](04-examples-corpus.md) | works | 2026-09-18 | `kb/raw/` (15 sources), `kb/{concepts,entities,comparisons}/` (21 pages), `tests/unit/test_{corpus_integrity,kb_synthesis}.py` | [04-examples-corpus](prd/04-examples-corpus.md) | — (resolved; archived 2026-09-18) |
 
-`02`—`04` were verified 2026-09-04 with the contract implementation wave: all
-`AC-TPL-*`/`AC-FUN-*`/`AC-EXC-*` unit tests
-green (34/34, see each doc's *Verification*).
+All five rows were re-verified 2026-09-18 in one pass: `bash tests/run.sh
+--with-e2e` → `RESULT: PASSED` (68 unit + 16 integration + 4 e2e) and all four
+local `act` jobs (`unit`, `integration`, `secret-scan`, `doctrine`) report
+`Job succeeded`. The `AC-TPL-*`/`AC-FUN-*`/`AC-EXC-*` unit tests are green
+(31 tests; full unit tier 68 — see each doc's *Verification*).
 
 `01` is an intentional gap: the scaffold's CI-gate SCs are verified in `03`, and its
 service SCs in `05`/`06` — see
 [docs/prd/01-template-scaffold-ci.md](prd/01-template-scaffold-ci.md).
+
+Resolved gaps are archived out of the repo per
+[docs/gaps/README.md](gaps/README.md); the `Gaps` column records where one closed.
 
 **Verdict vocabulary** — copy the net verdict from the doc's own *Verdict* section:
 

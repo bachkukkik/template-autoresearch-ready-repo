@@ -46,22 +46,23 @@ the event loop. Guarded by AC-MCP-037.
 
 ```bash
 # tiers 1+2 (no container)
-PYTHONPATH=service python3 -m pytest tests/unit tests/integration -q   # 82 passed (66 + 16)
+PYTHONPATH=service python3 -m pytest tests/unit tests/integration -q   # 84 passed (68 + 16)
 
 # tier 3 (container up — run.sh does NOT start it)
 docker compose up -d --build && docker compose ps   # service healthy
-bash tests/run.sh --with-e2e                        # RESULT: PASSED (66 unit + 16 integration + 4 e2e)
+bash tests/run.sh --with-e2e                        # RESULT: PASSED (68 unit + 16 integration + 4 e2e)
 
 # local CI (AGENTS.md §6 — never -j e2e on a deployment host)
 act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
-# -> all four green (2026-09-05)
+# -> all four green (2026-09-18)
 ```
 
 New IDs: AC-MCP-031..037 (unit: workspace isolation, corpus texts/files,
 fail-fast, in-workspace run, concurrent overlap, cap honors env, sync-handler
 guard), AC-MCP-231..233 (integration: two topics concurrently, corpus file
 from `kb/raw/transcripts`, missing file → 400), AC-MCP-104 (e2e: two topics
-in the container).
+in the container), AC-MCP-044..045 (unit: the runbook coverage added for SC6 —
+see [docs/prd/06](../prd/06-multi-topic-concurrent-service.md)).
 
 ## What Works
 
@@ -101,11 +102,12 @@ in the container).
 - **Filesystem-dependent corpus:** document `texts` as the portable path;
   `files` requires the corpus root (README + PRD-06).
 - **Concurrency hazard:** out of scope; recorded here so the next session
-  checks `git status` before editing (this PR's `docs/gaps/06` flipped to
-  resolved).
+  checks `git status` before editing (the `docs/gaps/06` record flipped to
+  resolved in the same window and was archived out of the repo 2026-09-18).
 
 ## Verdict
 
-**works** — 82 unit+integration + 4 e2e green, all four local act jobs green
-(2026-09-05); the service now serves multiple research topics concurrently,
-out of the box, each in an isolated workspace with topic + corpus wiring.
+**works** — 84 unit+integration (68 + 16) + 4 e2e green, all four local act jobs
+green (2026-09-18); the service now serves multiple research topics
+concurrently, out of the box, each in an isolated workspace with topic + corpus
+wiring.

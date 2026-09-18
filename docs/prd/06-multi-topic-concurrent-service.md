@@ -23,9 +23,10 @@ SQLite/APScheduler, bearer auth, and a subprocess runner executing
 **isolation and topic wiring**: `ResearchRequest.topic` is stored in the job
 row but never reaches the runner, and every job executes in the same shared
 `service/workload/` directory — two concurrent jobs would race on the same
-`data.txt` cwd and produce byte-identical output regardless of topic. See
-[docs/gaps/06-single-topic-no-isolation.md](../gaps/06-single-topic-no-isolation.md)
-for the recorded divergence.
+`data.txt` cwd and produce byte-identical output regardless of topic. The
+divergence was recorded as `docs/gaps/06-single-topic-no-isolation.md`, closed
+2026-09-05 and archived out of the repo per the gap lifecycle; the verified
+fix is [docs/06-multi-topic-concurrency.md](../06-multi-topic-concurrency.md).
 
 **Users:** concurrent researchers/agents — user1 runs topic A from
 `kb/raw/transcripts/A.txt`, user2 runs topic B from `B.txt`, at the same time,
@@ -84,9 +85,10 @@ artifacts; `data/` is gitignored).
   compose), env vars (including the three new ones), REST + MCP API, job
   lifecycle, concurrency + multi-topic model, workspace layout, security, and
   the convention that agents update it whenever service behaviour changes.
-  _Verify:_ file exists with the required sections; referenced from
-  `AGENTS.md` funnel table; `tests/unit/test_funnel_structure.py` allowlist
-  still green (AC-FUN-001).
+  _Verify:_ `tests/unit/test_service_readme.py` (AC-MCP-044..045 — file
+  present, and every section + the three new env vars this SC names appear);
+  referenced from the `AGENTS.md` "Where does this text go" table;
+  `tests/unit/test_funnel_structure.py` allowlist still green (AC-FUN-001).
 
 ## Test Mapping
 
@@ -94,7 +96,7 @@ artifacts; `data/` is gitignored).
 |---|---|---|
 | Per-job workspace isolation (scripts + topic.txt + context.json, disjoint dirs) | `tests/unit/test_workspace.py` | AC-MCP-031 |
 | Corpus delivery: inline texts + files under corpus root | `tests/unit/test_workspace.py` | AC-MCP-032, AC-MCP-033 |
-| Runner executes in workspace; report carries topic + corpus stats; legacy default unchanged (val_bpb 1.234) | `tests/unit/test_workspace.py` | AC-MCP-034 |
+| Runner executes in workspace; report carries topic + corpus stats; legacy default path unchanged (no topic/corpus keys, same ~3.7 contract baseline) | `tests/unit/test_workspace.py` | AC-MCP-034 |
 | Concurrent jobs overlap (wall < 2× single) + scheduler cap honors env | `tests/unit/test_workspace.py` | AC-MCP-035, AC-MCP-036 |
 | All research handlers are sync def (async decision guard) | `tests/unit/test_workspace.py` | AC-MCP-037 |
 | Two topics concurrently over live REST, distinct results | `tests/integration/test_multi_topic.py` | AC-MCP-231 |

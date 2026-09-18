@@ -13,7 +13,7 @@
 ## What this is
 
 One ASGI process exposing the **autoresearch loop** (`prepare.py` → `train.py`,
-`val_bpb`, time budget — see `../../program.md` and `kb/concepts/autoresearch-contract.md`)
+`val_bpb`, time budget — see `../contract/program.md` and `kb/concepts/autoresearch-contract.md`)
 to **two consumers at once**:
 
 | Surface | Path / protocol | Consumers |
