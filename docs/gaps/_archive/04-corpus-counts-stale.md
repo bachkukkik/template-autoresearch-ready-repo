@@ -3,7 +3,7 @@
 **Layers:** kb ↔ prd
 **Status:** resolved
 **Opened:** 2026-09-18
-**Resolved:** 2026-09-18 — PRD edit applied; see [docs/04](../04-examples-corpus.md)
+**Resolved:** 2026-09-18 — PRD edit applied; see [docs/04](../../04-examples-corpus.md)
 
 ## Observation
 

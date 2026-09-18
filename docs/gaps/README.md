@@ -68,7 +68,7 @@ sub1 gap sync  ──►  docs/gaps/NN-slug.md (open)
               resolution applied upstream
                           │
                           ▼
-              Status: resolved  ──►  archived out of the repo once merged
+              Status: resolved  ──►  moved to docs/gaps/_archive/ once merged
 ```
 
 Rules:
@@ -85,19 +85,18 @@ Rules:
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
 | 03 | [kb/raw articles cite scratchpad paths as their evidence](03-kb-raw-scratchpad-citations.md) | kb ↔ prd | open | 2026-09-18 |
-| 04 | [PRD-04 records stale corpus counts](04-corpus-counts-stale.md) | kb ↔ prd | resolved | 2026-09-18 |
-| 05 | [PRD-05 SC7 names a start command the image does not run](05-sc7-start-command-drift.md) | prd ↔ code | resolved | 2026-09-18 |
-| 05 | [PRD-05 SC8 pointed at upgrade-path docs that did not exist](05-sc8-upgrade-paths-undocumented.md) | prd ↔ code | resolved | 2026-09-18 |
-| 05 | [AC-MCP-031..033 are claimed by two unit suites](05-unit-auth-id-collision.md) | prd ↔ code | resolved | 2026-09-18 |
-| 06 | [The runbook PRD-06 SC6 mandates is verified by no test](06-runbook-unverified.md) | prd ↔ code | resolved | 2026-09-18 |
-| 06 | [PRD-06's Test Mapping misdescribes AC-MCP-034](06-test-mapping-ac-034-stale.md) | prd ↔ code | resolved | 2026-09-18 |
 | 07 | [The CodeGraph knowledge base has no stage-4 PRD](07-codegraph-no-prd.md) | kb ↔ prd | open | 2026-09-18 |
 
-**Archived 2026-09-18.** Five earlier gaps closed by landing their resolutions upstream
-(PRs #3–#5) and were removed from the repo in the same sync that wrote the rows above:
-`02-contract-files-missing.md`, `03-governance-tests-missing.md`,
-`04-corpus-tests-missing.md`, `05-dual-exposure-not-implemented.md` and
-`06-single-topic-no-isolation.md`. The removal is not silent — those five file names now
-resolve to nothing by design; the *Lifecycle* rule above is the authority for it
-("archived out of the repo once merged"). Two of the numbers were reused by the new
-files (`03`, `04`), so a stale link to an old number must be read against this note.
+Resolved gaps leave this directory but stay in the repo, their path structure preserved
+under `docs/gaps/_archive/`:
+
+- **Archived 2026-09-18** — resolutions landed in PR #9, files moved to
+  [`_archive/`](_archive/): `04-corpus-counts-stale.md`,
+  `05-sc7-start-command-drift.md`, `05-sc8-upgrade-paths-undocumented.md`,
+  `05-unit-auth-id-collision.md`, `06-runbook-unverified.md`,
+  `06-test-mapping-ac-034-stale.md`.
+- **Removed 2026-09-18**, before this directory existed, their resolutions having landed in
+  PRs #3–#5: `02-contract-files-missing.md`, `03-governance-tests-missing.md`,
+  `04-corpus-tests-missing.md`, `05-dual-exposure-not-implemented.md` and
+  `06-single-topic-no-isolation.md`. Those five names resolve to nothing by design; two of
+  the numbers were reused (`03`, `04`), so a stale link must be read against this note.
