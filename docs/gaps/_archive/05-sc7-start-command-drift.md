@@ -3,7 +3,7 @@
 **Layers:** prd ↔ code
 **Status:** resolved
 **Opened:** 2026-09-18
-**Resolved:** 2026-09-18 — PRD edit applied; see [docs/05](../05-mcp-rest-service.md)
+**Resolved:** 2026-09-18 — PRD edit applied; see [docs/05](../../05-mcp-rest-service.md)
 
 ## Observation
 
@@ -36,5 +36,5 @@ contradicted the doc the same PRD points at for verified reality.
 
 PRD edit — applied 2026-09-18: SC7 now states that the image installs with
 `uv sync --locked` and the container starts with `uv run --no-sync --no-dev
-uvicorn`, linking *What Fails* in [docs/05](../05-mcp-rest-service.md) for the
+uvicorn`, linking *What Fails* in [docs/05](../../05-mcp-rest-service.md) for the
 rationale. **Status: resolved.**

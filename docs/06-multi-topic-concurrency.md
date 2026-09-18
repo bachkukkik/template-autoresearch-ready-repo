@@ -62,7 +62,7 @@ fail-fast, in-workspace run, concurrent overlap, cap honors env, sync-handler
 guard), AC-MCP-231..233 (integration: two topics concurrently, corpus file
 from `kb/raw/transcripts`, missing file → 400), AC-MCP-104 (e2e: two topics
 in the container), AC-MCP-044..045 (unit: the runbook coverage added for SC6 —
-see [docs/prd/06](../prd/06-multi-topic-concurrent-service.md)).
+see [docs/prd/06](prd/06-multi-topic-concurrent-service.md)).
 
 ## What Works
 
