@@ -84,10 +84,11 @@ scratchpads/*
 # happens, so a local override here will not go unnoticed.
 
 # === codegraph local index (local SQLite artifact; upstream ignores the whole dir) ===
-# The directory is ignored wholesale: CodeGraph rewrites a nested .codegraph/.gitignore on
-# every validating command, and a nested ignore file cannot be re-included from this file.
-# .codegraph/.gitkeep is tracked (force-added once) so a clone still gets the directory.
-.codegraph/
+# ignore everything inside, keep the directory's tracked placeholder
+.codegraph/*
+!.codegraph/.gitkeep
+# NB: codegraph re-creates .codegraph/.gitignore on every validating command. It is left
+# untracked on purpose — never commit it, and never stage .codegraph/ with a blanket add.
 
 # === graphify cache ===
 graphify-out/cache/
