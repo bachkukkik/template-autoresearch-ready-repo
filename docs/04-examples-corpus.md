@@ -81,25 +81,26 @@ orphaned page fails the PR.
   ingested `kb/raw/articles/mcp-autoresearch-service-conclusions.md` whose sha256
   stamp mismatched its body. The file was re-stamped and is now committed and
   verifies clean — the gate worked as designed.
+- The CodeGraph ingest is committed: commit `0e96572` (PR #9) tracks
+  `kb/raw/articles/codegraph-mcp-code-intelligence.md`, its three layer-2 pages
+  (`kb/concepts/agent-code-graph-search.md`, `kb/entities/codegraph.md`,
+  `kb/comparisons/codegraph-vs-graphify.md`), and the archived v1 under
+  `kb/_archive/raw/`, so `git ls-files` and the working tree agree at 15 raw
+  sources and 21 layer-2 pages (11 concepts / 4 entities / 6 comparisons).
 
 ## What Fails
 
-- **Uncommitted CodeGraph ingest:** the CodeGraph evidence article, its three
-  synthesized layer-2 pages, and the archived v1 are untracked in the working
-  tree, so `git ls-files` counts the committed corpus as 14 raw / 18 layer-2 while
-  the working tree holds 15 / 21. A fresh clone sees the smaller corpus.
 - **Not a content checker:** the tests verify integrity (stamps, links, tags),
   not the accuracy of the synthesized claims — claim correctness still comes
   from the llm-wiki workflow + the `sources:` traceability.
 
 ## Resolution
 
-- **Uncommitted CodeGraph ingest:** stage the new paths
-  (`kb/raw/articles/codegraph-mcp-code-intelligence.md`,
-  `kb/concepts/agent-code-graph-search.md`, `kb/entities/codegraph.md`,
-  `kb/comparisons/codegraph-vs-graphify.md`, and `kb/_archive/raw/`) in the PR
-  that carries the CodeGraph alignment; until then 15/21 describes the working
-  tree only, and the tracked corpus reads 14/18.
+- **Committed CodeGraph ingest:** resolved by commit `0e96572` (PR #9) — the
+  article `kb/raw/articles/codegraph-mcp-code-intelligence.md`, its three layer-2
+  pages (`kb/concepts/agent-code-graph-search.md`, `kb/entities/codegraph.md`,
+  `kb/comparisons/codegraph-vs-graphify.md`), and `kb/_archive/raw/` are tracked,
+  so the committed corpus and the working tree both read 15 raw / 21 layer-2.
 - **Not a content checker:** by design — keep claim review in the llm-wiki
   stage; AC-EXC-024 verifies traceability, which is what makes review possible.
 
@@ -107,5 +108,5 @@ orphaned page fails the PR.
 
 **works** — the corpus is ingested, synthesized, cataloged, and now machine-gated:
 8 integrity tests pass over 15 sha-verified raw sources and 21 indexed layer-2
-pages. The CodeGraph ingest is not yet committed, so the tracked corpus still
-reads 14 raw / 18 layer-2 until it lands.
+pages. The CodeGraph ingest is committed (commit `0e96572`, PR #9), so the
+tracked corpus and the working tree both read 15 raw / 21 layer-2.
