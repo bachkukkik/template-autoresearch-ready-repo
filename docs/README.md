@@ -19,7 +19,7 @@
 | 03 | [Funnel & KB Governance](03-funnel-kb-governance.md) | works | 2026-09-18 | `AGENTS.md`, `PRD.md`, `kb/`, `docs/gaps/`, `tests/unit/test_{funnel_structure,kb_layout,gaps_lifecycle}.py`, `.github/workflows/{ci,sources-readonly}.yml` | [03-funnel-kb-governance](prd/03-funnel-kb-governance.md) | — (resolved; archived 2026-09-18) |
 | 04 | [Examples Corpus](04-examples-corpus.md) | works | 2026-09-18 | `kb/raw/` (15 sources), `kb/{concepts,entities,comparisons}/` (21 pages), `tests/unit/test_{corpus_integrity,kb_synthesis}.py` | [04-examples-corpus](prd/04-examples-corpus.md) | — (resolved; archived 2026-09-18) |
 | 07 | [CodeGraph Adoption](07-codegraph-adoption.md) | partial | 2026-09-19 | `AGENTS.md` (`## codegraph`), `.codegraph/` (gitignored local index), `tests/unit/test_codegraph_adoption.py`, `kb/raw/articles/codegraph-mcp-code-intelligence.md`, `kb/{concepts/agent-code-graph-search,entities/codegraph,comparisons/codegraph-vs-graphify}.md` | [07-codegraph-adoption](prd/07-codegraph-adoption.md) | — (resolved; archived 2026-09-19) |
-| 08 | [Adoption Readiness](08-adoption-readiness.md) | partial | 2026-09-19 | `ops/` (`README.md`, `sync.sh`, `artifacts/`, `state-allowlist.txt`), `ADOPTING.md`, `scripts/verify-clone.sh`, `tests/unit/test_{ops_sync,docs_template,harness_neutrality,funnel_structure,gaps_lifecycle,corpus_integrity}.py`, `.github/workflows/ci.yml` (`integration` junit guard, `doctrine` tracked-root coverage), `tests/conftest.py`, `docs/gaps/_archive/{03,07}-*.md` | [08-adoption-readiness](prd/08-adoption-readiness.md) | — (resolved; archived 2026-09-19) |
+| 08 | [Adoption Readiness](08-adoption-readiness.md) | works | 2026-09-19 | `ops/` (`README.md`, `sync.sh`, `artifacts/`, `state-allowlist.txt`), `ADOPTING.md`, `scripts/verify-clone.sh`, `tests/unit/test_{ops_sync,verify_clone,docs_template,harness_neutrality,funnel_structure,gaps_lifecycle,corpus_integrity}.py`, `.github/workflows/ci.yml` (`ops-drift` drift gate, `integration` junit guard, `doctrine` tracked-root coverage), `tests/conftest.py`, `docs/gaps/_archive/{03,07}-*.md` | [08-adoption-readiness](prd/08-adoption-readiness.md) | — (resolved; archived 2026-09-19) |
 
 Rows 02–06 were re-verified 2026-09-18 in one pass: `bash tests/run.sh
 --with-e2e` → `RESULT: PASSED` (68 unit + 16 integration + 4 e2e) and all four
@@ -27,10 +27,11 @@ local `act` jobs (`unit`, `integration`, `secret-scan`, `doctrine`) report
 `Job succeeded`. The `AC-TPL-*`/`AC-FUN-*`/`AC-EXC-*` unit tests are green
 (31 tests; full unit tier 68 — see each doc's *Verification*). Row 07 was
 verified 2026-09-19 against the CodeGraph CLI + MCP surfaces on this machine —
-see its *Verification*. Row 08 was verified 2026-09-19 in the same session:
-`bash tests/run.sh` → `RESULT: PASSED` (105 unit + 16 integration; the e2e tier
-needs a container) with `bash scripts/verify-clone.sh` → `RESULT: PASSED — 30
-check(s) passed` — see its *Verification*.
+see its *Verification*. Row 08 was re-verified 2026-09-19 on closure of its three
+recorded failures: `bash tests/run.sh` → `RESULT: PASSED` (120 unit + 16 integration;
+the e2e tier needs a container) with `bash scripts/verify-clone.sh` → `RESULT: PASSED — 33
+check(s) passed`, and the `ops-drift` job green end to end under `act` in both modes —
+see its *Verification*.
 
 `01` is an intentional gap: the scaffold's CI-gate SCs are verified in `03`, and its
 service SCs in `05`/`06` — see

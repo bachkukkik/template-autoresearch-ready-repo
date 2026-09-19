@@ -63,6 +63,29 @@ If you do have one:
 4. Add your generated runtime state to `ops/state-allowlist.txt`.
 5. Wire `--check` into CI (it writes nothing, so it is safe on any runner).
 
+## `--check` in CI — the `ops-drift` job
+
+`.github/workflows/ci.yml` runs `ops/sync.sh --check` in the `ops-drift` job. This
+template ships no live deploy target, so by default the job **self-fixtures**: it
+deploys the vendored artifacts into a temp root with `--apply`, checks that root, then
+mutates one deployed file and requires `--check` to fail naming it. That is what proves
+drift is detectable without a real target.
+
+**To gate your own target, set the `OPS_LIVE_ROOT` repository variable** (Settings →
+Secrets and variables → Actions → **Variables**) to the directory the live process
+reads. The job then skips both fixture steps and runs `--check` against that target
+instead — red on drift, exactly as it is locally.
+
+`--apply` is never run against a configured target from CI: the two steps that write are
+gated on the self-contained mode, so a misconfigured variable cannot make a CI run
+mutate your deploy target.
+
+The local equivalent is the same command:
+
+```bash
+OPS_LIVE_ROOT=/path/to/live ops/sync.sh --check
+```
+
 ## Worked example
 
 ```bash
