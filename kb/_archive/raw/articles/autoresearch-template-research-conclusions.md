@@ -1,8 +1,7 @@
 ---
-source_url: https://github.com/karpathy/autoresearch
+source_url: https://github.com/karpathy/autoresearch (research synthesis: upstream repo + 11 YouTube transcripts + bachkukkik doctrine; artifacts in scratchpads/autoresearch-research/)
 ingested: 2026-09-04
-reingested: 2026-09-19
-sha256: 3f2a722385c870929cd205f571c87f4bfed9058260a98e553538df247c57b3db
+sha256: 9fda3a6e53dc8a696f6fa5c51d7332d15a4398cbd393ec5054e46fc56bbe8f0e
 title: Autoresearch template build — deep research conclusions
 ---
 
@@ -12,27 +11,10 @@ title: Autoresearch template build — deep research conclusions
 > **template-autoresearch-ready-repo** (a template for karpathy/autoresearch that
 > follows the bachkukkik/template-agentic-ready-repo doctrine and ships extensive
 > worked examples).
-> The run's working artifacts were machine-local and are not tracked: `AGENTS.md`
-> funnel rule 6 forbids citing a scratch workspace path as evidence, so the
-> evidence that survives a fresh clone is the ingested stage-2 material — the
-> upstream program.md reference
-> (`kb/raw/articles/autoresearch-program-md-reference.md`) and the **11** YouTube
-> transcripts under `kb/raw/transcripts/`.
-
-## Sources
-
-| Source | Where it lives now | Backs |
-|---|---|---|
-| karpathy/autoresearch — repo, README, `program.md`, `train.py`, `prepare.py` | <https://github.com/karpathy/autoresearch> | canonical source — frontmatter `source_url`; §2, §3 |
-| Upstream `program.md` verbatim | `kb/raw/articles/autoresearch-program-md-reference.md` | §2 three-file contract, §3 loop contract |
-| 11 YouTube transcripts (per-video IDs named inline) | `kb/raw/transcripts/` — 11 files, ingested 2026-09-04 | §4 findings per source |
-| bachkukkik/template-agentic-ready-repo doctrine | <https://github.com/bachkukkik/template-agentic-ready-repo> | §5 doctrinal mapping |
-| Ecosystem survey (Badkur & Dak 2026) and per-system docs | external — cited inline | §4 ecosystem and bottleneck thesis |
-
-*Re-ingest note (2026-09-19, gap 03):* provenance repaired — the frontmatter
-`source_url` now names one canonical source, the remaining provenance is tabled
-above, `reingested` is stamped, and `sha256` was recomputed over this body. The
-research content below is unchanged.
+> Research artifacts (structured results, per-item snapshots, raw notes) live in
+> `scratchpads/autoresearch-research/` (gitignored). Raw sources ingested here:
+> upstream program.md (`articles/autoresearch-program-md-reference.md`) and 11
+> YouTube transcripts (`transcripts/`).
 
 ## 1. Executive summary
 

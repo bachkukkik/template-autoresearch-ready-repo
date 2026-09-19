@@ -22,7 +22,7 @@ written only by llm-wiki; gaps are transient; secrets never enter `kb/` or `docs
 
 - **SC1** — No stray documents: a new `.md` outside stages 1–6 (scratchpads,
   kb/raw, kb, PRD/docs/prd, docs/gaps, docs/NN, issues) is a defect. _Verify:_
-  `tests/unit/test_funnel_structure.py` (AC-FUN-001..003). ✅ implemented 2026-09-04
+  `tests/unit/test_funnel_structure.py` (AC-FUN-001..004). ✅ implemented 2026-09-04
 
 - **SC2** — `kb/raw/**` is add-only and enforced in CI (M/D without `ingest` label
   fails); secrets never land in `kb/` or `docs/` (mirrored by the `secret-scan`
@@ -49,7 +49,7 @@ written only by llm-wiki; gaps are transient; secrets never enter `kb/` or `docs
 
 | Expected behavior | Test file | Test IDs |
 |---|---|---|
-| Funnel stage layout enforced structurally | `tests/unit/test_funnel_structure.py` | AC-FUN-001..003 |
+| Funnel stage layout enforced structurally | `tests/unit/test_funnel_structure.py` | AC-FUN-001..004 |
 | `kb/` add-only gate + secret-free `kb/` | `.github/workflows/sources-readonly.yml`, `ci.yml` | jobs `check-raw-readonly`, `secret-scan` |
 | Doctrine tracked, entry points resolve | `.github/workflows/ci.yml` | job `doctrine` |
 | KB layout matches llm-wiki spec | `tests/unit/test_kb_layout.py` | AC-FUN-011..012 |

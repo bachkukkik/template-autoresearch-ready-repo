@@ -1,7 +1,7 @@
 # 03 — kb/raw articles cite scratchpad paths as their evidence
 
 **Layers:** kb ↔ prd
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-09-18
 
 ## Observation
@@ -68,15 +68,58 @@ every clone ships a dangling provenance link in stage-2 material.
 
 ## Resolution
 
-`kb/raw/` ingest + `llm-wiki ./kb/` — archive the two raw files out to
-`kb/_archive/raw/articles/` (funnel rule 5: archive, never delete), re-ingest corrected
-copies whose provenance points at the ingested `kb/raw/` material instead of
-`scratchpads/`, then run `llm-wiki ./kb/` so the layer-2 pages that cite them are
-re-synthesized from the corrected provenance. That is the only closure that fixes the
-tracked text; note it costs a manual hash re-record for the new raw files that the
-corpus tests (`AC-EXC-001/002`) sha-verify.
+`kb/raw/` ingest — **applied 2026-09-19** (funnel rule 3: add-or-archive; rule 5:
+archive, never delete). The four steps, in order:
 
-Alternative if the re-ingest is not scheduled now: a GitHub issue #N, with the file left
-pointing at it. Not applied in this sync: `kb/**` is add-only and owned by the kb writer,
-so this pass reports the divergence rather than editing or archiving raw sources. Until it
-lands, **Status: open**, listed in [docs/gaps/README.md](README.md).
+1. **Archived the superseded revisions before any edit** — copied verbatim to
+   `kb/_archive/raw/articles/autoresearch-template-research-conclusions.md` and
+   `kb/_archive/raw/articles/mcp-autoresearch-service-conclusions.md`. Both archive
+   copies are byte-identical to the previous revisions:
+   `git show HEAD:kb/raw/articles/<f> | diff - kb/_archive/raw/articles/<f>` → empty
+   for both.
+2. **Re-ingested the corrected revisions at the original paths.**
+   `source_url` now names exactly one canonical source
+   (`https://github.com/karpathy/autoresearch` / `https://modelcontextprotocol.io`);
+   the rest of the provenance moved into a *Sources* table in the body pointing at
+   material that actually survives a clone. For the first article that is
+   `kb/raw/articles/autoresearch-program-md-reference.md` (upstream `program.md`) and
+   the 11 files under `kb/raw/transcripts/`; the doctrine and the 2026 survey are
+   tabled as external. For the second, the 10 per-item JSON snapshots were consulted
+   during the run and **deliberately not retained** — the body says so outright,
+   because the snapshot workspace was machine-local and deletable by design; no
+   in-repo path was invented for them and no source was invented. Substantive
+   sections are unchanged: `git diff --stat` is 30 and 36 changed lines, all in the
+   frontmatter and the synthesis blockquote/`Sources` table.
+3. **Re-stamped.** `ingested: 2026-09-04` kept, `reingested: 2026-09-19` added,
+   `sha256` recomputed over the new body with the corpus test's own convention
+   (`sha256(body.strip())`, frontmatter split by
+   `tests/unit/test_corpus_integrity.py::_split_frontmatter`):
+
+   | File | sha256 before | sha256 after |
+   |---|---|---|
+   | `kb/raw/articles/autoresearch-template-research-conclusions.md` | `9fda3a6e53dc8a696f6fa5c51d7332d15a4398cbd393ec5054e46fc56bbe8f0e` | `3f2a722385c870929cd205f571c87f4bfed9058260a98e553538df247c57b3db` |
+   | `kb/raw/articles/mcp-autoresearch-service-conclusions.md` | `72ca641fccce734cdd1e7227d42af8ac5a9d6b13e7ecce2ceba87a33129bab15` | `aa81016fc3ee00d3456293d3e931b52835bdf615661a4ed4af3f3002b101dacb` |
+
+   `python3 -m pytest tests/unit/test_corpus_integrity.py -v` → 4 passed;
+   `python3 -m pytest tests/unit -q` → no regression.
+4. **Layer-2 re-synthesis: no-op.** `git grep -n "scratchpads/" -- kb/concepts
+   kb/entities kb/comparisons kb/queries` returns one hit —
+   `kb/concepts/document-funnel-doctrine.md:20`, the funnel-chain stage name
+   (`0 Prompt → 1 scratchpads/ → 2 kb/raw/ → 3 kb/ (llm-wiki) → …`), which cites no
+   scratchpad path as evidence. No layer-2 page cites a scratchpad path, and no
+   layer-2 `sources:` entry changed (both raw paths are unchanged), so an
+   `llm-wiki ./kb/` run would have no input change and is a no-op here. Layer-2 pages
+   are never hand-edited (rule 4) — nothing under `kb/concepts|entities|comparisons|queries`
+   was touched.
+
+After `git grep -n "scratchpads/" -- kb/` the only surviving hits are the prohibition
+itself (`kb/SCHEMA.md:207-208`) and the funnel-chain stage name above; **zero** hits
+under `kb/raw/`.
+
+Bookkeeping: `kb/log.md` records the two archive and two re-ingest actions (append-only,
+entries added, nothing else changed). `kb/index.md` rows 55–56 for both articles carry a
+title and an ingest date only — no scratchpad path and no superseded provenance — so both
+rows stay valid and `index.md` was **not** edited (llm-wiki-maintained). The `PR` requires
+the `ingest` label, since `.github/workflows/sources-readonly.yml` gates any `kb/raw/**`
+change on it. Closure kind: **`kb/raw/` ingest** (the `llm-wiki ./kb/` half is a no-op,
+as established in step 4).

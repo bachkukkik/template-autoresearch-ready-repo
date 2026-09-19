@@ -62,14 +62,16 @@ docker compose down
 # everything (CI-shaped; install tests/requirements.txt into system python first)
 bash tests/run.sh --with-e2e                         # RESULT: PASSED
 
-# local CI (never -j e2e on a deployment host, AGENTS.md §6)
-act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
+# local CI — run the pre-PR chain stated in AGENTS.md §6
+# (never -j e2e on a deployment host)
 ```
 
 Verified 2026-09-18: 68 unit + 16 integration + 4 e2e green
 (`bash tests/run.sh --with-e2e` → `RESULT: PASSED`), all four act jobs report
-`Job succeeded`, container healthy under `docker compose ps`; the unit count
-grew from 66 by the runbook-coverage test added with the PRD-06 SC6 fix — see
+`Job succeeded` — verified with (as of this run): `act push -j unit && act push
+-j integration && act push -j secret-scan && act push -j doctrine`; container
+healthy under `docker compose ps`; the unit count grew from 66 by the
+runbook-coverage test added with the PRD-06 SC6 fix — see
 [docs/06-multi-topic-concurrency.md](06-multi-topic-concurrency.md).
 Originally verified 2026-09-05 at 66 + 16 + 4.
 

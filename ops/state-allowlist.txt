@@ -1,0 +1,12 @@
+# ops/state-allowlist.txt — generated runtime state, excused from live-side drift.
+#
+# One glob per line, matched against the path RELATIVE to the deploy root.
+# '#' starts a comment; blank lines are ignored.
+#
+# Rule of thumb: if another process WRITES the file, it belongs here and must NOT be
+# vendored into ops/artifacts/ — the side that generates a file owns it (ops/README.md,
+# contract rule 3). A vendored copy of one of these is itself reported as drift, and
+# --apply refuses to deploy it.
+#
+# Example: the scheduler rewrites a per-run manifest next to the artifacts.
+*-manifest.json

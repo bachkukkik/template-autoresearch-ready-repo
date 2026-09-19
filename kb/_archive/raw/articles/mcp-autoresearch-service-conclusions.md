@@ -1,8 +1,7 @@
 ---
-source_url: https://modelcontextprotocol.io
+source_url: https://modelcontextprotocol.io (spec + SDK docs, registries, FastMCP docs; full source list per item in scratchpads/mcp-autoresearch-mcp/results/*.json)
 ingested: 2026-09-04
-reingested: 2026-09-19
-sha256: aa81016fc3ee00d3456293d3e931b52835bdf615661a4ed4af3f3002b101dacb
+sha256: 72ca641fccce734cdd1e7227d42af8ac5a9d6b13e7ecce2ceba87a33129bab15
 title: MCP streamable-HTTP service for the autoresearch loop — deep research conclusions
 ---
 
@@ -12,35 +11,8 @@ title: MCP streamable-HTTP service for the autoresearch loop — deep research c
 > "I have a RESTful service for auto research so we can use it as APIs; I want
 > the SAME service exposed as streamable, http-able MCP tools so agents can use
 > it to do auto research too."
-> The per-item evidence was captured during the run as 10 validated JSON
-> snapshots (35/35 fields each), with an outline, a `fields.yaml` and a
-> `report.md` beside them in a machine-local research workspace. That workspace
-> was **deliberately not retained**: it was gitignored and deletable by design,
-> and `AGENTS.md` funnel rule 6 forbids citing such a path as evidence, so the
-> per-item provenance is **not resolvable from a clone of this repo**. Each
-> section heading below names the snapshot it came from; the findings stand on
-> the source families tabled here.
-
-## Sources
-
-| Source family | Where it lives now | Backs |
-|---|---|---|
-| MCP specification (2025-03-26, 2025-11-25, 2026-07-28) | <https://modelcontextprotocol.io> | canonical source — frontmatter `source_url`; §2 Transport, Auth, Security |
-| Official Python SDK (`mcp` package) and TypeScript SDK (`@modelcontextprotocol/server`) docs | external repos/docs — cited inline | §2 Server frameworks, Ecosystem & clients |
-| FastMCP (PrefectHQ/fastmcp) — repo and docs | external — cited inline | §2 Server frameworks, Deployment; §3 decisions |
-| MCP Registry and its aggregators (Glama, Smithery, PulseMCP, mcp.so) | external — cited inline | §2 Ecosystem & clients |
-| Durable-job and deployment references (pg-boss, BullMQ, uv container docs, nginx SSE notes) | external — cited inline | §2 Long-running jobs, Deployment |
-| Prior art (karpathy/autoresearch, Perplexity, Tavily, Exa, openapi-to-mcp, LiteLLM MCP-from-OpenAPI) | external — cited inline | §2 REST ↔ MCP |
-
-*On the per-item source list:* the 10 machine-local JSON snapshots held the
-per-item provenance (source URLs and fields per finding). They were consulted
-during the run and intentionally not ingested into `kb/raw/`; the section
-headings below are the surviving pointer to which snapshot backed which claim.
-
-*Re-ingest note (2026-09-19, gap 03):* provenance repaired — the frontmatter
-`source_url` now names one canonical source, the per-item and source-family
-provenance is tabled above, `reingested` is stamped, and `sha256` was recomputed
-over this body. The research content below is unchanged.
+> Research artifacts (outline, fields.yaml, 10 validated per-item JSON snapshots,
+> report.md) live in `scratchpads/mcp-autoresearch-mcp/` (gitignored).
 
 ## 1. Executive summary
 

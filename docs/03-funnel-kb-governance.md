@@ -25,30 +25,35 @@ rule" and "enforced rule" (PRD 03).
   funnel paths are tracked/not ignored; `sources-readonly.yml` fails a PR that
   modifies/deletes `kb/raw/**` without the `ingest` label; `ci.yml` job
   `secret-scan` includes a kb content scan (funnel rule 9).
-- **pytest enforcement (new):** `test_funnel_structure.py` (AC-FUN-001..003 —
-  no stray root `.md` beyond the allowlist, stage dirs exist, harness entry
-  points resolve), `test_kb_layout.py` (AC-FUN-011..012 — SCHEMA/index present,
-  every layer-2 page indexed, raw files only under the four raw subdirs),
-  `test_gaps_lifecycle.py` (AC-FUN-021 — every gap doc has a Resolution; open
-  gaps appear in the README table).
+- **pytest enforcement (new):** `test_funnel_structure.py` (AC-FUN-001..004 —
+  no stray root `.md` beyond the allowlist, stage dirs exist, the `doctrine`
+  job's tracked-root list cannot drift from `AC-FUN-002`'s required dirs
+  (`AC-FUN-003`), harness entry points resolve), `test_kb_layout.py`
+  (AC-FUN-011..012 — SCHEMA/index present, every layer-2 page indexed, raw files
+  only under the four raw subdirs), `test_gaps_lifecycle.py` (AC-FUN-021 — every
+  gap doc has a Resolution; open gaps appear in the README table).
 
 ## Verification
 
 ```bash
 python3 -m pytest tests/unit/test_funnel_structure.py tests/unit/test_kb_layout.py \
-  tests/unit/test_gaps_lifecycle.py -v   # 6 passed (AC-FUN-001..003, 011..012, 021)
+  tests/unit/test_gaps_lifecycle.py -v   # 7 passed (AC-FUN-001..004, 011..012, 021)
 act push -j doctrine                      # Doctrine Integrity ✅
 act push -j secret-scan                   # Secret Scan ✅
 ```
 
-_Verified 2026-09-18: the pytest line reports `6 passed` and both act jobs report
+_Verified 2026-09-18 (CI jobs) and 2026-09-19 (pytest line): both act jobs report
 `Job succeeded` with their assertions printing ("All harness entry points
 resolve.", "Document funnel fully tracked.", "No secret values under kb/.",
-"No live credential files tracked.", "No hardcoded secret assignments.")._
+"No live credential files tracked.", "No hardcoded secret assignments."). The
+pytest line's count was corrected on 2026-09-19: the three files it runs hold
+4 + 2 + 1 tests and the ID list is seven long, so it reports `7 passed` — the
+`6 passed` this note carried before was a miscount of that line, not a run of a
+six-test command._
 
 ## What Works
 
-- All 6 AC-FUN tests pass against the current tree, and the two CI jobs
+- All 7 AC-FUN tests pass against the current tree, and the two CI jobs
   (`doctrine`, `secret-scan`) pass under act.
 - Root `.md` allowlist is explicit: `AGENTS.md`, `README.md`, `PRD.md`
   (+ LICENSE if present) — the autoresearch contract lives in `contract/`, so
@@ -83,5 +88,5 @@ resolve.", "Document funnel fully tracked.", "No secret values under kb/.",
 ## Verdict
 
 **works** — the governance layer is enforced in three places (documentation, CI
-jobs, pytest tier) and all six AC-FUN tests pass against the current tree. Remaining
+jobs, pytest tier) and all seven AC-FUN tests pass against the current tree. Remaining
 limits are minor allowlist/marker conventions that do not affect today's state.

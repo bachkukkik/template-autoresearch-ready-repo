@@ -52,9 +52,10 @@ PYTHONPATH=service python3 -m pytest tests/unit tests/integration -q   # 84 pass
 docker compose up -d --build && docker compose ps   # service healthy
 bash tests/run.sh --with-e2e                        # RESULT: PASSED (68 unit + 16 integration + 4 e2e)
 
-# local CI (AGENTS.md §6 — never -j e2e on a deployment host)
-act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
-# -> all four green (2026-09-18)
+# local CI — run the pre-PR chain stated in AGENTS.md §6
+# (never -j e2e on a deployment host)
+# verified with (as of 2026-09-18): act push -j unit && act push -j integration
+#   && act push -j secret-scan && act push -j doctrine  -> all four green
 ```
 
 New IDs: AC-MCP-031..037 (unit: workspace isolation, corpus texts/files,
@@ -103,7 +104,8 @@ see [docs/prd/06](prd/06-multi-topic-concurrent-service.md)).
   `files` requires the corpus root (README + PRD-06).
 - **Concurrency hazard:** out of scope; recorded here so the next session
   checks `git status` before editing (the `docs/gaps/06` record flipped to
-  resolved in the same window and was archived out of the repo 2026-09-18).
+  resolved in the same window and was archived inside the repo, at
+  `docs/gaps/_archive/`, 2026-09-18 — see `docs/gaps/README.md`, *Lifecycle*).
 
 ## Verdict
 

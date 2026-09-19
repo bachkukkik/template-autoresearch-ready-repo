@@ -1,0 +1,6 @@
+# EXAMPLE ONLY. A crontab entry for the live host (see ops/README.md). Installed by
+# hand — the sync tool deploys files, it does not touch crontab. Point the command at
+# the deployed copy in $OPS_LIVE_ROOT, not at the repo.
+#
+# m    h  dom mon dow  command
+  17   3   *   *   *   /srv/research/ops-live/wrapper.example.sh >> /var/log/research-loop.log 2>&1
