@@ -297,3 +297,82 @@ jobs:
             exit 1
           fi
           echo "No secret values under kb/."
+
+  # ═══════════════════════════════════════════════════════════════
+  # Guard: the vendored ops artifacts have not drifted from the live
+  # deploy target (AGENTS.md §6 *Ops artifacts*, contract rule 2)
+  #
+  # This template ships no live deploy target, so the job self-fixtures: it
+  # deploys the vendored artifacts into a temp root, checks that root, then
+  # mutates one deployed file and requires --check to go red naming it. Setting
+  # the OPS_LIVE_ROOT repository variable replaces the fixture with your own
+  # target and turns this into a real drift gate. --apply is confined to the
+  # temp root on purpose: a CI run must never write to a configured target.
+  # ═══════════════════════════════════════════════════════════════
+  ops-drift:
+    name: Ops Sync Drift Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the live deploy target
+        id: live
+        run: |
+          set -euo pipefail
+          # vars.OPS_LIVE_ROOT expands to the empty string when the repository
+          # variable is unset, so this is the whole switch between the two modes.
+          if [ -n "${{ vars.OPS_LIVE_ROOT }}" ]; then
+            echo "OPS_LIVE_ROOT=${{ vars.OPS_LIVE_ROOT }}" >> "$GITHUB_ENV"
+            echo "mode=configured" >> "$GITHUB_OUTPUT"
+            echo "mode: configured — gating the deploy target named by the OPS_LIVE_ROOT repository variable: ${{ vars.OPS_LIVE_ROOT }}"
+          else
+            root="$(mktemp -d)"
+            echo "OPS_LIVE_ROOT=$root" >> "$GITHUB_ENV"
+            echo "mode=selfcontained" >> "$GITHUB_OUTPUT"
+            echo "mode: self-contained — OPS_LIVE_ROOT is unset, so this run deploys the vendored artifacts into a temp root and checks that ($root). Set the OPS_LIVE_ROOT repository variable to gate your own deploy target instead."
+          fi
+
+      - name: Deploy the vendored artifacts into the temp target (self-contained mode only)
+        if: steps.live.outputs.mode == 'selfcontained'
+        run: |
+          set -euo pipefail
+          # The honest fixture for an in-sync live root IS a successful --apply, so
+          # this is the only way self-contained mode reaches --check green. Gated on
+          # selfcontained mode: --apply against the target named by OPS_LIVE_ROOT
+          # would overwrite live state from CI (contract rule 3).
+          if ! OPS_APPLY_CONFIRM=1 bash ops/sync.sh --apply; then
+            echo "::error::ops/sync.sh --apply failed — the drift fixture (an in-sync temp live root) was never built"
+            exit 1
+          fi
+
+      - name: ops/sync.sh --check (read-only)
+        run: |
+          set -euo pipefail
+          # Read-only by contract (rule 2), so this is the step an adopter points at a
+          # real deploy target by setting the OPS_LIVE_ROOT repository variable.
+          if ! bash ops/sync.sh --check; then
+            echo "::error::ops/sync.sh --check reports drift against the live root '$OPS_LIVE_ROOT' — re-vendor the live side into ops/artifacts/ (contract rule 4) and re-run"
+            exit 1
+          fi
+
+      - name: Prove drift is visible (self-contained mode only)
+        if: steps.live.outputs.mode == 'selfcontained'
+        run: |
+          set -euo pipefail
+          # A --check that exited 0 unconditionally would only prove the command ran.
+          # Mutate ONE deployed artifact and require the check to go red NAMING it.
+          # Self-contained mode only: mutating a configured target would corrupt it.
+          rel="$(cd ops/artifacts && find . -type f -print | sed 's|^\./||' | LC_ALL=C sort | sed -n '1p')"
+          echo "mutating the live copy of: $rel"
+          printf '\n# ci drift probe\n' >> "$OPS_LIVE_ROOT/$rel"
+          if out=$(bash ops/sync.sh --check 2>&1); then
+            echo "$out"
+            echo "::error::ops/sync.sh --check exited 0 over a mutated live artifact ('$rel') — drift is NOT detectable"
+            exit 1
+          fi
+          echo "$out"
+          case "$out" in
+            *"DRIFT $rel"*) echo "drift detected and named: $rel" ;;
+            *) echo "::error::ops/sync.sh --check failed without naming '$rel' as drifted — the failure is not attributable"; exit 1 ;;
+          esac

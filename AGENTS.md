@@ -434,7 +434,7 @@ be made hermetic.
 **Three-tier test suite:** Every SC maps to one of three tiers, and every tier is
 actually executed by `tests/run.sh` and by a CI job in `.github/workflows/ci.yml` — a
 tier with no runner is a defect. The jobs are `unit`, `integration`, `e2e`, plus the
-`secret-scan` and `doctrine` guards:
+`secret-scan`, `doctrine` and `ops-drift` guards:
 - Unit + Component — `tests/unit/` (pure logic, no transport) — job `unit`
 - E2E — `tests/e2e/` (bats, against a running container) — job `e2e`
 - Integration — `tests/integration/` (cross-process / persistence) — job `integration`
@@ -482,7 +482,7 @@ locally via Docker               all jobs must pass
 **The pre-PR local-CI command — this section is its single source of truth:**
 
 ```bash
-act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
+act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine && act push -j ops-drift
 ```
 
 Every other file links here. A `docs/NN-slug.md` may quote a historical invocation, but
@@ -498,7 +498,7 @@ Two workflows gate this repo:
 
 | Workflow | Gates |
 |---|---|
-| `.github/workflows/ci.yml` | unit → integration → e2e (Docker), plus a secret scan and the `doctrine` job |
+| `.github/workflows/ci.yml` | unit → integration → e2e (Docker), plus a secret scan, the `doctrine` job and the `ops-drift` sync check |
 | `.github/workflows/sources-readonly.yml` | `kb/raw/**` is add-only; edits need the `ingest` label (funnel rule 3) |
 
 The `doctrine` job is the structural half of the Harness Adapter: it fails the build if
@@ -584,7 +584,7 @@ The worked example ships at `ops/README.md` + `ops/sync.sh`.
 └── .github/
     ├── copilot-instructions.md  # symlink → ../AGENTS.md
     └── workflows/
-        ├── ci.yml                 # unit → integration → e2e + secret scan + doctrine
+        ├── ci.yml                 # unit → integration → e2e + secret scan + doctrine + ops-drift
         └── sources-readonly.yml   # kb/raw/** add-only gate
 ```
 

@@ -5,7 +5,9 @@
 The document funnel + knowledge-base governance layer: every piece of writing has
 exactly one home (scratchpads → kb/raw → kb → PRD → gaps → docs/NN → issues), the
 `kb/` layout follows the llm-wiki spec, and CI (`doctrine`, `sources-readonly`,
-`secret-scan`) enforces the rules structurally.
+`secret-scan`, `ops-drift`) enforces the rules structurally — `ops-drift` runs the ops
+home's read-only `--check` so a vendored artifact cannot drift from the live side
+unnoticed.
 
 ## Why
 

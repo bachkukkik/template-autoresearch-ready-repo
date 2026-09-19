@@ -11,6 +11,8 @@ import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SYNC = REPO_ROOT / "ops" / "sync.sh"
 
@@ -21,6 +23,15 @@ SUCCESS_LINE = "== sync complete =="
 
 # Ambient OPS_* vars must not leak into a test's resolution.
 _BASE_ENV = {k: v for k, v in os.environ.items() if not k.startswith("OPS_")}
+
+
+@pytest.fixture(autouse=True)
+def _require_bash(require_tool):
+    """Preflight (AGENTS.md §5): every test here runs ops/sync.sh, whose shebang
+    resolves bash from PATH — without this the module's verdict is a property of
+    the host rather than of the repo. Applied once for the module, like the
+    integration-tier preflight in tests/conftest.py."""
+    require_tool("bash")
 
 
 def run_sync(args, confirm=False, extra_env=None, timeout=TIMEOUT):
