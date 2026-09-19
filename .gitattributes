@@ -1,0 +1,25 @@
+# === graphify knowledge graph merge driver ===
+# Only meaningful when you choose to TRACK the graph — see the *graphify* section of
+# AGENTS.md and the matching block in .gitignore. The default there is that the graph
+# is LOCAL and untracked; this file is what a project that opts in needs.
+#
+# A tracked generated graph is rebuilt by every branch, so any two branches that both
+# rebuild it conflict on the default text merge — on a large generated file, every time.
+graphify-out/graph.json merge=graphify
+
+# Registering the driver is a PRECONDITION, not a nice-to-have: an attribute with no
+# registered driver silently does nothing, git falls back to the default text merge, and
+# you get exactly the conflict this line exists to prevent. Run this once per clone
+# (the config is local — it does not travel with the repo):
+#
+#   git config merge.graphify.name "graphify graph (generated — regenerated, never merged)"
+#   git config merge.graphify.driver "cp %B %A; echo 'graphify graph changed on both sides — took one side; rerun: graphify update .' >&2; exit 0"
+#   git config --get merge.graphify.driver   # verify the registration took
+#
+# The driver deliberately takes one side (%B) instead of merging, then tells the operator
+# to regenerate. The file is generated: a text merge yields a graph that is valid JSON but
+# semantically wrong, which is worse than either side. Regenerating is the only correct
+# resolution, so the driver never pretends to have merged anything.
+#
+# NB: graphify does NOT ship this driver (checked 0.9.34) — it is this repo's documented
+# convention, registered per clone as shown above.

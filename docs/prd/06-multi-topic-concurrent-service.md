@@ -25,8 +25,9 @@ row but never reaches the runner, and every job executes in the same shared
 `service/workload/` directory — two concurrent jobs would race on the same
 `data.txt` cwd and produce byte-identical output regardless of topic. The
 divergence was recorded as `docs/gaps/06-single-topic-no-isolation.md`, closed
-2026-09-05 and archived out of the repo per the gap lifecycle; the verified
-fix is [docs/06-multi-topic-concurrency.md](../06-multi-topic-concurrency.md).
+2026-09-05 and archived inside the repo, at `docs/gaps/_archive/`, per the
+lifecycle stated in `docs/gaps/README.md`; the verified fix is
+[docs/06-multi-topic-concurrency.md](../06-multi-topic-concurrency.md).
 
 **Users:** concurrent researchers/agents — user1 runs topic A from
 `kb/raw/transcripts/A.txt`, user2 runs topic B from `B.txt`, at the same time,

@@ -8,11 +8,13 @@
 
 # Live credentials directory — AGENTS.md §Security calls for a *gitignored*
 # credentials dir; this is it. Real webhook specs, service-account JSON, tokens.
-# Only `.example` shapes are ever tracked, which is what ci.yml's secret-scan
-# job asserts.
+# Only `.example` shapes are ever tracked — plus the README that documents the
+# directory — which is what ci.yml's secret-scan job asserts.
 .credentials/*
 !.credentials/*.example
 !.credentials/*.example.*
+# the tracked README explains the directory and points at example.json.example
+!.credentials/README.md
 
 # === Node.js ===
 node_modules/
@@ -90,7 +92,12 @@ scratchpads/*
 # NB: codegraph re-creates .codegraph/.gitignore on every validating command. It is left
 # untracked on purpose — never commit it, and never stage .codegraph/ with a blanket add.
 
-# === graphify cache ===
-graphify-out/cache/
-graphify-out/.graphify_python
-graphify-out/.graphify_incremental.json
+# === graphify knowledge graph ===
+# Default: the graph is LOCAL — untracked, rebuilt on demand. Ignore the whole
+# directory by rule rather than enumerating artifacts: a run leaves a root marker,
+# detect/ast/semantic/chunk files, caches and, across a version bump, date-stamped
+# pre-upgrade backup directories. Enumerating them guarantees the next artifact
+# version adds untracked noise and tempts a blanket `git add`.
+graphify-out/*
+# Tracking the graph? Un-ignore it AND register the merge driver in .gitattributes:
+#   !graphify-out/graph.json

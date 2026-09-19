@@ -81,12 +81,22 @@ anything else           GitHub issue, or a comment on an existing issue
 | 5 | Gaps | `docs/gaps/NN-*.md` | Observed divergence: kb ↔ prd, or prd ↔ codebase | short-lived; closed when resolved | `karpathy-guidelines` |
 | 6 | Reality | `docs/NN-slug.md` + `docs/README.md` | Empirical observation — What/Why/How/Verification/What Works/What Fails/Resolution/Verdict; `README.md` is the verdict catalog | append/update per verified run | **`coding-agents-docs-guideline` only** |
 | 7 | Everything else | GitHub issues | Anything that fits no stage above | issue thread | `gh` CLI |
+| — | Amendment | a tracked doctrine file — `AGENTS.md`, `kb/SCHEMA.md`, `docs/README.md`, `PRD.md` | A proposed amendment to a tracked doctrine file → edit the file on a branch + PR; discussion first → a GitHub issue carrying the proposed text; never `scratchpads/` | normal tracked edit; never a new stage | any editor + `gh` CLI |
+| — | Ops | `ops/` | Vendored configuration artifacts for a subject operated outside this repo (board/graph definition, wrapper script, scheduler entry, environment manifest) | repo is canonical; the live location is a **deploy target** | the sync tool — see §6 |
 
 ### Funnel rules
 
 1. **No stray documents.** A new `.md` outside stages 1–6 is a defect. No `NOTES.md`,
    no `TODO.md`, no `ANALYSIS.md` at repo root. If it fits no stage, it is an
-   **issue** — file one, or comment on the existing one.
+   **issue** — file one, or comment on the existing one. Root **entry** documents
+   (`AGENTS.md`, `README.md`, `ADOPTING.md`, `PRD.md`, `LICENSE` and the harness
+   symlinks) are entry points, not stray documents. A component directory that carries
+   its own README (`service/`, `ops/`) is a **component home**, not a stage. And a
+   **proposed amendment** to a tracked doctrine file (`AGENTS.md`, `kb/SCHEMA.md`,
+   `docs/README.md`, `PRD.md`) is a normal tracked edit on a branch + PR — never parked
+   in `scratchpads/`, which is uncitable (rule 6) and deletable by design. If
+   discussion is wanted before editing, it is a GitHub issue with the proposed text in
+   the body.
 2. **Grounding direction is downward.** A stage may only assert what an upstream stage
    supports. A PRD claim with no `kb/` backing is `[ASSUMPTION]`-marked or dropped. A
    `docs/NN-slug.md` claim with no verification command is not a claim.
@@ -96,7 +106,10 @@ anything else           GitHub issue, or a comment on an existing issue
 4. **`kb/` layer-2 pages are never hand-written.** Update `kb/raw/`, then run the
    `llm-wiki` skill against `./kb/`. Follow the llm-wiki spec strictly:
    <https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md>
-   Vendor the exact revision you pin to at `.agents/skills/llm-wiki/SKILL.md`.
+   Run `llm-wiki` from wherever your harness provides it (host-level skill or vendored
+   copy). Vendor the pinned revision at `.agents/skills/llm-wiki/SKILL.md` **only when that revision must travel
+   with the repo**. When both exist, the **vendored copy is canonical** — it is
+   the revision `kb/` was built to.
 5. **Unused knowledge is archived, not deleted.** `kb/_archive/` is the terminus for
    stage 2 and 3 material — remove from `index.md`, replace inbound wikilinks with
    plain text + "(archived)", log the action in `kb/log.md`.
@@ -104,7 +117,10 @@ anything else           GitHub issue, or a comment on an existing issue
    path as evidence — promote the content to `kb/raw/` first.
 7. **Gaps are transient.** A `docs/gaps/` file closes by producing one of: a `kb/raw/`
    ingest, a PRD edit, a code change with tests, or an issue. State which in its
-   *Resolution* section, then it may be archived out of the repo.
+   *Resolution* section, then it may be archived — **inside** the repo, at
+   `docs/gaps/_archive/` with its path structure preserved (`docs/gaps/README.md`,
+   *Lifecycle*, is the single statement of this). A gap file is never deleted, and its
+   `NN` is never reused: a withdrawn gap leaves a tombstone.
 8. **Skill gates are absolute.** Stage 3 requires `llm-wiki`; stage 6 requires
    `coding-agents-docs-guideline`. No harness mechanism for a skill = paste its
    `SKILL.md` into the prompt and follow it manually. A missing tool never waives the gate.
@@ -112,14 +128,25 @@ anything else           GitHub issue, or a comment on an existing issue
    ingest target for exactly the material that carries live values — vendor webhook
    specs, API setup pages, deployment runbooks — so a verbatim paste is the likely way
    a credential enters this repo. Record *that a secret exists and where it is
-   configured* (`.env` var name, `.credentials/` filename), never its value. Redact
+   configured* (which home below, plus the variable/file NAME), never its value. Redact
    before ingest, not after: `kb/raw/` is add-only, so a leaked secret cannot be edited
    out — it costs a rotation plus an archive. Enforced in CI by the `secret-scan` job.
+
+   `.env` = a value injected by the environment at deploy time — the default for
+   service credentials. `.credentials/` = a key file the runtime reads from disk and an
+   operator must place — for credentials that are files (service-account JSON, PEM).
+   Record *which* home and the variable/file NAME; never the value.
 10. **The doctrine itself is tracked.** `AGENTS.md`, `PRD.md`, `docs/`, `kb/`, `tests/`,
    `.agents/`, `.github/` and the harness symlinks are versioned artifacts, not local
    scaffolding. A `.gitignore` entry that hides any of them empties the funnel for every
    agent working from a fresh clone. Enforced by the `doctrine` job in
    `.github/workflows/ci.yml`.
+11. **Adding a tracked root is a multi-file edit; these move together:** (1) the funnel
+    stage table, (2) the *Where does this text go?* table, (3) the Repository Structure
+    block, (4) the `doctrine` job's tracked-path list in `.github/workflows/ci.yml`,
+    (5) `AC-FUN-002`'s required-dirs list in `tests/unit/test_funnel_structure.py` when
+    the root is a funnel stage. The `doctrine` job fails, naming the root, when a
+    top-level tracked directory is missing from its list.
 
 ### Where does this text go?
 
@@ -129,6 +156,8 @@ anything else           GitHub issue, or a comment on an existing issue
 | An external doc / spec / transcript that describes the project | `kb/raw/` |
 | A stable fact about how this project works | `kb/raw/` → `llm-wiki ./kb/` |
 | A component runbook (how to run/use/update a service or package — e.g. `service/`) | `service/README.md` (component README, beside root `README.md`; not a funnel-stage doc) |
+| A configuration artifact for a subject operated outside this repo | `ops/` (tracked, canonical) + a README beside it; the live location is a **deploy target**, not a source of truth; the decision and its verification → `docs/NN-slug.md` |
+| A proposed amendment to a tracked doctrine file (`AGENTS.md`, `kb/SCHEMA.md`, `docs/README.md`, `PRD.md`) | Edit the file on a branch + PR — **never** `scratchpads/`; if discussion is wanted first, a GitHub issue carrying the proposed text |
 | A thing we want to build | `docs/prd/` |
 | "The PRD says X but the code does Y" | `docs/gaps/` |
 | "I ran it; here is what worked and what failed" | `docs/NN-slug.md` |
@@ -149,11 +178,19 @@ missing tool never waives the rule.
 | Repo-scoped skills / plugins | `.agents/skills`, `.agents/plugins` | same, via `.claude/skills`, `.claude/plugins` symlinks | symlink the vendor dir to `.agents/` | inline the skill's `SKILL.md` into the prompt |
 | Host-level skills | `~/.hermes/skills/` | `~/.claude/skills/` | vendor-specific | — |
 | Sub-agent delegation | `delegate_task` / `kanban` | `Task` tool sub-agents (`.claude/agents/`) | vendor-specific | do the work inline, in the documented phase order |
-| Plan scratch space | `~/.hermes/plans/*.md` | `scratchpads/` (gitignored) | `scratchpads/` | `scratchpads/` |
+| Plan scratch space | `~/.hermes/plans/*.md` (or `scratchpads/`, gitignored) | `scratchpads/` (gitignored) | `scratchpads/` (gitignored) | `scratchpads/` (gitignored) |
 | Code graph (structural search) | `codegraph install` → `$HERMES_HOME/config.yaml` `mcp_servers` + `mcp-codegraph` toolset | `codegraph install` → `./.mcp.json` / `~/.claude.json` | `codegraph install` (Copilot targets auto-configured) | any MCP client: stdio `codegraph serve --mcp`; no MCP → CLI (`codegraph explore/node/impact`) |
-| Pipeline invocation | `/goal <request>` | prompt the phases below in order | prompt the phases below in order | prompt the phases below in order |
+| Pipeline invocation | `/goal <request>` **(Hermes-only)** | prompt the phases below in order | prompt the phases below in order | prompt the phases below in order |
 | KB synthesis (funnel stage 3) | `/llm-wiki ./kb/` (native skill) | invoke `llm-wiki` skill on `./kb/` | invoke `llm-wiki` skill on `./kb/` | inline `.agents/skills/llm-wiki/SKILL.md`, apply its workflow to `./kb/` by hand |
 | Issue tracking (funnel stage 7) | `gh issue create` / `gh issue comment` | same | same | same |
+
+**Per-harness rows.** Two harnesses this template must serve are not columned above;
+their bindings in full:
+
+| Harness | Entry instruction file | Repo-scoped skills | Host-level skills | Sub-agents | Code graph | Plan scratch space | KB synthesis (stage 3) | Pipeline invocation |
+|---|---|---|---|---|---|---|---|---|
+| **opencode** | `AGENTS.md` (native) | `.agents/skills` honoured natively | `~/.config/opencode/skills/` or vendor into `.agents/skills` | — | MCP via `codegraph install`, or the CLI twins | `scratchpads/` | invoke `llm-wiki` on `./kb/` | prompt the phase blocks in order (no slash command) |
+| **DeepSeek / OpenAI-compatible** | read `AGENTS.md` manually | vendor into `.agents/skills/`, or inline the skill's `SKILL.md` into the prompt | — | none — run the documented phase order inline | **no MCP client — use the codegraph CLI twins** `codegraph explore\|node\|callers\|callees\|impact\|query\|affected` | `scratchpads/` | run the `llm-wiki` workflow by hand | prompt the phase blocks in order (no slash command) |
 
 **Two symlink families, both pointing at one canonical source.**
 
@@ -185,8 +222,12 @@ what a project typically adds:
 | Vendored skill | Why pinned here |
 |---|---|
 | `root-cause` | The root-cause gate below depends on its exact procedure |
-| `llm-wiki` *(add per project)* | Funnel stage 3 is gated on it; `kb/` is built to one revision |
+| `llm-wiki` *(add per project)* | Funnel stage 3 is gated on it; host-level by default, vendored only when the pinned revision must travel with the repo |
 | domain skills *(add per project)* | Encode gotchas specific to this repo's stack |
+
+Run `llm-wiki` from wherever your harness provides it (host-level skill or vendored copy).
+Vendor the pinned revision at `.agents/skills/llm-wiki/SKILL.md` **only when that revision must travel
+with the repo**. When both exist, the **vendored copy is canonical** — it is the revision `kb/` was built to.
 
 `.claude/agents/investigator.md` is the Claude Code binding of the *root-cause gate*:
 a read-only sub-agent that answers "why does X fail / what does X require" from cited
@@ -251,23 +292,27 @@ use opencode-plan-build-orchestrator skill for all coding tasks.
 
 ### Running the pipeline without `/goal`
 
-`/goal` is a Hermes slash command. Harnesses that lack it run the **same** pipeline by
-prompting the phases in order — the `sub1`–`sub4` labels are the cross-harness contract,
-so **"go through sub1-4"** is a valid instruction everywhere. Paste the blocks above
-verbatim (drop the `/goal` line), or work from this table:
+`/goal` is a **Hermes-only** convenience. The canonical cross-harness contract is the
+`sub1`–`sub4` phase blocks plus the phase table below — a harness with no slash commands
+prompts those phases in order, and **"go through sub1-4"** is a valid instruction
+everywhere. Paste the blocks above verbatim (drop the `/goal` line), or work from this
+table:
 
 | # | Phase | Do | Done when |
 |---|-------|----|-----------|
 | kickoff | Triage | Triage the request, ingest any new source material to `kb/raw/` + run `llm-wiki ./kb/`, write/refresh the PRD section grounded in `kb/`, define success criteria + verification policy | SC list exists with `_Verify:_` annotations, each traceable to a `kb/` page |
 | `sub1` | Docs/tests gap sync | Diff `kb/` ↔ `docs/prd/` ↔ codebase ↔ `tests/`; record divergences in `docs/gaps/`, update, and drop obsolescences | No SC without a test; no doc claiming behaviour the code lacks; every `docs/gaps/` file has a Resolution |
-| `sub2` | Local CI | Run the workflows locally with [`nektos/act`](https://github.com/nektos/act) — `-j unit`, `-j integration`, `-j secret-scan`, `-j doctrine`; E2E runs directly, not under act (see §6) | those four jobs green + `bash tests/run.sh --with-e2e` green |
+| `sub2` | Local CI | Run the jobs listed in §6 locally with [`nektos/act`](https://github.com/nektos/act); E2E runs directly, not under act (see §6) | those jobs green + `bash tests/run.sh --with-e2e` green |
 | `sub3` | PR + CI monitor | Open the PR with full context in the body; watch remote CI to completion | Remote CI green |
 | `sub4` | Merge + redeploy | Squash-merge green PRs, `git checkout main && git pull`, run the full redeploy cycle | Service healthy from a clean pull |
 
 Report each phase's *Done when* before starting the next. If a phase surfaces a problem,
 re-enter kickoff triage for that problem before continuing.
 
-**Skill-to-phase mapping** (install per README; substitute equivalents your harness ships):
+**Skill-to-phase mapping** (install per README; substitute equivalents your harness ships).
+Every row names a **capability skill**, resolved from wherever the harness provides it —
+host-level (`~/.hermes/skills/`, `~/.claude/skills/`, `~/.config/opencode/skills/`),
+repo-scoped (`.agents/skills/`), or inlined `SKILL.md`. The mapping is harness-neutral.
 
 | Phase | Skill | Output |
 |-------|-------|--------|
@@ -295,10 +340,16 @@ Load and use these skills on EVERY task:
 | `security-best-practices` | ALWAYS | All code changes must follow security best practices |
 | `webapp-testing` | Testing | Write and run comprehensive tests |
 | `coding-agents-docs-guideline` | Docs | Author/edit `docs/NN-slug.md` — funnel stage 6. Required, no exceptions |
-| `llm-wiki` | KB | Synthesize `kb/` from `kb/raw/` — funnel stage 3. The ONLY writer of `kb/` layer-2 pages |
+| `llm-wiki` | KB | Synthesize `kb/` from `kb/raw/` — funnel stage 3. The ONLY writer of `kb/` layer-2 pages. Host-level by default; vendor under `.agents/skills/` only when the pinned revision must travel with the repo |
 | `root-cause` | Any "why does X fail / what does X require" question | Cited evidence before a cause is proposed. Never present a guess as a fact |
 | `yeet` | Git ops | All commit/push/branch operations |
 | `opencode-plan-build-orchestrator` | Coding via delegate | All coding tasks MUST route through plan→build→verify |
+
+**Skill resolution is a capability, not a directory.** A mandated skill resolves from
+wherever the harness provides it — host-level (`~/.hermes/skills/`, `~/.claude/skills/`,
+`~/.config/opencode/skills/`), repo-scoped (`.agents/skills/`), or, last resort, the
+skill's `SKILL.md` inlined into the prompt (funnel rule 8). A missing tool never waives
+the gate.
 
 ### 2. Delegation Rules (coding discipline)
 
@@ -312,6 +363,11 @@ Load and use these skills on EVERY task:
 - **No `shell=True`** in subprocess calls — use `subprocess.run` with explicit args
 - **No hardcoded secrets** — credentials load from `.env` / a gitignored credentials
   directory, never inline
+
+  `.env` = a value injected by the environment at deploy time — the default for service
+  credentials. `.credentials/` = a key file the runtime reads from disk and an operator
+  must place — for credentials that are files (service-account JSON, PEM). Record *which*
+  home and the variable/file NAME; never the value.
 - **No `requests` without timeout** — always set `timeout=N`
 - **Never log a credential** — not a token, not a signing secret, not a signature header
 - **Never commit a credential to a doc** — `kb/` and `docs/` are tracked; reference the
@@ -370,11 +426,26 @@ hundreds digit encodes the tier:
 | `AC-X-1NN` | E2E | `tests/e2e/` |
 | `AC-X-2NN` | Integration | `tests/integration/` |
 
+These are the tiers the `unit`, `e2e` and `integration` jobs in
+`.github/workflows/ci.yml` execute. A test at any tier that reaches for an ambient
+binary, socket or service must carry the `tests/conftest.py` preflight (see above) or
+be made hermetic.
+
 **Three-tier test suite:** Every SC maps to one of three tiers, and every tier is
-actually executed by `tests/run.sh` and by a CI job — a tier with no runner is a defect:
-- Unit + Component — `tests/unit/` (pure logic, no transport)
-- E2E — `tests/e2e/` (bats, against a running container)
-- Integration — `tests/integration/` (cross-process / persistence)
+actually executed by `tests/run.sh` and by a CI job in `.github/workflows/ci.yml` — a
+tier with no runner is a defect. The jobs are `unit`, `integration`, `e2e`, plus the
+`secret-scan` and `doctrine` guards:
+- Unit + Component — `tests/unit/` (pure logic, no transport) — job `unit`
+- E2E — `tests/e2e/` (bats, against a running container) — job `e2e`
+- Integration — `tests/integration/` (cross-process / persistence) — job `integration`
+
+**A test that depends on an ambient binary, socket or service is not a unit test.**
+Either make it hermetic (inject or stub the dependency) or give it a preflight that
+**skips loudly, naming what was resolved and why it is unsuitable** — never let its
+verdict depend on the host. The shared preflight fixture lives in `tests/conftest.py`
+(it mirrors the production resolution path via `shutil.which`), and every tier uses it;
+without it the verdict is **host-green / runner-red** and the `unit` / `integration`
+jobs disagree with the developer's machine for no reviewable reason.
 
 **A test that writes to shared infrastructure is opt-in.** If the integration tier
 talks to a real broker, a shared database, or any stack another team also uses, it
@@ -403,10 +474,25 @@ locally via Docker               all jobs must pass
 > directory name, so the E2E job's `docker compose up -d --build` **replaces the running
 > containers**. The job also tends not to pass under `act`: compose talks to the host
 > daemon while act's steps run inside a container, so anything the workflow seeds on
-> disk lands where the bind mount does not resolve. Locally run
-> `act push -j unit`, `-j integration`, `-j secret-scan`, `-j doctrine`, and exercise the E2E tier
-> directly with `docker compose up -d --build && bash tests/run.sh --with-e2e` from a
-> checkout that is not the deployment.
+> disk lands where the bind mount does not resolve. Locally run the chain stated just
+> below, and exercise the E2E tier directly with
+> `docker compose up -d --build && bash tests/run.sh --with-e2e` from a checkout that is
+> not the deployment.
+
+**The pre-PR local-CI command — this section is its single source of truth:**
+
+```bash
+act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
+```
+
+Every other file links here. A `docs/NN-slug.md` may quote a historical invocation, but
+must mark it as a record ("verified with, as of this run"), never as the current
+instruction.
+
+The `act push` hazard generalizes: a test that reads the host — an ambient binary,
+socket or service — is the same failure mode in miniature, and §5's preflight fixture
+(`tests/conftest.py`) is what keeps a **host-green / runner-red** verdict visible
+instead of silent.
 
 Two workflows gate this repo:
 
@@ -417,9 +503,22 @@ Two workflows gate this repo:
 
 The `doctrine` job is the structural half of the Harness Adapter: it fails the build if
 a harness entry point is a plain copy or a dangling symlink, or if a `.gitignore` rule
-hides a funnel stage (rules 9–10). Both are silent failures otherwise — a forked
+hides a funnel stage (rules 9–11). Both are silent failures otherwise — a forked
 `CLAUDE.md` drifts from `AGENTS.md` with nothing to notice it, and a `.claude/skills`
 symlink pointing at an absent `.agents/` is committed and cloned intact.
+
+### Ops artifacts — the repo is canonical, the live location is a deploy target
+
+ops/ is the tracked, canonical home for configuration artifacts that drive a subject operated OUTSIDE this repo (a scheduler/orchestrator, board or graph definitions, wrapper scripts, cron entries, per-environment manifests). The live location — where those artifacts are actually deployed and read from — is a DEPLOY TARGET, not a source of truth. Rule: the repo is canonical; the live side is a copy.
+
+1. **Repo is canonical.** `ops/README.md` carries the repo-path ↔ deploy-path map.
+2. **Two modes, never one.** The sync tool has `--check` (read-only drift report; safe to run anywhere, including CI) and `--apply` (writes the live target; gated behind an explicit confirmation env var). A read-only mode a CI job can run is what makes drift visible at all.
+3. **Classify before vendoring: artifact vs runtime state.** A file that another process GENERATES is runtime state. Vendoring it makes `--check` permanently red AND lets `--apply` overwrite live state with a stale snapshot. Runtime state is excluded in BOTH directions — the side that generates a file owns it.
+4. **Re-vendor, don't hand-edit.** Vendored copies are byte-copies. When the live side changes first, copy it back into `ops/` and re-run `--check`. Never edit one side alone.
+5. **Loud enumeration.** Every deployable root fails loudly when it is absent, unenumerable or empty, and the success line is unreachable over a copy that deployed nothing. A symlinked root deploys THROUGH the link, not around it.
+6. **Live-side drift too.** `--check` enumerates the live side as well and reports files that exist live with no vendored counterpart, with generated runtime state excused by an explicit, path-scoped allowlist.
+
+The worked example ships at `ops/README.md` + `ops/sync.sh`.
 
 ---
 
@@ -429,6 +528,8 @@ symlink pointing at an absent `.agents/` is committed and cloned intact.
 .
 ├── AGENTS.md           # This file — agent instructions (read first). CANONICAL.
 ├── CLAUDE.md           # symlink → AGENTS.md (Claude Code entry point)
+├── ADOPTING.md         # How to adopt this template for a new project (root entry doc, rule 1)
+├── .gitattributes      # Merge drivers + line-ending policy (graphify; see *graphify*)
 ├── .agents/            # Repo-scoped agent assets — CANONICAL
 │   ├── skills/         # Skills pinned to this repo (root-cause ships here)
 │   └── plugins/        # Plugins pinned to this repo
@@ -437,9 +538,11 @@ symlink pointing at an absent `.agents/` is committed and cloned intact.
 ├── PRD.md              # Master PRD index → topic PRDs in docs/prd/
 ├── README.md           # Quick start, services, dev commands
 ├── docker-compose.yml  # Service stack — the e2e tier brings it up (see §6)
-├── .env.example        # Environment variable template
+├── .env.example        # Environment variable template (`.env` = the deploy-time injected home)
 ├── .gitignore          # Standard ignores for agentic repos
-├── .credentials/       # Live credential files — gitignored; only *.example tracked
+├── .credentials/       # Key files the runtime reads from disk — gitignored
+│                       #   `.credentials/example.json.example` ships in a fresh clone;
+│                       #   every real file under the directory is ignored (AGENTS.md §Security)
 ├── .codegraph/         # Local CodeGraph index — gitignored except .gitkeep (see *codegraph*)
 ├── kb/                 # Knowledge base — funnel stages 2-3. llm-wiki layout, strictly.
 │   ├── SCHEMA.md       # KB schema, tag taxonomy, conventions
@@ -464,6 +567,10 @@ symlink pointing at an absent `.agents/` is committed and cloned intact.
 │   │   └── README.md   #   gap doc format + lifecycle
 │   └── prd/
 │       └── NN-topic.md           # STAGE 4. Topic PRDs with SC + test mapping (intent)
+├── ops/                # Vendored config artifacts for a subject operated elsewhere — CANONICAL
+│   ├── README.md       #   repo-path ↔ deploy-path map + the ops contract (§6)
+│   └── sync.sh         #   --check (read-only, CI-safe) / --apply (gated live write)
+├── scripts/            # Repo-level helper scripts
 ├── contract/           # Autoresearch contract: program.md (human-edited) + train.py / prepare.py
 ├── service/            # MCP + REST research service (FastMCP app, job store, runner, workspaces)
 ├── tests/              # Three-tier test suite — every tier has a runner and a CI job
@@ -484,6 +591,12 @@ symlink pointing at an absent `.agents/` is committed and cloned intact.
 > **Symlinks require `git config core.symlinks true`** (default off on Windows). Without
 > it, clones get plain text files containing a path, and every harness entry point breaks.
 
+> **Credential homes (canonical first):** `.env` = a value injected by the environment at
+> deploy time — the default for service credentials. `.credentials/` = a key file the
+> runtime reads from disk and an operator must place — for credentials that are files
+> (service-account JSON, PEM). Record *which* home and the variable/file NAME; never the
+> value.
+
 ## Development Commands
 
 ```bash
@@ -494,14 +607,19 @@ docker compose up -d
 bash tests/run.sh
 bash tests/run.sh --with-e2e
 
-# Local CI (pre-PR) — never `act push` unqualified on a deployment host; see §6
-act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
+# Local CI (pre-PR) — the command and its safety rules live in one place: AGENTS.md §6
 ```
 
 ## Security
 
 - Never commit `.env`, API keys, or JWT secrets — only `.example` shapes are tracked
 - All credentials via env vars or `.credentials/` (gitignored), never hardcoded
+
+  `.env` = a value injected by the environment at deploy time — the default for service
+  credentials. `.credentials/` = a key file the runtime reads from disk and an operator
+  must place — for credentials that are files (service-account JSON, PEM). Record *which*
+  home and the variable/file NAME; never the value.
+
 - Never paste a live value into `kb/` or `docs/` — see funnel rule 9. `kb/raw/` is
   add-only, so a leak there is unfixable by edit
 - Every inbound webhook delivery is signature-verified before its payload is read; a
@@ -537,6 +655,9 @@ In a fresh session run `codegraph sync` before trusting the graph. Test selectio
 Any CI or scripted codegraph run sets `DO_NOT_TRACK=1` (telemetry is anonymous
 rollups, default-on, opt-out — off means off).
 
+The adoption's intent, success criteria and test mapping live at
+`docs/prd/07-codegraph-adoption.md`.
+
 ### graphify (optional — knowledge graph over non-code artifacts)
 
 When `graphify-out/graph.json` exists, graphify is the optional knowledge-graph tool
@@ -547,6 +668,27 @@ graph-search — that is codegraph above.
 graphify query "<question>"
 graphify path "<A>" "<B>"
 graphify explain "<concept>"
+graphify update .                   # after modifying code, keep the graph current
 ```
 
-After modifying code, run `graphify update .` to keep the graph current.
+**The default is an untracked, local graph.** `.gitignore` covers everything a routine
+`graphify update` leaves behind **by rule** (`graphify-out/*`) rather than by
+enumerating artifacts — one run writes a root marker, detect/ast/semantic/chunk files
+and caches, and a version bump adds date-stamped backup directories. An enumerated
+ignore list is wrong the first time graphify writes something new.
+
+**The tracked-graph decision.** Tracking `graphify-out/graph.json` makes the graph
+travel with the clone, so a fresh agent has structure search immediately — at the cost
+of a large generated file in every diff. If you track it you must un-ignore
+`graphify-out/graph.json` *and* register the merge driver below.
+
+**A tracked generated graph MUST have the merge driver registered**, or every rebuild
+is a merge conflict on unrelated branches. `.gitattributes` carries
+`graphify-out/graph.json merge=graphify`, and **an attribute with no registered driver
+silently does nothing** — so the `git config merge.graphify.*` registration and its
+verification (`git config --get merge.graphify.driver`) are preconditions, documented
+in `.gitattributes`. graphify does not ship the driver; registering it is this repo's
+documented convention.
+
+**A graph rebuild is its own `chore` commit**, never folded into a feature change — a
+rebuild diff is large and not human-reviewable.

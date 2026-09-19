@@ -32,3 +32,7 @@
 | 2026-09-18 | archive | kb/_archive/raw/articles/codegraph-mcp-code-intelligence.md | Superseded upstream v1, ingested so the v2 correction note resolves |
 | 2026-09-18 | create | kb/entities/codegraph.md, kb/concepts/agent-code-graph-search.md, kb/comparisons/codegraph-vs-graphify.md | Layer-2 synthesis: CodeGraph as primary agent graph search + graphify coexistence |
 | 2026-09-18 | update | kb/index.md | Catalog 21 layer-2 pages + 15 raw sources |
+| 2026-09-19 | archive | kb/_archive/raw/articles/autoresearch-template-research-conclusions.md | Superseded revision preserved byte-identical (sha 9fda3a6e) before the gap-03 provenance repair |
+| 2026-09-19 | archive | kb/_archive/raw/articles/mcp-autoresearch-service-conclusions.md | Superseded revision preserved byte-identical (sha 72ca641f) before the gap-03 provenance repair |
+| 2026-09-19 | ingest | kb/raw/articles/autoresearch-template-research-conclusions.md | Re-ingest (gap 03): source_url → github.com/karpathy/autoresearch only; transcript/doctrine provenance moved to a body source table; sha256 9fda3a6e → 3f2a7223 |
+| 2026-09-19 | ingest | kb/raw/articles/mcp-autoresearch-service-conclusions.md | Re-ingest (gap 03): source_url → modelcontextprotocol.io only; per-item source list tabled in the body (machine-local JSON snapshots deliberately not retained); sha256 72ca641f → aa81016f |

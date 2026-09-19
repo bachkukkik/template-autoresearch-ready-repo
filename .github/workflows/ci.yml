@@ -42,7 +42,44 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install --no-cache-dir -r tests/requirements.txt
-      - run: python3 -m pytest tests/integration -v
+      - run: python3 -m pytest tests/integration -v --junitxml=/tmp/integration.xml
+
+      - name: Assert the integration tier actually executed
+        run: |
+          set -euo pipefail
+          # The collection hook in tests/conftest.py skips the whole tier when the
+          # interpreter it spawns cannot import the service deps. That is correct
+          # on a host that genuinely lacks them, but in CI it is a silent-green
+          # path: drop a package from tests/requirements.txt and pytest exits 0
+          # having run ZERO integration tests, so this job reports green over a
+          # tier that never executed. Fail loudly instead (AGENTS.md §5).
+          xml=/tmp/integration.xml
+          if [ ! -f "$xml" ]; then
+            echo "::error::$xml is missing — the pytest step produced no junit result, so the tier's verdict is unknown. A missing artifact must never read as success."
+            exit 1
+          fi
+          python3 - "$xml" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          path = sys.argv[1]
+          try:
+              root = ET.parse(path).getroot()
+          except ET.ParseError as exc:
+              print(f"::error::the junit XML at {path} is unparseable ({exc}) — the pytest step produced no usable result")
+              sys.exit(1)
+          # A skipped test is a <testcase> with a <skipped/> child; the wrapper may
+          # be <testsuites> or a single <testsuite>, so walk every testcase.
+          tests = skipped = 0
+          for case in root.iter("testcase"):
+              tests += 1
+              if case.find("skipped") is not None:
+                  skipped += 1
+          if tests == 0 or skipped == tests:
+              print(f"::error::the integration tier executed {tests} test(s) with {skipped} skipped — it did not actually run. A whole-tier skip is a silent green; the dependency list or the service interpreter is broken. Investigate tests/requirements.txt and the preflight in tests/conftest.py.")
+              sys.exit(1)
+          print(f"Integration tier executed {tests} test(s), {skipped} skipped.")
+          PY
 
   # ═══════════════════════════════════════════════════════════════
   # Tier 3: e2e — bats against the running container
@@ -98,8 +135,11 @@ jobs:
       - name: Assert no live credential files are tracked
         run: |
           set -euo pipefail
-          # Only .example shapes may be tracked.
-          if git ls-files | grep -E '^\.credentials/' | grep -v '\.example\(\..*\)\?$'; then
+          # Only .example shapes may be tracked — plus the README that documents the
+          # directory. NB: the exclusion needs -E like the grep it pipes from; as a BRE
+          # the parens are literal, the pattern matches nothing, and every .example file
+          # is flagged too.
+          if git ls-files | grep -E '^\.credentials/' | grep -vE '(\.example(\..*)?|README\.md)$'; then
             echo "::error::a live .credentials/ file is tracked (only *.example shapes may be)"
             exit 1
           fi
@@ -157,6 +197,15 @@ jobs:
     name: Doctrine Integrity
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      # SINGLE SOURCE for the tracked roots (funnel rules 10-11): every top-level
+      # tracked directory and root entry file, plus the nested funnel stage dirs.
+      # Both steps below read this one variable, and
+      # tests/unit/test_funnel_structure.py (AC-FUN-003) parses this line so the
+      # two lists cannot drift. Keep it a single line of the form
+      # `DOCTRINE_ROOTS: "root1 root2 …"` — the test matches it with a regex and
+      # tests/requirements.txt carries no YAML parser.
+      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md CLAUDE.md LICENSE .env.example .gitignore .gitattributes docker-compose.yml .agents .claude .codegraph .credentials .github contract docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries ops scratchpads scripts service tests"
     steps:
       - uses: actions/checkout@v4
 
@@ -182,7 +231,7 @@ jobs:
         run: |
           set -euo pipefail
           fail=0
-          for path in AGENTS.md PRD.md README.md .agents .github docs kb tests; do
+          for path in $DOCTRINE_ROOTS; do
             if [ -z "$(git ls-files -- "$path")" ]; then
               echo "::error::$path is not tracked. The document funnel only works if it is versioned (AGENTS.md funnel rule 10)."
               fail=1
@@ -193,6 +242,44 @@ jobs:
             fi
           done
           if [ "$fail" -eq 0 ]; then echo "Document funnel fully tracked."; fi
+          exit "$fail"
+
+      - name: Assert the tracked-root list covers every tracked top-level root
+        run: |
+          set -euo pipefail
+          # The loop above only knows the roots someone typed into $DOCTRINE_ROOTS,
+          # so it fails silently WIDE: a new tracked root that nobody declared — or
+          # one a .gitignore rule hides, or one never committed — passes CI green
+          # because the guard never reports a root it does not know about. Derive
+          # the real set from the index instead and fail naming the offender
+          # (AGENTS.md funnel rule 11).
+          fail=0
+          checked=0
+          # Every top-level tracked DIRECTORY: first path segment of a tracked path.
+          for dir in $(git ls-files | awk -F/ 'NF>1 {print $1}' | sort -u); do
+            checked=$((checked + 1))
+            case " $DOCTRINE_ROOTS " in
+              *" $dir "*) ;;
+              *)
+                echo "::error::$dir is a tracked top-level directory that is missing from the doctrine job's list — add it here AND to AC-FUN-002 (AGENTS.md funnel rule 11)."
+                fail=1
+                ;;
+            esac
+          done
+          # Root entry FILES: same coverage, same message shape.
+          for file in $(git ls-files | awk -F/ 'NF==1'); do
+            checked=$((checked + 1))
+            case " $DOCTRINE_ROOTS " in
+              *" $file "*) ;;
+              *)
+                echo "::error::$file is a tracked top-level file that is missing from the doctrine job's list — add it here AND to AC-FUN-002 (AGENTS.md funnel rule 11)."
+                fail=1
+                ;;
+            esac
+          done
+          if [ "$fail" -eq 0 ]; then
+            echo "Tracked-root coverage: $checked tracked top-level root(s) checked, all declared."
+          fi
           exit "$fail"
 
       - name: Assert no secret values landed in kb/

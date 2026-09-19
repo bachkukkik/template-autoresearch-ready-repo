@@ -1,8 +1,9 @@
 # 07 — The CodeGraph knowledge base has no stage-4 PRD
 
 **Layers:** kb ↔ prd
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-09-18
+**Resolved:** 2026-09-19 — PRD-07 written; see [docs/prd/07-codegraph-adoption.md](../../prd/07-codegraph-adoption.md)
 
 ## Observation
 
@@ -43,12 +44,9 @@ Nothing here says the adoption is wrong; it says stage 4 has not been told about
 
 ## Resolution
 
-PRD edit — stage 4 must carry the CodeGraph adoption: either a new PRD-07
-("Agent code-graph search" — SCs for the MCP surface, the CLI fallback, the
-deterministic local graph and the telemetry opt-out, each with a `_Verify:` test)
-with the matching `docs/07-slug.md` stage-6 doc, or an added SC in a PRD that owns
-agent tooling (PRD-03). Not applied in this sync: creating a topic PRD means
-creating its stage-6 counterpart too, and the surrounding surfaces (`AGENTS.md`,
-`PRD.md`, `.gitignore`, `kb/`) are owned by another writer — the decision needs to
-be taken once, not split across writers. Until it lands, **Status: open**, listed in
-[docs/gaps/README.md](README.md).
+PRD edit — applied 2026-09-19: `docs/prd/07-codegraph-adoption.md` created (the
+CodeGraph adoption at stage 4: SCs for the one-tool MCP surface, the CLI-twins
+fallback, the deterministic gitignored `.codegraph/` index, `codegraph sync`,
+`codegraph affected` test selection and the `DO_NOT_TRACK=1` opt-out), with its
+stage-6 counterpart [docs/07-codegraph-adoption.md](../../07-codegraph-adoption.md)
+and the `07` rows in `PRD.md` + `docs/README.md`. **Status: resolved.**

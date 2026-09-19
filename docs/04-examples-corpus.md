@@ -96,11 +96,6 @@ orphaned page fails the PR.
 
 ## Resolution
 
-- **Committed CodeGraph ingest:** resolved by commit `0e96572` (PR #9) — the
-  article `kb/raw/articles/codegraph-mcp-code-intelligence.md`, its three layer-2
-  pages (`kb/concepts/agent-code-graph-search.md`, `kb/entities/codegraph.md`,
-  `kb/comparisons/codegraph-vs-graphify.md`), and `kb/_archive/raw/` are tracked,
-  so the committed corpus and the working tree both read 15 raw / 21 layer-2.
 - **Not a content checker:** by design — keep claim review in the llm-wiki
   stage; AC-EXC-024 verifies traceability, which is what makes review possible.
 

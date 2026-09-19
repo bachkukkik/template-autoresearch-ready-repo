@@ -1,0 +1,16 @@
+{
+  "_comment": "EXAMPLE ONLY. A board/pipeline definition for a subject operated outside this repo (see ops/README.md). Copy it off the .example suffix, replace the placeholder paths with your own, then `ops/sync.sh --apply`. If the live copy is edited first, copy it back into ops/artifacts/ and re-run `--check` — never edit one side alone.",
+  "board": "autoresearch-mvp",
+  "subject_dir": "/srv/research/subject",
+  "metric": "val_bpb",
+  "time_budget_seconds": 300,
+  "keep_discard": {
+    "keep_if": "val_bpb < best_val_bpb",
+    "otherwise": "discard"
+  },
+  "steps": [
+    { "id": "prepare", "cmd": ["python3", "prepare.py"] },
+    { "id": "train", "cmd": ["python3", "train.py", "--results", "results.tsv"] },
+    { "id": "record", "cmd": ["python3", "train.py", "--results", "results.tsv"] }
+  ]
+}

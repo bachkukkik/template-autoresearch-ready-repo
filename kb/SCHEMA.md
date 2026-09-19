@@ -2,7 +2,9 @@
 
 > **Spec:** this KB follows the llm-wiki skill **strictly** —
 > <https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md>
-> Pin the revision you build to by vendoring it at `../.agents/skills/llm-wiki/SKILL.md`.
+> Run `llm-wiki` from wherever your harness provides it (host-level skill or vendored copy).
+> Vendor the pinned revision at `.agents/skills/llm-wiki/SKILL.md` **only when that revision must travel
+> with the repo**. When both exist, the **vendored copy is canonical** — it is the revision `kb/` was built to.
 > Where this file and that spec disagree, the spec wins; fix this file.
 
 ## Domain

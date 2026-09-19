@@ -79,24 +79,38 @@ Rules:
 3. **Gaps never carry fixes.** They observe; upstream stages change.
 4. **Every open gap has a row below.** `docs/README.md` points here for the gap
    listing — a gap file with no row is invisible to the next agent.
+5. **Where a resolved gap goes — this rule is the single statement of it:**
+   `docs/gaps/_archive/`, its path structure preserved. The file **stays in the
+   repo and is never deleted.** Every other file (see `docs/README.md`) points
+   here rather than restating the location.
+6. **`NN` is never reused.** A gap withdrawn without a resolution leaves a
+   **tombstone** rather than returning its number to circulation:
+   `docs/gaps/_archive/NN-<slug>.md` carrying `**Status:** withdrawn`, an
+   `**Opened:**` note, a one-line reason and a `**Superseded by:**` line naming
+   the file that now owns the number.
 
 ## Open gaps
 
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
-| 03 | [kb/raw articles cite scratchpad paths as their evidence](03-kb-raw-scratchpad-citations.md) | kb ↔ prd | open | 2026-09-18 |
-| 07 | [The CodeGraph knowledge base has no stage-4 PRD](07-codegraph-no-prd.md) | kb ↔ prd | open | 2026-09-18 |
+| — | *no open gaps* | — | — | — |
 
 Resolved gaps leave this directory but stay in the repo, their path structure preserved
-under `docs/gaps/_archive/`:
+under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a tombstone there instead of
+returning its `NN` to circulation (rule 6):
 
 - **Archived 2026-09-18** — resolutions landed in PR #9, files moved to
   [`_archive/`](_archive/): `04-corpus-counts-stale.md`,
   `05-sc7-start-command-drift.md`, `05-sc8-upgrade-paths-undocumented.md`,
   `05-unit-auth-id-collision.md`, `06-runbook-unverified.md`,
   `06-test-mapping-ac-034-stale.md`.
-- **Removed 2026-09-18**, before this directory existed, their resolutions having landed in
-  PRs #3–#5: `02-contract-files-missing.md`, `03-governance-tests-missing.md`,
-  `04-corpus-tests-missing.md`, `05-dual-exposure-not-implemented.md` and
-  `06-single-topic-no-isolation.md`. Those five names resolve to nothing by design; two of
-  the numbers were reused (`03`, `04`), so a stale link must be read against this note.
+- **Archived 2026-09-19** — resolution landed in the PRD-07 edit (stage 4 now carries
+  the CodeGraph adoption): `07-codegraph-no-prd.md`; and resolution landed in the
+  `kb/raw/` re-ingest (both articles re-stamped, superseded revisions preserved in
+  `kb/_archive/raw/articles/`, layer-2 re-synthesis a no-op): `03-kb-raw-scratchpad-citations.md`.
+- **Withdrawn tombstones** — `02-contract-files-missing.md`,
+  `03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
+  `05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`. These
+  predate this directory; their resolutions landed in PRs #3–#5, so they were
+  withdrawn rather than closed here. Each is a record, not an open gap — its `NN` is
+  not reused, and each names the file that now owns that number.

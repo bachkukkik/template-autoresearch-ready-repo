@@ -41,9 +41,8 @@ AUTH_DISABLED=1 uv run uvicorn src.main:app --port 8000
 
 Tests (repo root): `bash tests/run.sh` (unit+integration) and
 `bash tests/run.sh --with-e2e` (adds the container tier; start compose first).
-Local CI before any PR: `act push -j unit && act push -j integration && act
-push -j secret-scan && act push -j doctrine` — never `act push` unqualified on
-a host serving this compose project (AGENTS.md §6).
+Local CI before any PR: run the pre-PR chain stated in `AGENTS.md` §6 — never
+`act push` unqualified on a host serving this compose project.
 
 ## Environment variables
 
