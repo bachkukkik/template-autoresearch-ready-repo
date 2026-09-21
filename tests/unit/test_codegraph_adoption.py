@@ -57,7 +57,7 @@ def test_agents_codegraph_section_names_primary_graph_search_and_prd():
     assert "primary graph search" in body, (
         "## codegraph no longer names CodeGraph the primary graph search"
     )
-    assert "one tool by design" in body, (
+    assert re.search(r"one\s+(?:mcp\s+)?tool\s+by\s+design", body, re.I), (
         "## codegraph no longer documents the one-tool MCP surface"
     )
     assert "codegraph_explore" in body, (
@@ -73,7 +73,7 @@ def test_cli_twins_fallback_documented_for_a_harness_without_mcp():
     no MCP client — in `## codegraph` and in the Harness-Adapter per-harness row."""
     text = _read(AGENTS_MD)
     body = _section_body(text, "codegraph")
-    assert "without an MCP client" in body, (
+    assert re.search(r"without an MCP client", body, re.I), (
         "## codegraph no longer addresses harnesses without an MCP client"
     )
     assert "use the CLI twins" in body, (
@@ -98,13 +98,29 @@ def test_cli_twins_fallback_documented_for_a_harness_without_mcp():
 
 def test_do_not_track_stated_for_scripted_runs():
     """AC-CG-003: any CI or scripted codegraph run sets `DO_NOT_TRACK=1` — the
-    telemetry opt-out is stated, not implied."""
+    telemetry opt-out is stated, not implied.
+
+    The 20k context-file trim tightened `## codegraph`: it now scopes the
+    opt-out to scripted runs and delegates the CI half to the stage-4 PRD the
+    section points at. So the claim is asserted where it is stated, and the
+    pointer is made load-bearing — deleting the scope from either file fails
+    here, and the full "CI or scripted" wording cannot be dropped silently.
+    """
     body = _section_body(_read(AGENTS_MD), "codegraph")
     assert "DO_NOT_TRACK=1" in body, (
         "## codegraph no longer states the DO_NOT_TRACK=1 telemetry opt-out"
     )
-    assert "CI or scripted" in body, (
-        "## codegraph no longer ties DO_NOT_TRACK=1 to CI / scripted runs"
+    assert re.search(r"scripted[^.]*DO_NOT_TRACK=1|DO_NOT_TRACK=1[^.]*scripted", body, re.I), (
+        "## codegraph no longer ties DO_NOT_TRACK=1 to scripted runs"
+    )
+
+    pointer = re.search(r"docs/prd/[\w./-]+\.md", body)
+    assert pointer, "## codegraph no longer points at its stage-4 PRD"
+    prd = _read(REPO_ROOT / pointer.group(0))
+    assert "CI or scripted" in prd, (
+        f"{pointer.group(0)}, which ## codegraph points at for the full scope, no "
+        "longer states that the DO_NOT_TRACK=1 opt-out covers CI runs as well as "
+        "scripted ones"
     )
 
 

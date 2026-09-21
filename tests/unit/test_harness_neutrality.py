@@ -733,7 +733,11 @@ def test_fallback_check_reports_a_deleted_fallback():
         for f in after
         if (m := re.search(r"at line (\d+)", f)) and "goal-slash-command" in f
     )
-    assert reported_lines == [183, 240, 242, 293, 295, 298], (
+    # Recomputed for the 20k context-file trim (2026-09-21): the `/goal` cluster
+    # moved up when the doctrine was compressed, so the six occurrences now sit
+    # at these lines. The assertion is unchanged in intent — it still pins EVERY
+    # `/goal` occurrence, so a dropped or added one fails here.
+    assert reported_lines == [109, 145, 147, 196, 198, 201], (
         f"the blanked copy should report every `/goal` occurrence, got {reported_lines}"
     )
 
