@@ -20,6 +20,7 @@
 | 04 | [Examples Corpus](04-examples-corpus.md) | works | 2026-09-18 | `kb/raw/` (15 sources), `kb/{concepts,entities,comparisons}/` (21 pages), `tests/unit/test_{corpus_integrity,kb_synthesis}.py` | [04-examples-corpus](prd/04-examples-corpus.md) | — (resolved; archived 2026-09-18) |
 | 07 | [CodeGraph Adoption](07-codegraph-adoption.md) | partial | 2026-09-19 | `AGENTS.md` (`## codegraph`), `.codegraph/` (gitignored local index), `tests/unit/test_codegraph_adoption.py`, `kb/raw/articles/codegraph-mcp-code-intelligence.md`, `kb/{concepts/agent-code-graph-search,entities/codegraph,comparisons/codegraph-vs-graphify}.md` | [07-codegraph-adoption](prd/07-codegraph-adoption.md) | — (resolved; archived 2026-09-19) |
 | 08 | [Adoption Readiness](08-adoption-readiness.md) | works | 2026-09-19 | `ops/` (`README.md`, `sync.sh`, `artifacts/`, `state-allowlist.txt`), `ADOPTING.md`, `scripts/verify-clone.sh`, `tests/unit/test_{ops_sync,verify_clone,docs_template,harness_neutrality,funnel_structure,gaps_lifecycle,corpus_integrity}.py`, `.github/workflows/ci.yml` (`ops-drift` drift gate, `integration` junit guard, `doctrine` tracked-root coverage), `tests/conftest.py`, `docs/gaps/_archive/{03,07}-*.md` | [08-adoption-readiness](prd/08-adoption-readiness.md) | — (resolved; archived 2026-09-19) |
+| 09 | [AGENTS.md Context Budget](09-agents-md-context-budget.md) | partial | 2026-09-21 | `AGENTS.md` (trimmed to 19,467 chars / 19,691 bytes), `tests/unit/test_agents_md_budget.py` (AC-CTX-001/002), the instruction-entry symlinks `CLAUDE.md` + `.github/copilot-instructions.md`, and the three recomputed guard expectations in `tests/unit/test_{harness_neutrality,codegraph_adoption}.py` | [03-funnel-kb-governance](prd/03-funnel-kb-governance.md) — the PRD that owns the `AGENTS.md` doctrine; `09` files no PRD of its own | — (no gap filed; the trim's limits are recorded in the doc's *What Fails*) |
 
 Rows 02–06 were re-verified 2026-09-18 in one pass: `bash tests/run.sh
 --with-e2e` → `RESULT: PASSED` (68 unit + 16 integration + 4 e2e) and all four
@@ -32,6 +33,14 @@ recorded failures: `bash tests/run.sh` → `RESULT: PASSED` (120 unit + 16 integ
 the e2e tier needs a container) with `bash scripts/verify-clone.sh` → `RESULT: PASSED — 33
 check(s) passed`, and the `ops-drift` job green end to end under `act` in both modes —
 see its *Verification*.
+
+`09` is `partial`, not `works`: the file is delivered whole under the cap, but this repo
+cannot preserve its contract regions byte-for-byte (the four protected regions total
+19,791 chars against a 19,500-char working budget), nothing guards those regions
+byte-for-byte, the tripwire asserts the 20,000-char flat floor (a lower host-pinned
+`context_file_max_chars` is invisible to it), and the remaining headroom is 533 chars
+(2.7%). `09` files no `docs/prd/` PRD: the `AGENTS.md` doctrine it reports on is owned by
+`03`, and the guard expectations it recomputed live in `tests/unit/`.
 
 `01` is an intentional gap: the scaffold's CI-gate SCs are verified in `03`, and its
 service SCs in `05`/`06` — see
