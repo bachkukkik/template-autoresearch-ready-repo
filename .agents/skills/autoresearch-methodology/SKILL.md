@@ -10,10 +10,9 @@ description: Use when instantiating or registering an autoresearch loop.
 
 Registered 2026-09-26 from deep research on karpathy/autoresearch (upstream) +
 slash-roast/slash-commerce-pipeline-autoresearch (first real-world instance).
-Full 7-item report archived in that repo's research scaffold.
-
-Canonical ingest (repo-relative):
-`kb/raw/articles/2026-09-26-autoresearch-methodology-registration.md`.
+Canonical ingest: `kb/raw/articles/2026-09-26-autoresearch-methodology-registration.md`
+(in template-autoresearch-ready-repo). Full 7-item report archived in that
+repo's research scaffold.
 
 ## The invariant core (never substitute)
 
@@ -67,6 +66,17 @@ board chain=Markov chain (re-seed makes it ergodic), seasons=PBT + Pareto league
 - Cap-ceiling wedges: a tick inside the cap silently drops a window, exit 0.
 - Saturated series read as progress: no favourable-direction claim unless the series moves.
 - Regulator that cannot bind (λ,μ provably ≡0 under the parameterization) = dead code; verify multipliers move.
+
+## Calibration lessons (from the three worked examples, 2026-09-26)
+
+Three full runs (music-abc text LM −42% val_bpb; iris kNN 0.933→1.000 accuracy, higher-is-better; non-ML hot path 8.4× speedup under an exact-output gate) validated the template. Non-obvious lessons:
+
+- **The loop catches driver bugs for free**: an anchor bug that patches the wrong site yields an identical metric → mechanical discard. If a candidate ties the incumbent exactly, suspect a mutation that never fired.
+- **Reset must fire on crash, not just discard** — otherwise HEAD ends on the broken commit.
+- **Seed/split choice with zero headroom is a legitimate recorded decision**: if the baseline IS the family ceiling, pick a split with headroom and document the scan (metric, rule, dataset unchanged).
+- **Exact-output gates must be shape-proof**: a spot-check on a few fields can pass a badly wrong candidate; compare the full output. Add a labeled `attack:` (fast-but-wrong) candidate once to prove the gate fires.
+- **Strict improvement blocks simplification**: add a noise floor — keep if metric ≤ incumbent×(1+ε) AND code shrinks; otherwise the simplicity criterion is dead letter.
+- **Timing fields are T2**: jitter is expected between runs; never treat a wall-clock delta within ~10% as signal.
 
 ## When NOT to use
 
