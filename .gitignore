@@ -61,7 +61,9 @@ results.tsv
 # the service writes its jobs DB to data/jobs.db (RESEARCH_JOBS_DB default)
 # — never show it in git status, whether created at the repo root or under service/
 /data/*
+!/data/.gitkeep
 service/data/*
+!service/data/.gitkeep
 
 # === Agent scratch space ===
 scratchpads/*
