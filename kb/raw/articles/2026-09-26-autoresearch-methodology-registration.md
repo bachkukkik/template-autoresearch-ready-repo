@@ -5,7 +5,7 @@ kind: article
 source_url: https://github.com/karpathy/autoresearch
 source_type: primary-upstream + real-world instance diff
 ingested: 2026-09-26
-sha256: f1264f80388528bc3d4f5ddc47b0ee523a2811a8601048eeca4403703fcd1495
+sha256: 2879373f9e76b14f7549e9a359b61e2c006425cc24c8884266a7c3fb8bb6cc8b
 tags: [autoresearch, methodology, optimization, kanban, game-theory, markov-chain, template]
 ---
 # Autoresearch methodology — the registered template pattern

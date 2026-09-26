@@ -35,6 +35,7 @@ REQUIRED_DIRS = [
     ".claude",              # harness symlink dir
     ".codegraph",           # graph index placeholder
     ".credentials",         # documented credential home (README + *.example only)
+    "data",                 # service runtime state root — gitignored except .gitkeep
     ".github",              # CI itself
     "contract",             # autoresearch contract (program.md/train.py/prepare.py)
     "ops",                  # vendored artifacts for an externally operated subject

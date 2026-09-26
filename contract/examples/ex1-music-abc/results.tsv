@@ -1,0 +1,6 @@
+15d522f	3.765056	0.0	keep	baseline (unigram add-alpha=1, no context)
+3dfcd1d	2.435208	0.0	keep	bigram interpolation lam=0.5
+f3d6349	2.178568	0.0	keep	bigram interpolation lam=0.7
+72c88a1	2.300086	0.0	discard	lam=0.6 fine-tune
+b071b93	2.178535	0.0	keep	alpha=0.5 (lighter backoff)
+1482762	2.178635	0.0	discard	alpha=2.0 (heavier backoff)

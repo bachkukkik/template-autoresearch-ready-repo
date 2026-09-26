@@ -1,0 +1,8 @@
+commit	accuracy	seconds	status	description
+8297ae9	0.933333	0.02	keep	baseline 1-NN euclidean, raw features
+34ed15a	0.977778	0.02	keep	k=3 kNN
+59b1f6e	0.933333	0.02	discard	z-score normalization (train-only mu/sigma)
+6a9e49b	0.955556	0.02	discard	k=5 kNN
+2935234	0.955556	0.02	discard	Manhattan (L1) distance
+b756d33	1.000000	0.02	keep	k=7 kNN
+086165c	1.000000	0.02	discard	inverse-distance weighted vote

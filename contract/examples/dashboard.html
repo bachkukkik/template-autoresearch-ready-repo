@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autoresearch Progression — worked examples</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --line:#2a2f3e; --fg:#e6e9f2; --dim:#8b93a7;
+    --keep:#3fb970; --discard:#5b6274; --crash:#e5534b; --best:#58a6ff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--fg);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:32px 24px;max-width:1180px;margin:0 auto}
+  h1{font-size:22px;margin-bottom:4px}
+  .sub{color:var(--dim);margin-bottom:28px}
+  .legend{display:flex;gap:18px;margin-bottom:22px;font-size:13px;color:var(--dim)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .card h2{font-size:15px;margin-bottom:2px}
+  .card .metric{font-size:12px;color:var(--dim);margin-bottom:12px}
+  .card .delta{font-size:12px;margin-bottom:10px}
+  .good{color:var(--keep)} .bad{color:var(--crash)}
+  svg{width:100%;height:auto;display:block}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
+  td,th{padding:4px 6px;border-top:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{color:var(--dim);font-weight:500;border-top:none}
+  td.st-keep{color:var(--keep)} td.st-discard{color:var(--discard)} td.st-crash{color:var(--crash)}
+  .note{margin-top:28px;color:var(--dim);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px}
+  .note code{color:var(--fg);background:var(--line);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<h1>Autoresearch progression — three worked examples</h1>
+<div class="sub">template-autoresearch-ready-repo · contract/examples · runs of 2026-09-26 · keep = strict improvement, discard = reset, crash = invalid</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:var(--keep)"></i>keep (improved)</span>
+  <span><i class="dot" style="background:var(--discard)"></i>discard (reset)</span>
+  <span><i class="dot" style="background:var(--crash)"></i>crash / gate-rejected</span>
+  <span><i class="dot" style="background:var(--best)"></i>best kept state</span>
+</div>
+
+<div class="grid" id="charts"></div>
+
+<p class="note">
+  Data source: each example's <code>results.tsv</code> (vendored verbatim under
+  <code>contract/examples/</code>). ex3's crash row is the labeled
+  <code>attack:</code> candidate — 10× faster, rejected by the exact-output gate;
+  the incumbent (0.275 s) is the fastest <em>valid</em> row. ex2 is
+  higher-is-better (accuracy); ex1/ex3 lower-is-better. Timing columns (T2
+  statistical fields) are omitted — they jitter between runs and are never
+  treated as signal.
+</p>
+
+<script>
+const RUNS = [
+  {
+    name: "ex1 — music-abc (sheet-music LM)",
+    metric: "val_bpb · lower is better",
+    better: "low",
+    unit: "",
+    rows: [
+      ["baseline (unigram)", 3.765056, "keep"],
+      ["bigram interpolation λ=0.5", 2.435208, "keep"],
+      ["bigram interpolation λ=0.7", 2.178568, "keep"],
+      ["λ=0.6 fine-tune", 2.300086, "discard"],
+      ["α=0.5 lighter backoff", 2.178535, "keep"],
+      ["α=2.0 heavier backoff", 2.178635, "discard"],
+    ],
+  },
+  {
+    name: "ex2 — iris kNN classifier",
+    metric: "accuracy · higher is better",
+    better: "high",
+    unit: "",
+    rows: [
+      ["baseline 1-NN raw euclidean", 0.933333, "keep"],
+      ["k=3 kNN", 0.977778, "keep"],
+      ["z-score normalization", 0.933333, "discard"],
+      ["k=5 kNN", 0.955556, "discard"],
+      ["Manhattan (L1) distance", 0.955556, "discard"],
+      ["k=7 kNN", 1.000000, "keep"],
+      ["inverse-distance weighted vote", 1.000000, "discard"],
+    ],
+  },
+  {
+    name: "ex3 — hot-path speedup (+ exact-output gate)",
+    metric: "median seconds · lower is better · gate must pass",
+    better: "low",
+    unit: "s",
+    rows: [
+      ["baseline", 2.310220, "keep"],
+      ["reuse token list", 2.235982, "keep"],
+      ["total_chars = len(data)", 2.061300, "keep"],
+      ["by_initial: one Counter pass", 1.323721, "keep"],
+      ["derived aggregates", 1.104051, "keep"],
+      ["C-level substring scan", 0.552659, "keep"],
+      ["counts = Counter(words)", 0.531416, "keep"],
+      ["tokenize once (re.findall)", 0.307322, "keep"],
+      ["Counter(map(itemgetter))", 0.274679, "keep"],
+      ["simplify: delete dead helpers", 0.276896, "discard"],
+      ["attack: first 10% only", 0.027475, "crash"],
+    ],
+  },
+];
+
+const COLORS = { keep:"#3fb970", discard:"#5b6274", crash:"#e5534b", best:"#58a6ff" };
+
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+
+function render(run){
+  const vals = run.rows.map(r=>r[1]);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi-lo)*0.12 || 0.1;
+  lo -= pad; hi += pad;
+  const W=320, H=170, PL=44, PR=12, PT=10, PB=22;
+  const x = i => PL + i*(W-PL-PR)/Math.max(run.rows.length-1,1);
+  const y = v => PT + (H-PT-PB)*(1-(v-lo)/(hi-lo));
+
+  // best kept state
+  let best=null;
+  run.rows.forEach(r=>{ if(r[2]==="keep" && (best===null || (run.better==="low"? r[1]<best[1] : r[1]>best[1]))) best=r; });
+
+  // keep-path polyline (incumbent progression)
+  let incumbent=null, pts=[];
+  run.rows.forEach((r,i)=>{
+    if(r[2]==="keep"){ incumbent=r; pts.push(x(i)+","+y(r[1])); }
+    else if(incumbent){ pts.push(x(i)+","+y(incumbent[1])); }
+  });
+
+  let dots = run.rows.map((r,i)=>{
+    const col = (best && r===best) ? COLORS.best : COLORS[r[2]];
+    const tip = `${esc(r[0])}: ${r[1]}${run.unit} — ${r[2]}`;
+    return `<circle cx="${x(i)}" cy="${y(r[1])}" r="${(best&&r===best)?5:4}" fill="${col}" stroke="#0f1117" stroke-width="1.5"><title>${tip}</title></circle>`;
+  }).join("");
+
+  // y gridlines (3 ticks)
+  let grid="";
+  for(let t=0;t<3;t++){
+    const v = lo + (hi-lo)*t/2;
+    grid += `<line x1="${PL}" y1="${y(v)}" x2="${W-PR}" y2="${y(v)}" stroke="#2a2f3e" stroke-width="1"/>`
+         +  `<text x="${PL-6}" y="${y(v)+3}" fill="#8b93a7" font-size="9" text-anchor="end">${v.toFixed(2)}</text>`;
+  }
+
+  const first = run.rows[0][1];
+  const pct = (((best[1]-first)/first)*100).toFixed(1);
+  const goodDir = run.better==="low" ? best[1]<first : best[1]>first;
+  const deltaTxt = `${first}${run.unit} → ${best[1]}${run.unit} `
+                 + `<span class="${goodDir?"good":"bad"}">(${pct>0?"+":""}${pct}%)</span> · `
+                 + `${run.rows.filter(r=>r[2]==="keep").length} keep / `
+                 + `${run.rows.filter(r=>r[2]==="discard").length} discard / `
+                 + `${run.rows.filter(r=>r[2]==="crash").length} crash`;
+
+  const rowsHtml = run.rows.map(r=>
+    `<tr><td>${esc(r[0])}</td><td>${r[1]}${run.unit}</td><td class="st-${r[2]}">${r[2]}</td></tr>`).join("");
+
+  return `<div class="card">
+    <h2>${run.name}</h2>
+    <div class="metric">${run.metric}</div>
+    <div class="delta">${deltaTxt}</div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${run.name} progression">
+      ${grid}
+      <polyline points="${pts.join(" ")}" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7"/>
+      ${dots}
+      <text x="${W-PR}" y="${H-6}" fill="#8b93a7" font-size="9" text-anchor="end">candidates →</text>
+    </svg>
+    <table><tr><th>candidate</th><th>metric</th><th>status</th></tr>${rowsHtml}</table>
+  </div>`;
+}
+
+document.getElementById("charts").innerHTML = RUNS.map(render).join("");
+</script>
+</body>
+</html>

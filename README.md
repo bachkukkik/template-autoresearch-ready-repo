@@ -98,6 +98,8 @@ codegraph init      # one-time per clone: builds .codegraph/ (gitignored)
 ├── .gitignore             # Standard ignores for agentic repos
 ├── .credentials/          # Key files the runtime reads from disk — gitignored
 │                          #   `.credentials/example.json.example` ships in a fresh clone
+├── data/                  # Service runtime state — gitignored except .gitkeep
+│                          #   (jobs.db + per-job workspaces/ are created at runtime)
 ├── docker-compose.yml     # Service orchestration
 ├── service/               # Python microservice (example harness)
 ├── kb/                    # Knowledge base — llm-wiki layout, populated

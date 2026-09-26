@@ -1,0 +1,12 @@
+commit	median_seconds	gate	status	description
+56cde0b	2.310220	ok	keep	baseline (as-is: char-loop cleanup, per-letter passes, offset scan)
+7a5da35	2.235982	ok	keep	word_count: reuse the token list (drop the second clean.split())
+85186d9	2.061300	ok	keep	total_chars: len(data) (drop the per-character loop)
+17a2ec5	1.323721	ok	keep	by_initial: one Counter pass (drop one pass per starting letter)
+f17cfb7	1.104051	ok	keep	longest_word & palindrome_count from the unique-word counts
+d27200c	0.552659	ok	keep	rare_positions: one C-level substring scan over a single lowercase copy
+6ea4683	0.531416	ok	keep	counts = Counter(words) (C-level counting instead of a dict loop)
+dceb367	0.307322	ok	keep	tokenize once with re.findall (drop the char-by-char cleanup)
+fbaba87	0.274679	ok	keep	by_initial: Counter(map(itemgetter(0), words)) (C-level projection)
+7878a22	0.276896	ok	discard	simplify: delete the dead helpers (normalize/count_words/longest_word/palindrome_count)
+29a4d47	0.027475	invalid	crash	attack: aggregate only the first 10% of the document (fast, gate must reject)
