@@ -1,10 +1,10 @@
 ---
 title: Evaluator Legitimacy
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-09-26
 type: concept
 tags: [autoresearch, research-method, decision]
-sources: [raw/articles/autoresearch-template-research-conclusions.md]
+sources: [raw/articles/autoresearch-template-research-conclusions.md, raw/articles/2026-09-26-autoresearch-methodology-registration.md]
 confidence: medium
 ---
 
@@ -34,4 +34,12 @@ too literally narrows discovery — declining edit entropy is the early warning.
   statistical gates (e.g. the MLX fork's `rigor.py`) help. See
   [[autoresearch-platform-forks]].
 
-Related: [[autoresearch-contract]] · [[val-bpb-metric]] · [[autonomous-research-systems]]
+Operational answers to (3): the T0–T3 metric tiers with pinned T1 refusals
+([[better-cheaper-faster-metrics]]) and the adversarial holdout — attacker
+PoVs as external ground truth the defender cannot fabricate
+([[adversarial-optimization-layer]]). Measured instances of fixed-metric
+failure: val_bpb −55% while output collapsed into repetition; placeholder
+cost series (constant 1.0) read as data; saturated D (99.92–100.00) read as
+progress.
+
+Related: [[autoresearch-contract]] · [[val-bpb-metric]] · [[autonomous-research-systems]] · [[better-cheaper-faster-metrics]] · [[adversarial-optimization-layer]]

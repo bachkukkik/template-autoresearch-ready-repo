@@ -1,10 +1,10 @@
 ---
 title: Karpathy Autoresearch
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-09-26
 type: entity
 tags: [autoresearch, architecture]
-sources: [raw/articles/autoresearch-program-md-reference.md, raw/articles/autoresearch-template-research-conclusions.md]
+sources: [raw/articles/autoresearch-program-md-reference.md, raw/articles/autoresearch-template-research-conclusions.md, raw/articles/2026-09-26-autoresearch-methodology-registration.md]
 confidence: high
 ---
 
@@ -17,7 +17,7 @@ single-GPU nanochat training automatically."*
 ## Key facts
 
 - URL: https://github.com/karpathy/autoresearch · created 2026-03-06 · MIT (README; no LICENSE file tracked) · Python
-- ~95.2K stars / ~13.4K forks at the 2026-09-04 snapshot; last push 2026-03-26
+- ~95.2K stars / ~13.4K forks at the 2026-09-04 snapshot (~97K by 2026-09-26); last push 2026-03-26
 - Deliberately three files that matter: `prepare.py` (read-only), `train.py` (agent-edited), `program.md` (human-edited skill) — see [[autoresearch-contract]]
 - Metric `val_bpb`, fixed 5-minute budget, `results.tsv` log, branch-per-run (`autoresearch/<tag>`), baseline first, NEVER STOP
 - Repo is deliberately small/self-contained; MIT; notable forks on other platforms — see [[autoresearch-platform-forks]]
@@ -29,6 +29,11 @@ single-GPU nanochat training automatically."*
 - Positioned by the Badkur & Dak 2026 survey as the paradigm originator — see [[evaluator-legitimacy]] and [[autonomous-research-systems]]
 - The video corpus puts the loop through domain adaptations — see [[domain-adaptation]], [[problem-selection]], [[autoresearch-video-corpus]]
 
-Related: [[autoresearch-contract]] · [[val-bpb-metric]] · [[fixed-time-budget]] · [[autoresearch-platform-forks]]
+The Goodhart / "always sample generated output" caveat often attributed to
+upstream `program.md` is NOT upstream: the 2026-09-26 sha256 verification of
+all four upstream files confirmed it was added by this template lineage's own
+contract (the Caveats section). See [[methodology-registration]].
+
+Related: [[autoresearch-contract]] · [[val-bpb-metric]] · [[fixed-time-budget]] · [[autoresearch-platform-forks]] · [[methodology-registration]]
 
 ^[raw/articles/autoresearch-program-md-reference.md] ^[raw/articles/autoresearch-template-research-conclusions.md]

@@ -3,19 +3,24 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-09-18 | Total pages: 21
+> Last updated: 2026-09-26 | Total pages: 26
 
 ## Concepts
 
 | Concept | File | Confidence |
 |---------|------|------------|
 | Agent code-graph search | [concepts/agent-code-graph-search.md](concepts/agent-code-graph-search.md) | high |
+| Adversarial Optimization Layer | [concepts/adversarial-optimization-layer.md](concepts/adversarial-optimization-layer.md) | medium |
 | Autoresearch Contract | [concepts/autoresearch-contract.md](concepts/autoresearch-contract.md) | high |
+| Better/Cheaper/Faster Metrics | [concepts/better-cheaper-faster-metrics.md](concepts/better-cheaper-faster-metrics.md) | high |
 | Document Funnel Doctrine | [concepts/document-funnel-doctrine.md](concepts/document-funnel-doctrine.md) | high |
 | Domain Adaptation | [concepts/domain-adaptation.md](concepts/domain-adaptation.md) | medium |
 | Evaluator Legitimacy | [concepts/evaluator-legitimacy.md](concepts/evaluator-legitimacy.md) | medium |
+| Formal Mapping (optimization theory, Markov chains, game theory) | [concepts/formal-mapping-autoresearch.md](concepts/formal-mapping-autoresearch.md) | medium |
+| Kanban Factory | [concepts/kanban-factory.md](concepts/kanban-factory.md) | high |
 | Fixed Time Budget | [concepts/fixed-time-budget.md](concepts/fixed-time-budget.md) | high |
 | MCP Streamable HTTP Transport | [concepts/mcp-streamable-http-transport.md](concepts/mcp-streamable-http-transport.md) | high |
+| Methodology Registration (the reusable template pattern) | [concepts/methodology-registration.md](concepts/methodology-registration.md) | high |
 | Problem Selection | [concepts/problem-selection.md](concepts/problem-selection.md) | medium |
 | Research Job Pattern | [concepts/research-job-pattern.md](concepts/research-job-pattern.md) | high |
 | Skill Self-Improvement | [concepts/skill-self-improvement.md](concepts/skill-self-improvement.md) | medium |
@@ -52,6 +57,7 @@
 | Source | File | Ingested |
 |--------|------|----------|
 | upstream program.md reference | [raw/articles/autoresearch-program-md-reference.md](raw/articles/autoresearch-program-md-reference.md) | 2026-09-04 |
+| autoresearch methodology registration (template pattern) | [raw/articles/2026-09-26-autoresearch-methodology-registration.md](raw/articles/2026-09-26-autoresearch-methodology-registration.md) | 2026-09-26 |
 | deep-research conclusions | [raw/articles/autoresearch-template-research-conclusions.md](raw/articles/autoresearch-template-research-conclusions.md) | 2026-09-04 |
 | MCP service deep-research conclusions | [raw/articles/mcp-autoresearch-service-conclusions.md](raw/articles/mcp-autoresearch-service-conclusions.md) | 2026-09-04 |
 | CodeGraph — MCP code intelligence (v1.6.0 evidence) | [raw/articles/codegraph-mcp-code-intelligence.md](raw/articles/codegraph-mcp-code-intelligence.md) | 2026-09-16 |
@@ -69,10 +75,10 @@
 
 ## Stats
 
-- Concepts: 11
+- Concepts: 16
 - Entities: 4
 - Comparisons: 6
 - Queries: 0
-- Raw sources: 15
+- Raw sources: 16
 - Archived: 1
-- Total: 21
+- Total: 26
