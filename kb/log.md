@@ -40,3 +40,7 @@
 | 2026-09-26 | create | kb/concepts/methodology-registration.md, kb/concepts/kanban-factory.md, kb/concepts/adversarial-optimization-layer.md, kb/concepts/better-cheaper-faster-metrics.md, kb/concepts/formal-mapping-autoresearch.md | Layer-2 synthesis: registered methodology (invariant core, factory, game layer, metric tiers, formal mapping) |
 | 2026-09-26 | update | kb/entities/karpathy-autoresearch.md, kb/concepts/evaluator-legitimacy.md | Cross-referenced methodology registration; corrected Goodhart-caveat provenance (not upstream); star count refresh |
 | 2026-09-26 | update | kb/index.md | Catalog 26 layer-2 pages + 16 raw sources |
+| 2026-10-03 | ingest | kb/raw/articles/karpathy-output-medium-escalation.md | Karpathy output-medium escalation post (x.com/status/2105819303471976479; ingested 2026-10-02; body sha256 recomputed to this repo's body.strip() convention: 6d68f2ff) — source for AGENTS.md §7 |
+| 2026-10-03 | ingest | kb/raw/articles/karpathy-guidelines-skill.md | Vendored karpathy-guidelines skill source (github.com/multica-ai/andrej-karpathy-skills; body sha256 33deac5b) — grounds the four production principles |
+| 2026-10-03 | create | kb/concepts/karpathy-coding-guidelines.md, kb/concepts/output-medium-escalation.md | Layer-2 synthesis: the four Karpathy coding principles and the output-medium escalation ladder + code-first render → parse constraint |
+| 2026-10-03 | update | kb/index.md | Catalog 30 layer-2 pages + 18 raw sources (adds output-medium doctrine + coding-guidelines) |

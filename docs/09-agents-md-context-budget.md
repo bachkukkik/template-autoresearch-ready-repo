@@ -147,13 +147,42 @@ compression. Each was recomputed against the new file rather than loosened:
 
 ### The tripwire
 
-`tests/unit/test_agents_md_budget.py` (unit tier) carries `AC-CTX-001` — `AGENTS.md` is
-under the 20,000-char cap, in characters and in bytes — and `AC-CTX-002` — the harness
-entry-point symlinks still resolve to `AGENTS.md` and are the same file. It is hermetic:
-file reads and the stdlib only, no subprocess, no service import, no transport. The
-failure message names the actual count, the cap, the lossy head-70/tail-20 middle
-truncation and the remedy. This repo keeps no separate test-index file, so the tripwire is
-registered here.
+`tests/unit/test_agents_md_budget.py` (unit tier) carries four guards. `AC-CTX-001` —
+`AGENTS.md` is under the 20,000-character flat cap, in characters and in bytes.
+`AC-CTX-002` — the file fits the host-pinned cap (`AGENTS_MD_CAP_CHARS`); a malformed or
+non-positive pin fails loudly instead of being ignored. `AC-CTX-003` — the file keeps at
+least 500 characters of headroom, so accretion fails the tier *before* the cap is crossed.
+`AC-CTX-004` — the harness entry-point symlinks (`CLAUDE.md`,
+`.github/copilot-instructions.md`) still resolve to `AGENTS.md` and read back the same
+bytes. All four are hermetic: file reads and the stdlib only, no subprocess, no service
+import, no transport. The failure messages name the actual count, the cap, the lossy
+head-70/tail-20 middle truncation and the remedy. This repo keeps no separate test-index
+file, so the tripwire is registered here.
+
+### Round 2 — the output-medium order (2026-10-03)
+
+A later round added Standing Order 7 (the output-medium doctrine) and kept the file under
+the cap by compressing two non-load-bearing regions instead of appending:
+
+| Revision | chars | bytes | headroom vs 20,000 | unit tier |
+|---|---|---|---|---|
+| before round 2 | 19,467 | 19,691 | 533 | 122 passed |
+| after round 2 | 19,464 | 19,697 | 536 | 135 passed |
+
+Facts moved, not dropped:
+
+| Region | Treatment |
+|---|---|
+| `## Standing Orders` | §7 added — the five rungs, the `render → parse` rule, the `discardable` rule, the funnel-rule-6 pointer and the four skill names |
+| Skill-to-phase mapping table | collapsed to one pointer line; the full table is republished in `README.md` § *Skills* |
+| `## codegraph` → graphify subsection | compressed to one pointer line (detail already lives in `kb/comparisons/codegraph-vs-graphify.md`) |
+| `## Repository Structure` | one line — `.agents/` canonical, the entry files symlink here, a new tracked root is a five-file edit |
+
+The first changed line is line 213 of the pre-edit file, so everything above line 202 —
+the regions `AC-HRN-011` (`/goal` line numbers) and `AC-CG-00x` (`## codegraph` tokens)
+pin — stays byte-identical. The two compressions saved slightly more than §7 cost, for a
+net −3 chars: the file shrank while a new standing order was added. The unit tier grew
+122 → 135 (AC-CTX-002 and AC-CTX-003 are new; the old symlink guard became AC-CTX-004).
 
 ## Verification
 
@@ -194,11 +223,33 @@ python3 -m pytest tests/unit/test_agents_md_budget.py tests/unit/test_harness_ne
 bash tests/run.sh
 ```
 
-Expected: `LC_ALL=C.UTF-8 wc -m` reports 19,467 against `wc -c`'s 19,691; the cap probe
-prints `20000 20000`; the delivery probe prints `verbatim True` with an empty warning
-list; the four guard files end `39 passed`; `bash tests/run.sh` ends
-`RESULT: PASSED` with **122 passed** in the unit tier (120 before this change, plus
+Expected (round 1, 2026-09-21): `LC_ALL=C.UTF-8 wc -m` reports 19,467 against `wc -c`'s
+19,691; the cap probe prints `20000 20000`; the delivery probe prints `verbatim True` with
+an empty warning list; the four guard files end `39 passed`; `bash tests/run.sh` ends
+`RESULT: PASSED` with **122 passed** in the unit tier (120 before that change, plus
 `AC-CTX-001` and `AC-CTX-002`) and 16 passed in the integration tier.
+
+Round 2 (2026-10-03) re-verified the same file after the §7 accretion:
+
+```bash
+python3 -c "t=open('AGENTS.md',encoding='utf-8').read(); print(len(t), len(t.encode()))"
+# -> 19464 19697
+LC_ALL=C.UTF-8 wc -m AGENTS.md
+# -> 19464 AGENTS.md
+python3 -m pytest tests/unit/test_agents_md_budget.py -q
+# -> 4 passed
+python3 -m pytest tests/unit -q
+# -> 135 passed
+python3 -m pytest tests/unit/test_harness_neutrality.py tests/unit/test_docs_template.py \
+  tests/unit/test_codegraph_adoption.py tests/unit/test_funnel_structure.py -q
+# -> all passed
+bash tests/run.sh
+# -> RESULT: PASSED (135 unit + 16 integration; e2e skipped without --with-e2e)
+```
+
+Expected (round 2): 19,464 characters and 19,697 bytes — 536 characters of headroom, above
+the AC-CTX-003 floor of 500; four guards in `test_agents_md_budget.py`; 135 unit tests and
+16 integration tests, `RESULT: PASSED`.
 
 ## What Works
 
@@ -273,10 +324,13 @@ list; the four guard files end `39 passed`; `bash tests/run.sh` ends
 ## Verdict
 
 **partial** — The trim verifies end to end: the file reaches the prompt byte-for-byte
-under the cap (19,467 chars / 19,691 bytes) with zero truncation warnings, the delivered
-block grew from 18,372 to 19,577 chars, every tightened region retains its rules and
-resolvable pointers, and a hermetic unit tripwire now fails loudly on both a cap breach
-and a forked entry-point symlink. The open limits are that this repo cannot preserve its
-contract regions byte-for-byte (19,791 chars of preserve-set against a 19,500-char
-budget), that nothing guards those regions byte-for-byte, and that 533 chars of headroom
-is thin for a file that grows by accretion.
+under the cap (19,467 chars / 19,691 bytes at round 1) with zero truncation warnings, the
+delivered block grew from 18,372 to 19,577 chars, every tightened region retains its rules
+and resolvable pointers, and a hermetic unit tripwire now fails loudly on a cap breach, a
+malformed host pin, a thin headroom margin and a forked entry-point symlink. The open
+limits are that this repo cannot preserve its contract regions byte-for-byte (19,791 chars
+of preserve-set against a 19,500-char budget), that nothing guards those regions
+byte-for-byte, and that the headroom margin is thin for a file that grows by accretion.
+Round 2 (2026-10-03) added Standing Order 7 and preserved the margin — 19,464 chars /
+19,697 bytes, 536 chars of headroom, unit tier 135 passed — by compressing two
+non-load-bearing regions rather than appending.
