@@ -210,18 +210,12 @@ blocks above (minus the `/goal` line), or use this table:
 
 Report each phase's *Done when* before starting the next; a problem re-enters kickoff triage.
 
-**Skill-to-phase mapping** — each phase names a capability skill, resolved wherever the
-harness provides it.
-
-| Phase | Skill | Output |
-|-------|-------|--------|
-| Knowledge synthesis (stage 3) | `llm-wiki` on `./kb/` | `kb/` pages + `index.md` + `log.md` |
-| PRD / triage / success criteria / verification policy | `pm` — `create-prd`, `identify-assumptions-*`, `test-scenarios` | `PRD.md` + `docs/prd/NN-*.md` |
-| Codebase & resource investigation | `karpathy-guidelines` | Gap report → `docs/gaps/NN-*.md` |
-| Root-cause / requirement questions | `root-cause` (Claude Code: `investigator`) | Cited answer, or "not found" |
-| Empirical doc authoring (planned vs working) | `coding-agents-docs-guideline` | `docs/NN-slug.md` |
-| Task delegation | the harness's delegation mechanism (adapter table) | Scoped sub-agent tasks |
-| All coding | `opencode-plan-build-orchestrator` | plan → build → verify |
+**Skill-to-phase mapping** (full table: `README.md` § Skills): stage-3 knowledge
+`llm-wiki` on `./kb/`; PRD / triage / success criteria / verification policy `pm`
+(`create-prd`, `identify-assumptions-*`, `test-scenarios`); codebase and resource
+investigation `karpathy-guidelines`; root-cause questions `root-cause` (Claude Code:
+`investigator`); empirical docs `coding-agents-docs-guideline`; delegation the harness's
+adapter mechanism; all coding `opencode-plan-build-orchestrator` (plan → build → verify).
 
 ## Standing Orders (ALWAYS apply)
 
@@ -246,15 +240,17 @@ Every `docs/prd/` PRD: SC bullets with inline `_Verify:` annotations (test file 
 
 **No PR opens on a known-red local CI run.** The pre-PR command is `act push -j` each of `unit`, `integration`, `secret-scan`, `doctrine`, `ops-drift`. **Never run `act push` unqualified, or `-j e2e`, on a host that also serves this compose project**: the E2E job's `docker compose up -d --build` **replaces the running containers**; run E2E off the deployment.
 
+### 7. Output-Medium Escalation
+
+For explanatory output, climb to the richest useful rung: prose → controlled English (ASD-STE100-style) → diagram → HTML page → explainer video — all code/text, verified by render → parse, never by looking (works for a non-visual engine). Large custom artifacts are **discardable**: build them in `scratchpads/` and never cite them (funnel rule 6). Skills: `simple-english`, `diagrams`, `render-verify`, `explainer-video`. → `docs/prd/13-output-medium-doctrine.md`; `kb/concepts/output-medium-escalation.md`
+
 ### Ops artifacts — repo canonical, live location a deploy target
 
-Canonical config for a subject operated **outside** this repo: `--check` reports drift read-only, `--apply` writes live behind a confirmation env var, generated state excluded both ways, vendored copies are byte-copies. → `ops/README.md`
+`--check` reports drift read-only, `--apply` writes live behind a confirmation env var, generated state excluded both ways, vendored copies are byte-copies. → `ops/README.md`
 
 ## Repository Structure
 
-Canonical tree: `README.md` § *Repository Structure*. `.agents/` is canonical
-(`.claude -> .agents`); `CLAUDE.md` and `.github/copilot-instructions.md` are symlinks to
-this file. A new tracked root is a five-file edit (rule 11).
+Canonical tree in `README.md` § *Repository Structure*. `.agents/` is canonical (`.claude -> .agents`); the entry files symlink here; a new tracked root is a five-file edit (rule 11).
 
 ## Development Commands
 
@@ -285,6 +281,6 @@ codegraph init                     # once per clone: builds .codegraph/
 
 One MCP tool by design, `codegraph_explore`; the other 7 need `CODEGRAPH_MCP_TOOLS=explore,node,…`. **Without an MCP client, use the CLI twins** `codegraph explore|node|callers|callees|impact|query|affected`; `codegraph sync` before trusting the graph; test selection `git diff --name-only | codegraph affected --stdin`; scripted runs set `DO_NOT_TRACK=1`. → `docs/prd/07-codegraph-adoption.md`
 
-### graphify (optional — knowledge graph over non-code artifacts)
+### graphify (optional)
 
-When `graphify-out/graph.json` exists, `graphify query|path|explain` / `graphify update .` cover **non-code artifacts** (docs, SQL, configs, PDFs); untracked by rule; tracking it needs the merge driver `.gitattributes` documents.
+Non-code knowledge graph (docs, SQL, configs, PDFs): `graphify query|path|explain`; `graphify-out/graph.json` is untracked by rule (tracking it needs the `.gitattributes` merge driver). → `kb/comparisons/codegraph-vs-graphify.md`

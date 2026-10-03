@@ -3,7 +3,7 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-09-26 | Total pages: 26
+> Last updated: 2026-10-03 | Total pages: 30
 
 ## Concepts
 
@@ -18,6 +18,8 @@
 | Evaluator Legitimacy | [concepts/evaluator-legitimacy.md](concepts/evaluator-legitimacy.md) | medium |
 | Formal Mapping (optimization theory, Markov chains, game theory) | [concepts/formal-mapping-autoresearch.md](concepts/formal-mapping-autoresearch.md) | medium |
 | Kanban Factory | [concepts/kanban-factory.md](concepts/kanban-factory.md) | high |
+| Karpathy coding guidelines | [concepts/karpathy-coding-guidelines.md](concepts/karpathy-coding-guidelines.md) | high |
+| Output-medium escalation | [concepts/output-medium-escalation.md](concepts/output-medium-escalation.md) | medium |
 | Fixed Time Budget | [concepts/fixed-time-budget.md](concepts/fixed-time-budget.md) | high |
 | MCP Streamable HTTP Transport | [concepts/mcp-streamable-http-transport.md](concepts/mcp-streamable-http-transport.md) | high |
 | Methodology Registration (the reusable template pattern) | [concepts/methodology-registration.md](concepts/methodology-registration.md) | high |
@@ -61,6 +63,8 @@
 | deep-research conclusions | [raw/articles/autoresearch-template-research-conclusions.md](raw/articles/autoresearch-template-research-conclusions.md) | 2026-09-04 |
 | MCP service deep-research conclusions | [raw/articles/mcp-autoresearch-service-conclusions.md](raw/articles/mcp-autoresearch-service-conclusions.md) | 2026-09-04 |
 | CodeGraph — MCP code intelligence (v1.6.0 evidence) | [raw/articles/codegraph-mcp-code-intelligence.md](raw/articles/codegraph-mcp-code-intelligence.md) | 2026-09-16 |
+| Karpathy — output-medium escalation (ASD-STE100 → diagram → HTML → explainer video) | [raw/articles/karpathy-output-medium-escalation.md](raw/articles/karpathy-output-medium-escalation.md) | 2026-10-03 |
+| Karpathy coding guidelines skill (the four principles, vendored copy) | [raw/articles/karpathy-guidelines-skill.md](raw/articles/karpathy-guidelines-skill.md) | 2026-10-03 |
 | transcript — music AI model | [raw/transcripts/-Ip9EtoBjbk.txt](raw/transcripts/-Ip9EtoBjbk.txt) | 2026-09-04 |
 | transcript — can you autoresearch everything | [raw/transcripts/bMoNOb0iXpA.txt](raw/transcripts/bMoNOb0iXpA.txt) | 2026-09-04 |
 | transcript — best local LLM | [raw/transcripts/jCNeVZJAYGM.txt](raw/transcripts/jCNeVZJAYGM.txt) | 2026-09-04 |
@@ -75,10 +79,10 @@
 
 ## Stats
 
-- Concepts: 16
+- Concepts: 18
 - Entities: 4
 - Comparisons: 6
 - Queries: 0
-- Raw sources: 16
+- Raw sources: 18
 - Archived: 1
-- Total: 26
+- Total: 30

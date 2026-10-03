@@ -47,7 +47,7 @@ Ingested 2026-09-04 from a deep-research run on the autoresearch pattern
 | Layer | Content |
 |-------|---------|
 | `kb/raw/transcripts/` | 11 YouTube transcripts — tutorial, domain adaptations (music, D&D, code), local-LLM bake-off, Claude Code integration, skill self-improvement, playlist series |
-| `kb/raw/articles/` | upstream `program.md` (verbatim) + the research conclusions article |
+| `kb/raw/articles/` | upstream `program.md` (verbatim), the research conclusions, and the output-medium / Karpathy-guidelines sources |
 | `kb/concepts/`, `kb/entities/`, `kb/comparisons/` | synthesized pages — [[autoresearch-contract]], [[val-bpb-metric]], [[fixed-time-budget]], [[evaluator-legitimacy]], [[document-funnel-doctrine]], [[domain-adaptation]], [[problem-selection]], [[skill-self-improvement]], [[karpathy-autoresearch]], [[template-agentic-ready-repo]], plus the ecosystem/platform/agent comparisons |
 
 Query the KB via `kb/index.md`; run `llm-wiki ./kb/` after any `kb/raw/` change.
@@ -77,6 +77,13 @@ bash tests/run.sh --with-e2e
 npm i -g @colbymchenry/codegraph
 codegraph install   # wires your agent's MCP config (hermes/opencode/claude/... auto-detected)
 codegraph init      # one-time per clone: builds .codegraph/ (gitignored)
+
+# Regenerate .env from .env.example (comments preserved) — see docs/14-gen-env-script.md
+python3 scripts/gen-env.py --fresh      # byte-identical copy for a new deployment
+python3 scripts/gen-env.py --update     # .env.new carrying this deployment's values
+
+# STE-style prose audit (the output-medium doctrine's rung-1 gate) — docs/15-ste-audit.md
+python3 scripts/audit-ste.py            # default: docs/*.md + README.md, 80% threshold
 ```
 
 ## Repository Structure
@@ -114,7 +121,7 @@ codegraph init      # one-time per clone: builds .codegraph/ (gitignored)
 │   └── _archive/          # Superseded material (never deleted)
 ├── docs/                  # Three doc layers — intent, gaps, verified reality
 ├── ops/                   # Vendored config for a subject operated outside this repo — CANONICAL
-├── scripts/               # Repo-level helper scripts (verify-clone.sh)
+├── scripts/               # Repo helpers: verify-clone.sh, gen-env.py, audit-ste.py
 ├── tests/                 # Three-tier test suite — each tier has a runner AND a CI job
 ├── scratchpads/           # Agent scratch space (gitignored)
 └── .github/
@@ -140,6 +147,26 @@ No harness needs a vendor entry file or config of its own — the entry points a
 symlinks that already exist. `AGENTS.md`'s *Harness Adapter*, including its *Per-harness
 rows* table, is the authoritative binding; `ADOPTING.md` step 4 is the short version.
 
+## Skills
+
+Skills resolve wherever the harness provides them — a host-level skills dir, the
+repo-scoped `.agents/skills/`, or, last resort, the skill's `SKILL.md` inlined into the
+prompt (a missing tool never waives a gate; `AGENTS.md` §1). The `/goal` phase → skill
+mapping:
+
+| Phase | Skill | Output |
+|-------|-------|--------|
+| Knowledge synthesis (stage 3) | `llm-wiki` on `./kb/` | `kb/` pages + `index.md` + `log.md` |
+| PRD / triage / success criteria / verification policy | `pm` — `create-prd`, `identify-assumptions-*`, `test-scenarios` | `PRD.md` + `docs/prd/NN-*.md` |
+| Codebase & resource investigation | `karpathy-guidelines` | Gap report → `docs/gaps/NN-*.md` |
+| Root-cause / requirement questions | `root-cause` (Claude Code: `investigator`) | Cited answer, or "not found" |
+| Empirical doc authoring (planned vs working) | `coding-agents-docs-guideline` | `docs/NN-slug.md` |
+| Task delegation | the harness's delegation mechanism (adapter table) | Scoped sub-agent tasks |
+| All coding | `opencode-plan-build-orchestrator` | plan → build → verify |
+
+The output-medium doctrine (`AGENTS.md` §7) adds the consumer-side skills: `simple-english`
+(rung 2), `diagrams` (rung 3), `render-verify`, and `explainer-video` (rung 5).
+
 ## Status
 
 - [x] Skeleton doctrine (funnel, harness adapter, CI gates)
@@ -148,3 +175,6 @@ rows* table, is the authoritative binding; `ADOPTING.md` step 4 is the short ver
 - [x] Autoresearch contract implemented (`program.md` / `prepare.py` / `train.py` + `AC-TPL-*` tests)
 - [x] Governance + corpus integrity tests (`AC-FUN-*`, `AC-EXC-*`) — 34/34 unit tests green
 - [x] One-command onboarding — `ADOPTING.md` + `scripts/verify-clone.sh` (read-only clone health check). Funnel stage 7 is GitHub issues: there is no examples stage
+- [x] Output-medium doctrine — `AGENTS.md` §7 (prose → controlled English → diagram → HTML → explainer video) + `kb/` grounding + `AC-OM-*` / `AC-CTX-*` tripwires
+- [x] `scripts/gen-env.py` (`--fresh` byte copy / `--update` value-carry, no clobber) + `AC-GEN-001..005`
+- [x] `scripts/audit-ste.py` (the "80% to ASD-STE100" prose gate) + `AC-STE-001..003`; repo docs measured at 98.8% within-limit
