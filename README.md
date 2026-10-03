@@ -72,6 +72,8 @@ bash tests/run.sh --with-e2e
 
 # Local CI (pre-PR) — the command and its safety rules have ONE home: AGENTS.md §6.
 # Never `act push` unqualified on a host running this compose project live.
+bash scripts/local-ci.sh                 # the five pre-PR jobs, one act run per job
+bash scripts/local-ci.sh unit doctrine   # a named subset; `e2e` is refused on purpose
 
 # Graph search for coding agents (optional but recommended) — see AGENTS.md §codegraph
 npm i -g @colbymchenry/codegraph
@@ -121,7 +123,7 @@ python3 scripts/audit-ste.py            # default: docs/*.md + README.md, 80% th
 │   └── _archive/          # Superseded material (never deleted)
 ├── docs/                  # Three doc layers — intent, gaps, verified reality
 ├── ops/                   # Vendored config for a subject operated outside this repo — CANONICAL
-├── scripts/               # Repo helpers: verify-clone.sh, gen-env.py, audit-ste.py
+├── scripts/               # Repo helpers: verify-clone.sh, gen-env.py, audit-ste.py, local-ci.sh
 ├── tests/                 # Three-tier test suite — each tier has a runner AND a CI job
 ├── scratchpads/           # Agent scratch space (gitignored)
 └── .github/
