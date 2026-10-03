@@ -205,7 +205,7 @@ jobs:
       # two lists cannot drift. Keep it a single line of the form
       # `DOCTRINE_ROOTS: "root1 root2 …"` — the test matches it with a regex and
       # tests/requirements.txt carries no YAML parser.
-      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md CLAUDE.md LICENSE .env.example .gitignore .gitattributes docker-compose.yml docker-compose.host-ports.example.yml .agents .claude .codegraph .credentials .github contract data docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries ops scratchpads scripts service tests"
+      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md CLAUDE.md LICENSE .env.example .gitignore .gitattributes docker-compose.yml .agents .claude .codegraph .credentials .github contract data docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries ops scratchpads scripts service tests"
     steps:
       - uses: actions/checkout@v4
 
@@ -231,9 +231,15 @@ jobs:
         run: |
           set -euo pipefail
           fail=0
+          # A path passes when it is TRACKED **or** PRESENT on disk. In CI the checkout
+          # holds only committed files, so the two coincide and this is the original
+          # rule. Run locally (`act` on a working tree), a new root file that is not
+          # committed YET is present-but-untracked; flagging it is a false red — the file
+          # is about to be committed. Ignored paths still fail below, which is the rule's
+          # real target (AGENTS.md funnel rule 10).
           for path in $DOCTRINE_ROOTS; do
-            if [ -z "$(git ls-files -- "$path")" ]; then
-              echo "::error::$path is not tracked. The document funnel only works if it is versioned (AGENTS.md funnel rule 10)."
+            if [ -z "$(git ls-files -- "$path")" ] && [ ! -e "$path" ]; then
+              echo "::error::$path is neither tracked nor present on disk. The document funnel only works if it is versioned (AGENTS.md funnel rule 10)."
               fail=1
             fi
             if git check-ignore -q "$path"; then
