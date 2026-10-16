@@ -1,10 +1,10 @@
 # Knowledge Base — Schema & Conventions
 
-> **Spec:** this KB follows the llm-wiki skill **strictly** —
-> <https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md>
-> Run `llm-wiki` from wherever your harness provides it (host-level skill or vendored copy).
-> Vendor the pinned revision at `.agents/skills/llm-wiki/SKILL.md` **only when that revision must travel
-> with the repo**. When both exist, the **vendored copy is canonical** — it is the revision `kb/` was built to.
+> **Spec:** this KB follows the llm-wiki skill **strictly**. The canonical revision is the
+> vendored copy at `.agents/skills/llm-wiki/SKILL.md` — it is the revision `kb/` is built to.
+> Upstream provenance: <https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md>.
+> Run `llm-wiki` from wherever your harness provides it (host-level skill or the vendored copy);
+> a harness with no mechanism inlines the vendored `SKILL.md` (funnel rule 8).
 > Where this file and that spec disagree, the spec wins; fix this file.
 
 ## Domain

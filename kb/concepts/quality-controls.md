@@ -1,0 +1,58 @@
+---
+title: Quality Controls
+created: 2026-10-16
+updated: 2026-10-16
+type: concept
+tags: [ops, decision]
+sources: [raw/articles/quality-controls-audit-dossier.md, raw/articles/2026-10-16-template-self-audit.md]
+confidence: high
+---
+
+# Quality Controls
+
+The quality-control posture splits into two halves: what is **codified**
+(enforced by scripts and CI) and what is **advisory** (routed by files and
+settings). The doctrine target is that the large majority of quality control is
+codified rules — test tiers, workflow-hygiene greps, PR-lint checks — with
+human/agent judgment reserved for the residue.
+
+## Codified gates
+
+Three test tiers ([[qc-test-tiers]]) plus a secret-scan job (tracked credential
+files, hardcoded assignments, a credentials-directory ignore probe) and a
+doctrine job (harness symlinks resolve; funnel tracked; no secret values under
+`kb/`). CI runs on `pull_request` + `push` to main. The doctrine job's
+tracked-root list is kept honest by an index-derived coverage check.
+
+## Gaps (verified)
+
+- Zero reviews across merged PRs and no branch protection or rulesets — any push
+  to `main` bypasses every gate ([[github-merge-gates]]).
+- Workflows inherit the default token scope (no top-level `permissions:`) and pin
+  actions by mutable tag (`actions/checkout@v4`, `actions/setup-python@v5`)
+  ([[actions-hardening]]).
+- No dependency scanning, Dependabot, `SECURITY.md`, `CODEOWNERS`, PR template,
+  zizmor, CodeQL, or lint entry point ([[scanning-without-advanced-security]]).
+
+^[raw/articles/2026-10-16-template-self-audit.md]
+
+## Industry norm (14-repo peer survey)
+
+Of 14 popular MIT/Apache-2.0 repos: top-level `permissions:` on 89% of sampled
+workflows; SHA-pinned actions in 6/7 MIT-side repos; `SECURITY.md` 10/14;
+`CODEOWNERS` 10/14; PR template 8/14; Dependabot 8/14; gitleaks/trufflehog in CI
+0/14 (native secret scanning covers public repos). Mature repos also publish
+AI-contribution policies — astral-sh requires disclosure and bars autonomous
+agents ("We do not allow autonomous agents to be used for contributing to our
+projects"). ^[raw/articles/quality-controls-audit-dossier.md]
+
+## Codification rule (doctrine)
+
+A control lands as **script + test + CI job** (or as a free, verifiable repo
+setting) — never as prose alone. Peer-consensus threshold for adoption: ≥60% or a
+published baseline (OpenSSF Scorecard). Advisory artifacts (`CODEOWNERS`, PR
+template) are shipped but labelled advisory. The 20%-judgment residue: merge
+decisions, design trade-offs, and AI-contribution stewardship.
+
+Related: [[qc-test-tiers]] · [[github-merge-gates]] · [[actions-hardening]] ·
+[[scanning-without-advanced-security]]

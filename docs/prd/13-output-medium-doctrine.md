@@ -70,7 +70,7 @@ are the doctrine's own presence/consistency guards.
 
 ## Source Attribution
 
-- Concept page — [`kb/concepts/output-medium-escalation.md`](../kb/concepts/output-medium-escalation.md)
+- Concept page — [`kb/concepts/output-medium-escalation.md`](../../kb/concepts/output-medium-escalation.md)
   (ladder, meta-thesis, code-first render → parse constraint, six principles).
 - Raw source — `kb/raw/articles/karpathy-output-medium-escalation.md`
   (`source_url: https://x.com/karpathy/status/2105819303471976479`, ingested 2026-10-02,

@@ -93,7 +93,10 @@ Rules:
 
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
-| — | *no open gaps* | — | — | — |
+| 02 | [Contract claims unenforced](02-contract-claims-unenforced.md) | prd ↔ code | open | 2026-10-16 |
+| 08 | [Mandated skills unresolvable](08-mandated-skills-unresolvable.md) | prd ↔ code | open | 2026-10-16 |
+| 11 | [Examples unreproducible](11-examples-unreproducible.md) | prd ↔ code | open | 2026-10-16 |
+| 16 | [Quality controls not adopted](16-quality-controls-not-adopted.md) | prd ↔ code | open | 2026-10-16 |
 
 Resolved gaps leave this directory but stay in the repo, their path structure preserved
 under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a tombstone there instead of
@@ -108,6 +111,8 @@ returning its `NN` to circulation (rule 6):
   the CodeGraph adoption): `07-codegraph-no-prd.md`; and resolution landed in the
   `kb/raw/` re-ingest (both articles re-stamped, superseded revisions preserved in
   `kb/_archive/raw/articles/`, layer-2 re-synthesis a no-op): `03-kb-raw-scratchpad-citations.md`.
+- **Archived 2026-10-16** — `07-codegraph-sync-affected-untested.md`: PRD-07 SC4/SC5
+  claimed a tracking gap that did not exist; closed to GitHub issue #29.
 - **Withdrawn tombstones** — `02-contract-files-missing.md`,
   `03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
   `05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`. These

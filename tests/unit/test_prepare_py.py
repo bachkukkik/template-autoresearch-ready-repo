@@ -1,12 +1,40 @@
 """SC2 — prepare.py is the immutable anti-cheat evaluator. IDs: AC-TPL-01N."""
+import hashlib
 import math
+import os
 
 import prepare
+
+# Byte pin on the frozen evaluator (AC-TPL-014). This is the CI gate that makes
+# "nobody edits prepare.py" real: an intentional evaluator change MUST update
+# this constant in the same commit, so a silent edit cannot ride along with a
+# candidate change. Recompute with:
+#   python3 -c "import hashlib;print(hashlib.sha256(open('contract/prepare.py','rb').read()).hexdigest())"
+PREPARE_PY_SHA256 = "744993ebfea0afcfbcdeaae8802d7a9a3af36eca23c17159d91004ed14728ff2"
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))))
 
 
 def test_prepare_time_budget():
     """AC-TPL-011: fixed time budget is 300 seconds."""
     assert prepare.TIME_BUDGET == 300
+
+
+def test_prepare_py_is_byte_pinned():
+    """AC-TPL-014: prepare.py's sha256 equals the pin — an edit must move it.
+
+    The pin is the enforcement half of SC2: prepare.py's immutability is stated
+    here and checked by CI, not left to convention.
+    """
+    path = os.path.join(REPO_ROOT, "contract", "prepare.py")
+    with open(path, "rb") as f:
+        digest = hashlib.sha256(f.read()).hexdigest()
+    assert digest == PREPARE_PY_SHA256, (
+        "contract/prepare.py changed but the AC-TPL-014 pin did not — if the "
+        "evaluator change is intentional, update PREPARE_PY_SHA256 in the same "
+        "commit; otherwise revert prepare.py (it is frozen; see program.md)."
+    )
 
 
 def test_prepare_data_hooks_exist():

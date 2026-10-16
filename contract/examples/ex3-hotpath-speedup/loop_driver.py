@@ -1,24 +1,48 @@
 #!/usr/bin/env python3
-"""Faithful autoresearch loop driver for ex3-hotpath-speedup.
+"""SCRIPTED REFERENCE RUN driver for ex3-hotpath-speedup.
+
+This is a scripted reference run: a fixed candidate list (`CANDIDATES`) replayed
+by a deterministic driver. A live agent would generate candidates itself from the
+run log; nothing here claims an LLM chose them.
 
 Each candidate: apply one coherent patch to train.py -> git commit -> run
 `python3 train.py > run.log 2>&1` -> parse median_seconds/gate_ok -> append a
 row to results.tsv -> keep (gate PASSED and strictly faster) or
 `git reset --hard HEAD~1`.
 
-The patches below are the mutation operator's choices, applied mechanically:
-they chain from the CURRENT kept state, so a discarded candidate leaves the
-next patch set pointing at the last kept file (exactly the karpathy loop).
+The patches below chain from the CURRENT kept state, so a discarded candidate
+leaves the next patch set pointing at the last kept file (exactly the karpathy
+loop).
 
 Ledger columns: commit, median_seconds, gate, status, description.
+gate in {ok, invalid, n/a}: `ok` = the gate passed, `invalid` = the gate rejected
+the candidate (a wrong answer, never a keep — the anti-Goodhart rule), `n/a` = the
+run produced no verdict at all (it crashed before printing `gate_ok`), so a
+measurement failure is never recorded as a gate rejection.
 status in {keep, discard, crash}.  `keep` requires gate_ok AND a strict
-improvement in median seconds; a gate failure is `crash` (invalid), never a
-keep -- that is the anti-Goodhart rule of this example.
+improvement in median seconds.
+
+Reproduce the vendored ledger in a scratch clone, starting from the tracked
+baseline (results.tsv stays untracked / gitignored):
+
+    cp -r contract/examples/ex3-hotpath-speedup /tmp/ex3 && cd /tmp/ex3
+    git init -q && git add -A && git commit -qm "contract: baseline"
+    python3 loop_driver.py --from-baseline
+
+`--from-baseline` copies the tracked ``train_baseline.py`` over ``train.py`` and
+commits it, so the patch anchors below (written against the baseline) apply. A
+fresh scratch clone otherwise ships the FINAL kept ``train.py``, and the driver
+would abort on ``PATCH MISS``. Commit hashes differ on a re-run; compare the
+gate column and the descriptions only — the `median_seconds` column is a T2
+statistical field and its keep/discard statuses are timing-sensitive.
 """
+import os
+import shutil
 import subprocess
 import sys
 
 HEADER = "commit\tmedian_seconds\tgate\tstatus\tdescription"
+BASELINE = "train_baseline.py"
 
 # --------------------------------------------------------------- patches ----
 BY_INITIAL_NAIVE = '''def by_initial(words):
@@ -161,8 +185,24 @@ def sh(*args, **kw):
     return subprocess.run(args, capture_output=True, text=True, **kw)
 
 
+def reset_to_baseline():
+    """--from-baseline: copy the tracked baseline over train.py, then commit it."""
+    if not os.path.exists(BASELINE):
+        print(f"--from-baseline: {BASELINE} not found beside {__file__}")
+        sys.exit(1)
+    shutil.copyfile(BASELINE, "train.py")
+    sh("git", "add", "train.py")
+    sh("git", "commit", "-qm", "contract: baseline train.py (reconstructed)")
+    head = sh("git", "rev-parse", "--short", "HEAD").stdout.strip()
+    print(f"--from-baseline: train.py <- {BASELINE} (HEAD {head})")
+
+
 def parse_log(path):
-    """(median_seconds | None, gate_ok | None, rc)."""
+    """(median_seconds | None, gate_ok | None): the run.log verdict, nothing else.
+
+    The process return code is captured by the ``echo RC=$?`` shell wrapper in
+    ``main`` and is not read back out of the log here.
+    """
     median = gate = None
     for line in open(path):
         if line.startswith("median_seconds:"):
@@ -173,6 +213,8 @@ def parse_log(path):
 
 
 def main():
+    if "--from-baseline" in sys.argv[1:]:
+        reset_to_baseline()
     # fresh ledger
     with open("results.tsv", "w") as f:
         f.write(HEADER + "\n")
@@ -210,8 +252,11 @@ def main():
 
         rows.append((commit, median, gate, status, desc))
         with open("results.tsv", "a") as f:
+            # gate cell: 'ok' passed | 'invalid' rejected | 'n/a' no verdict (the
+            # run crashed before printing gate_ok) -- never conflate the last two.
+            cell = "ok" if gate else ("invalid" if gate is not None else "n/a")
             f.write(f"{commit}\t{median:.6f}\t"
-                    f"{'ok' if gate else 'invalid'}\t{status}\t{desc}\n")
+                    f"{cell}\t{status}\t{desc}\n")
         print(f"{commit}  {median:9.6f}s  gate={'ok' if gate else 'INVALID':7s} "
               f"rc={rc}  {status:8s} {desc}")
 

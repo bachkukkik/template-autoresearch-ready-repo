@@ -48,3 +48,27 @@ def test_program_md_sc6_caveats():
     assert "sample" in text or "Sample" in text
     assert "Goodhart" in text
     assert "frozen metric" in text
+
+
+def test_program_md_porting_noise_floor_and_hard_kill():
+    """AC-TPL-005: porting to any X — the four invariants, the noise floor, the
+    hard kill, and evaluator-owned status."""
+    text = _read_program_md()
+    # a porting section naming the four invariants
+    assert "## Porting to any X" in text
+    assert "One editable artifact" in text
+    for owned in ("evaluate_bpb", "DIRECTION", "NOISE_FLOOR", "TIME_BUDGET"):
+        assert owned in text, owned
+    assert "append-only" in text
+    assert "check-ledger" in text
+    assert "run.log" in text
+    assert "never self-reported" in text
+    assert "T2" in text
+    # the noise floor lives in the simplicity criterion
+    assert "noise floor" in text
+    assert "shrinks" in text
+    # the status is the evaluator's, not the agent's
+    assert "prepare.decide" in text
+    # the in-loop ceiling has an outer hard kill, and a kill is a crash
+    assert "timeout 600 python3 train.py" in text
+    assert "hard kill" in text

@@ -34,7 +34,9 @@ short-circuits, helper structure. Everything in-workload is fair game.
 
 **Goal: LOWEST median seconds per `run(data)` call — SUBJECT TO the
 exact-output gate.** `gate_ok: True` and `median_seconds` both come from
-`prepare.evaluate(train_module)`; `TIME_BUDGET=60` is fixed by prepare.py.
+`prepare.evaluate(train_module)`; `TIME_BUDGET=60` is a **ceiling** fixed by
+prepare.py — the baseline measures ≈2.3 s and the run exits 3 only if the median
+exceeds it, so the budget bounds a runaway candidate, it is not a target.
 
 **Gate first, speed second.** A candidate whose `run(data)` does not reproduce
 the frozen result exactly is **invalid** (`train.py` exits 2, the ledger
@@ -64,7 +66,9 @@ LOOP FOREVER:
 3. `grep -E "^(median_seconds|gate_ok):" run.log` (empty → crashed:
    `tail -50 run.log`, fix or skip).
 4. Append `commit\tmedian_seconds\tgate\tstatus\tdescription` to results.tsv
-   (crash: `-1.000000` median if nothing was measured).
+   (`gate` is `ok` / `invalid` / `n/a`; `n/a` means the run produced no verdict —
+   a crash — never a gate rejection; crash: `-1.000000` median if nothing was
+   measured).
 5. Strict improvement under a passing gate ⇒ keep the commit; else
    `git reset --hard HEAD~1`.
 

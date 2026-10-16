@@ -8,10 +8,11 @@ CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 
 # Product/doctrine files allowed at repo root (funnel rule 1). program.md is
 # not a root file anymore — the autoresearch contract lives in contract/.
-ROOT_MD_ALLOWLIST = {"AGENTS.md", "README.md", "ADOPTING.md", "PRD.md"}
+ROOT_MD_ALLOWLIST = {"AGENTS.md", "README.md", "ADOPTING.md", "PRD.md", "SECURITY.md"}
 
 HARNESS_ENTRY_POINTS = [
     "CLAUDE.md",
+    "GEMINI.md",
     ".github/copilot-instructions.md",
     ".claude/skills",
     ".claude/plugins",

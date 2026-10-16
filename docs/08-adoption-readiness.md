@@ -59,7 +59,7 @@ performed no checks.
 | Host-dependent verdict | a tier that executed zero tests or skipped all of them reading as green | the `integration` job's junit guard step + the `resolve_ambient`/`require_tool` preflight in `tests/conftest.py` |
 | Broken fresh clone | a dangling harness symlink, a plain-copy entry point, an undeclared tracked root, a gitignored doctrine path, a `verify-clone.sh` that can no longer locate the tracked-root list, and a run that performed no checks | `tests/unit/test_verify_clone.py` (AC-VC-001..008) in the `unit` job |
 | Ops drift | a vendored `ops/artifacts/` file that differs from the live deploy target, and a `--check` that cannot go red; becomes a real read-only gate on the adopter's own target once the `OPS_LIVE_ROOT` repository variable is set | the `ops-drift` job in `.github/workflows/ci.yml` |
-| Harness neutrality | a Hermes-only mechanism in `AGENTS.md` presented without its non-Hermes fallback in the same context; a harness missing a mechanism with no documented path to a skill gate | `tests/unit/test_harness_neutrality.py` (AC-HRN-001..014) in the `unit` job |
+| Harness neutrality | a Hermes-only mechanism in `AGENTS.md` presented without its non-Hermes fallback in the same context; a harness missing a mechanism with no documented path to a skill gate; a mandated skill (§1) that resolves nowhere; a README harness row with no `AGENTS.md` binding; a forked Gemini CLI entry point | `tests/unit/test_harness_neutrality.py` (AC-HRN-001..017) in the `unit` job |
 
 The neutrality guard parses the two catalog tables by **header text**, never by column
 order, so a rewrite that reorders a column still passes while removing a harness binding
@@ -70,7 +70,14 @@ completeness: every Hermes-only mechanism `AGENTS.md` names — `/goal`, `~/.her
 in a context (its own table row, or its enclosing `## ` section) that also documents its
 non-Hermes fallback, and a harness missing a mechanism must still have a documented path
 to every mandated skill (the inline-`SKILL.md` escape). A mechanism the document no
-longer carries is reported rather than passing vacuously.
+longer carries is reported rather than passing vacuously. AC-HRN-015..017 close the three
+seams that remained: every skill `AGENTS.md` §1 mandates must resolve to a vendored
+`.agents/skills/<name>/SKILL.md` or to a `README.md` § *Skills* row carrying an install
+source URL (015); the canonical four harnesses are a **floor**, so a fifth harness named in
+both documents pairs while a README-only row is reported as drift (016); and the Gemini CLI
+entry point (`GEMINI.md`) must be a symlink to the one canonical `AGENTS.md`, not a copy
+(017). Adding a harness (Codex CLI, Cursor, Gemini CLI, Aider) therefore edits two
+documents, never a test regex.
 
 ### What the harness guard does not reach
 
@@ -91,12 +98,29 @@ parsing.
 Gaps `03` (`kb/raw/` articles citing a scratchpad path) and `07` (the CodeGraph KB with
 no stage-4 PRD) closed in this change; their resolution records live under
 `docs/gaps/_archive/`, path structure preserved, never deleted and their `NN` never
-reused. The live open-gaps set is empty, which is exactly why AC-DOC-004 proves it
+reused. The live open-gaps set is the four 2026-10-16 improvement-wave gaps (02/08/11/16), resolved at merge, which is exactly why AC-DOC-004 proves it
 reached real files through the archive rather than passing over nothing.
 
 ## Verification
 
 Run from the repo root, 2026-09-19.
+
+Round 3 — 2026-10-16 (harness-neutrality seam AC-HRN-015..017):
+
+```bash
+python3 -m pytest tests/unit/test_harness_neutrality.py -q
+# 17 passed
+
+python3 -m pytest tests/unit/test_agents_md_budget.py -q
+# 4 passed
+
+bash scripts/verify-clone.sh
+# RESULT: PASSED — 35 check(s) passed (5 harness entry points resolve)
+```
+
+The `/goal` + `sub1`–`sub4` block measured 3,981 chars, sha256
+`bd533ce25a568b4b` — byte-identical to `origin/main`. AGENTS.md measured
+19,493 chars (headroom 507, floor 500).
 
 ```bash
 python3 -m pytest tests/unit/test_verify_clone.py -q
@@ -199,13 +223,16 @@ act push -j ops-drift -P ubuntu-latest=catthehacker/ubuntu:act-22.04 --pull=fals
   off so it becomes a real read-only gate on the adopter's own target — proven green
   under `act` in both modes.
 - **Harness neutrality enforces fallback completeness:** `tests/unit/test_harness_neutrality.py`
-  (AC-HRN-001..014) proves `AGENTS.md`'s Harness Adapter names Hermes, Claude Code,
+  (AC-HRN-001..017) proves `AGENTS.md`'s Harness Adapter names Hermes, Claude Code,
   opencode and DeepSeek/OpenAI-compatible plus a generic fallback, binds each to an entry
   instruction file and the host-level-skills capability, marks `/goal` Hermes-only while
   every other harness prompts the `sub1`–`sub4` phase blocks, and — AC-HRN-008..014 —
   requires every Hermes-only mechanism to sit in a context that also documents its
-  non-Hermes fallback, with a missing mechanism never waiving a skill gate; `README.md`'s
-  Harness Support table names the same four.
+  non-Hermes fallback, with a missing mechanism never waiving a skill gate. AC-HRN-015..017
+  then prove every mandated skill (§1) resolves to a vendored `SKILL.md` or a README
+  install-source URL, that a fifth harness named in both documents pairs while a README-only
+  row is drift (the canonical four are a floor), and that `GEMINI.md` is a symlink to the one
+  `AGENTS.md`; `README.md`'s Harness Support table names the same harnesses.
 - **A fresh clone is provable in one command:** `bash scripts/verify-clone.sh` reported
   `RESULT: PASSED — 33 check(s) passed` read-only, and `bash tests/run.sh` reported
   `RESULT: PASSED` (120 unit + 16 integration) with the container tier skipped by
@@ -217,15 +244,21 @@ None. All three failures this doc previously recorded are closed: `scripts/verif
 is now covered by `tests/unit/test_verify_clone.py` (AC-VC-001..008), the ops `--check`
 mode now runs in the `ops-drift` CI job (drift proven detectable under `act` in both
 modes), and harness neutrality now enforces fallback completeness rather than table
-membership (AC-HRN-008..014). What remains is **scope, not failure**: the harness guard
+membership (AC-HRN-008..014). One upstream-verified hazard was adopted instead of
+discovered here (foundation template, 2026-10-16): **repeated `-j` flags under `act`
+run only the last job** (`act push -j unit -j secret-scan` executes Secret Scan alone
+— act 0.2.89). Our §6 already prescribes one `-j` per invocation and
+`scripts/local-ci.sh` never passed two `-j` flags, so the repo was never exposed —
+the bullet exists so a reader does not "simplify" the script back into the trap. What
+remains is **scope, not failure**: the harness guard
 reads the document every harness reads and does not drive a live opencode, Claude Code
 or DeepSeek client — stated under *How* → *What the harness guard does not reach* and in
 `tests/unit/test_harness_neutrality.py`'s module docstring.
 
 ## Resolution
 
-No resolutions are outstanding — there is no failure in *What Fails* to resolve. The
-live-client boundary is scope rather than a defect: it is recorded under *How* → *What
+No resolutions are outstanding. The act `-j` hazard needs no code change here (see
+*What Fails*); the live-client boundary is scope rather than a defect: it is recorded under *How* → *What
 the harness guard does not reach*, and a project that wants that half would add it as an
 opt-in integration-tier entry behind `RUN_INTEGRATION_TESTS=1` rather than widen the
 hermetic `unit` tier.
@@ -234,7 +267,8 @@ hermetic `unit` tier.
 
 **works** — the adoption-readiness layer is verified end to end where the guards reach:
 `ops/sync.sh` (AC-OPS-001..010), the documentary invariants (AC-DOC-001..016), the gap
-lifecycle (AC-FUN-021), harness neutrality including fallback completeness (AC-HRN-001..014),
+lifecycle (AC-FUN-021), harness neutrality including fallback completeness and mandated-skill
+resolution (AC-HRN-001..017),
 the onboarding script with its five broken-clone negative controls (AC-VC-001..008), and
 the `ops-drift` job that runs `--check` in CI with drift proven detectable. The one seam
 outside the guard — a live third-party harness client — is a stated scope boundary, not a

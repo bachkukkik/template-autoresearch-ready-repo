@@ -26,7 +26,7 @@ cd "$ROOT"
 
 CI=".github/workflows/ci.yml"
 DOCTRINE_PATHS="AGENTS.md PRD.md README.md ADOPTING.md .agents .github docs kb tests ops scripts"
-HARNESS_LINKS="CLAUDE.md .github/copilot-instructions.md .claude/skills .claude/plugins"
+HARNESS_LINKS="CLAUDE.md GEMINI.md .github/copilot-instructions.md .claude/skills .claude/plugins"
 
 checks_run=0
 failures=0

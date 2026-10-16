@@ -23,7 +23,9 @@ context handling. Everything in-model is fair game.
 - Install packages. Stdlib only.
 - Modify any other file.
 
-**Goal: lowest val_bpb.** TIME_BUDGET=60s is fixed by prepare.py.
+**Goal: lowest val_bpb.** TIME_BUDGET=60s is a **ceiling** fixed by prepare.py,
+not a target: the workload is a few thousand characters, so a candidate run
+finishes in well under a second and the budget only bounds a runaway candidate.
 
 **Simplicity criterion:** all else equal, simpler is better. A deletion that
 holds the metric is a win.

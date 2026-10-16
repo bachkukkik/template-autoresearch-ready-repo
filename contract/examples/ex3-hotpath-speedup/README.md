@@ -2,7 +2,7 @@
 topic: ex3-hotpath-speedup — NON-ML autoresearch instantiation (wall-time under an exact-output gate)
 ingested: 2026-09-26
 contract: karpathy/autoresearch (program.md / prepare.py / train.py / results.tsv, keep-discard)
-gate: exact-output equality against a frozen reference (slash-commerce metrics-contract anti-Goodhart pattern)
+gate: exact-output equality against a frozen reference (a private commerce-pipeline instance's metrics-contract anti-Goodhart pattern)
 ---
 
 # Example 3 — ex3-hotpath-speedup: wall-time optimization under an exact-output gate
@@ -49,3 +49,28 @@ f17cfb7 candidate: longest_word & palindrome_count from the unique-word counts
 7a5da35 candidate: word_count: reuse the token list (drop the second clean.split())
 56cde0b contract: program.md + frozen prepare.py + baseline train.py
 ```
+
+(These commits are from the worked run; they are not in this repo — a re-run
+starts a fresh `git init` and produces different hashes.)
+
+## Reproducing the ledger
+
+The tracked `train.py` is the FINAL kept state (the fastest valid candidate); the
+worked run started from `train_baseline.py` (the suboptimal-but-correct baseline
+with the per-character cleanup, per-letter passes and per-offset scan), the
+reconstruction of which every kept candidate in `loop_driver.py` is a patch
+against. From a scratch clone:
+
+```bash
+cp -r contract/examples/ex3-hotpath-speedup /tmp/ex3 && cd /tmp/ex3
+git init -q && git add -A && git commit -qm "contract: baseline"
+python3 loop_driver.py --from-baseline
+```
+
+`loop_driver.py` is a **scripted reference run** — a fixed candidate list replayed
+deterministically, not an LLM's choices. A re-run reproduces the **gate column and
+the descriptions** row for row, and the final kept `train.py` still passes the
+exact-output gate. It does **not** reproduce the `median_seconds` column (T2
+timing) or the keep/discard statuses: the `simplify` candidate sits within a few
+percent of the incumbent and flips between keep and discard across runs, so only
+the gate column is compared (`tests/integration/test_examples_replay.py`).

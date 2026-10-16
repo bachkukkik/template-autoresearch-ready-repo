@@ -41,13 +41,15 @@ python3 -m pytest tests/unit -q
 # -> 135 passed
 
 # CLI smoke, in a scratch directory
-T=$(mktemp -d); cp .env.example "$T/.env.example"; cd "$T"
-python3 /workspace/Archives/template-autoresearch-ready-repo/scripts/gen-env.py --fresh
+T=$(mktemp -d); cp .env.example "$T/.env.example"
+REPO="$(pwd)"                                  # capture the repo root before cd
+cd "$T"
+python3 "$REPO/scripts/gen-env.py" --fresh
 # -> wrote .env
 cmp .env .env.example && echo BYTE-IDENTICAL
 # -> BYTE-IDENTICAL
 printf '\nLEGACY_VAR=old\nAPP_NAME=prod-frontend\n' >> .env
-python3 /workspace/Archives/template-autoresearch-ready-repo/scripts/gen-env.py --update
+python3 "$REPO/scripts/gen-env.py" --update
 # -> wrote .env.new
 # -> dropped keys (not in .env.example): LEGACY_VAR
 grep -c LEGACY_VAR .env.new

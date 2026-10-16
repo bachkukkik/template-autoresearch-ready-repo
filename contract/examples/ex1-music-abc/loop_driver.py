@@ -1,13 +1,33 @@
 #!/usr/bin/env python3
-"""Faithful autoresearch loop driver for ex1-music-abc.
+"""SCRIPTED REFERENCE RUN driver for ex1-music-abc.
+
+This is a scripted reference run: a fixed candidate list (`CANDIDATES`) replayed
+by a deterministic driver. A live agent would generate candidates itself from the
+run log; nothing here claims an LLM chose them.
 
 Each candidate: apply edit -> git commit -> run -> parse val_bpb from run.log
 -> append results.tsv -> keep (strict improvement) or git reset --hard HEAD~1.
-The edits below are the mutation operator's choices (LLM-driven), applied
-mechanically. results.tsv stays untracked (gitignored).
+
+Reproduce the vendored ledger in a scratch clone, starting from the tracked
+baseline (results.tsv stays untracked / gitignored):
+
+    cp -r contract/examples/ex1-music-abc /tmp/ex1 && cd /tmp/ex1
+    git init -q && git add -A && git commit -qm "contract: baseline"
+    python3 loop_driver.py --from-baseline
+
+`--from-baseline` copies the tracked ``train_baseline.py`` over ``train.py`` and
+commits it, so the patch anchors below (written against the baseline) apply. A
+fresh scratch clone otherwise ships the FINAL kept ``train.py``, and the driver
+would abort on ``PATCH MISS``. Commit hashes differ on a re-run; compare the
+metric / status / description columns only.
 """
+import os
+import shutil
 import subprocess
 import sys
+
+HEADER = "commit\tval_bpb\tseconds\tstatus\tdescription"
+BASELINE = "train_baseline.py"
 
 CANDIDATES = [
     # State model: patches chain from the CURRENT kept state. After a discard,
@@ -28,7 +48,24 @@ CANDIDATES = [
 def sh(*args, **kw):
     return subprocess.run(args, capture_output=True, text=True, **kw)
 
+def reset_to_baseline():
+    """--from-baseline: copy the tracked baseline over train.py, then commit it."""
+    if not os.path.exists(BASELINE):
+        print(f"--from-baseline: {BASELINE} not found beside {__file__}")
+        sys.exit(1)
+    shutil.copyfile(BASELINE, "train.py")
+    sh("git", "add", "train.py")
+    sh("git", "commit", "-qm", "contract: baseline train.py (reconstructed)")
+    head = sh("git", "rev-parse", "--short", "HEAD").stdout.strip()
+    print(f"--from-baseline: train.py <- {BASELINE} (HEAD {head})")
+
 def main():
+    if "--from-baseline" in sys.argv[1:]:
+        reset_to_baseline()
+    # results.tsv is untracked (gitignored) and re-initialized by the driver.
+    with open("results.tsv", "w") as f:
+        f.write(HEADER + "\n")
+
     best = None
     rows = []
     for desc, patches in CANDIDATES:

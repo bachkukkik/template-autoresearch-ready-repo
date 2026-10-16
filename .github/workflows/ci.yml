@@ -12,6 +12,11 @@ on:
   push:
     branches: [main]
 
+# Deny-all default token scope (AC-QC-001): an omitted `permissions:` key inherits
+# the repo default, which may include write scope. Each job elevates to the minimum
+# it needs — in practice `contents: read` for the tree, nothing for the gate.
+permissions: {}
+
 jobs:
   # ═══════════════════════════════════════════════════════════════
   # Tier 1: unit — pure logic, no transport, no services
@@ -20,9 +25,13 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - run: pip install --no-cache-dir -r tests/requirements.txt
@@ -36,9 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [unit]
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - run: pip install --no-cache-dir -r tests/requirements.txt
@@ -89,8 +102,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [integration]
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build and start the service
         run: docker compose up -d --build
@@ -130,8 +147,12 @@ jobs:
     name: Secret Scan
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Assert no live credential files are tracked
         run: |
           set -euo pipefail
@@ -197,6 +218,8 @@ jobs:
     name: Doctrine Integrity
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     env:
       # SINGLE SOURCE for the tracked roots (funnel rules 10-11): every top-level
       # tracked directory and root entry file, plus the nested funnel stage dirs.
@@ -205,9 +228,11 @@ jobs:
       # two lists cannot drift. Keep it a single line of the form
       # `DOCTRINE_ROOTS: "root1 root2 …"` — the test matches it with a regex and
       # tests/requirements.txt carries no YAML parser.
-      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md CLAUDE.md LICENSE .env.example .gitignore .gitattributes docker-compose.yml .agents .claude .codegraph .credentials .github contract data docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries ops scratchpads scripts service tests"
+      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md SECURITY.md CLAUDE.md GEMINI.md LICENSE .env.example .gitignore .gitattributes docker-compose.yml .agents .claude .codegraph .credentials .github contract data docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries ops scratchpads scripts service tests"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Assert every harness entry point is a resolving symlink
         run: |
@@ -215,7 +240,7 @@ jobs:
           fail=0
           # A plain copy forks AGENTS.md silently; a dangling link breaks the
           # harness on a fresh clone while still looking committed.
-          for link in CLAUDE.md .github/copilot-instructions.md .claude/skills .claude/plugins; do
+          for link in CLAUDE.md GEMINI.md .github/copilot-instructions.md .claude/skills .claude/plugins; do
             if [ ! -L "$link" ]; then
               echo "::error file=$link::$link is not a symlink. It must point at the canonical source (git config core.symlinks true on Windows)."
               fail=1
@@ -319,8 +344,12 @@ jobs:
     name: Ops Sync Drift Check
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Resolve the live deploy target
         id: live
@@ -382,3 +411,77 @@ jobs:
             *"DRIFT $rel"*) echo "drift detected and named: $rel" ;;
             *) echo "::error::ops/sync.sh --check failed without naming '$rel' as drifted — the failure is not attributable"; exit 1 ;;
           esac
+
+  # ═══════════════════════════════════════════════════════════════
+  # Guard: workflow static analysis (AC-QC-010). Findings fail CI —
+  # plain (annotations) mode, not SARIF-only, so a finding is fatal
+  # here rather than landing as a silent alert. No extra token scope:
+  # the audit reads .github/workflows/ and nothing else.
+  # ═══════════════════════════════════════════════════════════════
+  zizmor:
+    name: Workflow Static Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install zizmor
+        run: |
+          pipx install zizmor
+          # pipx installs to ~/.local/bin, which is not on the act/runner default
+          # PATH (verified under act 0.2.89: 'zizmor: command not found' without
+          # this export; the setup-python PATH additions do not cover it).
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Audit workflows (fail on findings)
+        run: zizmor --min-severity low .github/workflows/
+
+  # ═══════════════════════════════════════════════════════════════
+  # Aggregate gate (AC-QC-009). A failed upstream job SKIPS its
+  # downstream jobs, and GitHub required-check semantics treat
+  # `skipped` as passing — so a red unit tier would show green
+  # downstream checks. This job always runs and fails unless every
+  # tier reported `success`; it alone carries the required check.
+  # ═══════════════════════════════════════════════════════════════
+  qc-gate:
+    name: Quality Control Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [unit, integration, e2e, secret-scan, doctrine, ops-drift, zizmor]
+    if: always()
+    permissions: {}
+    steps:
+      - name: Fail unless every tier succeeded
+        if: always()
+        env:
+          # Expressions are evaluated before the shell runs, so a shell loop
+          # variable cannot index the `needs` context. Read each job's result
+          # into the environment explicitly, then loop over the pairs.
+          RESULT_UNIT: ${{ needs.unit.result }}
+          RESULT_INTEGRATION: ${{ needs.integration.result }}
+          RESULT_E2E: ${{ needs.e2e.result }}
+          RESULT_SECRET_SCAN: ${{ needs.secret-scan.result }}
+          RESULT_DOCTRINE: ${{ needs.doctrine.result }}
+          RESULT_OPS_DRIFT: ${{ needs.ops-drift.result }}
+          RESULT_ZIZMOR: ${{ needs.zizmor.result }}
+        run: |
+          set -euo pipefail
+          fail=0
+          for pair in \
+            "unit:$RESULT_UNIT" \
+            "integration:$RESULT_INTEGRATION" \
+            "e2e:$RESULT_E2E" \
+            "secret-scan:$RESULT_SECRET_SCAN" \
+            "doctrine:$RESULT_DOCTRINE" \
+            "ops-drift:$RESULT_OPS_DRIFT" \
+            "zizmor:$RESULT_ZIZMOR"; do
+            job="${pair%%:*}"
+            result="${pair#*:}"
+            if [ "$result" != "success" ]; then
+              echo "::error::$job result=$result (skipped ≠ passing — see kb/concepts/qc-test-tiers.md)"
+              fail=1
+            fi
+          done
+          exit "$fail"

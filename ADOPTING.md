@@ -39,7 +39,7 @@ cd <repo>
 git config core.symlinks true
 ```
 
-Symlinks are how this repo keeps **one** instruction file: `CLAUDE.md` and
+Symlinks are how this repo keeps **one** instruction file: `CLAUDE.md`, `GEMINI.md` and
 `.github/copilot-instructions.md` point at `AGENTS.md`, and `.claude/skills` /
 `.claude/plugins` point into `.agents/`. `core.symlinks` defaults to **false on
 Windows**, where the clone then gets *plain text files containing a path* instead of
@@ -66,6 +66,40 @@ runs on a fresh clone, on a deploy host and in CI. It checks, one PASS/FAIL line
 
 Checks 1–3 mirror the `doctrine` job, so a clone that passes here is a clone CI accepts.
 Non-zero exit and a named failure per problem; the first FAIL is the one to fix first.
+
+## Step 2.5 — run one loop in 5 minutes
+
+Prove the autoresearch loop works before reading anything else — no Docker, no
+service, no harness wiring. From the repo root:
+
+```bash
+python3 contract/prepare.py    # -> prepare.py OK — TIME_BUDGET=300s, vocab_size=31
+python3 contract/train.py      # -> the summary block: val_bpb: 3.795531, stop_reason: converged
+```
+
+`prepare.py` is the frozen evaluator (the corpus lives inside it — no external
+cache to download); `train.py` is the one agent-edited artifact and prints the
+summary block ending in `val_bpb` / `stop_reason`. To record a run in the ledger,
+pass `--results results.tsv` — `results.tsv` is gitignored (untracked, per
+upstream) and its columns are `commit` / `val_bpb` / `memory_gb` / `status` /
+`description`, with the note at the top of `contract/program.md` describing each.
+Prefer a throwaway copy? `cp -r contract /tmp/loop && cd /tmp/loop && python3
+prepare.py && python3 train.py` runs the same loop outside the repo.
+
+## Step 2.6 — start the example service (optional)
+
+Only if your project ships the service. It builds and runs **without Docker**:
+
+```bash
+cd service && uv sync --locked
+AUTH_DISABLED=1 uv run --no-sync uvicorn src.main:app --port 8000   # dev only
+```
+
+Or the container path: `docker compose up -d --build` from the repo root, then
+`curl localhost:8000/health` → `{"status":"ok"}`. The service is optional —
+`contract/` (the loop above) is the template's core; delete `service/`,
+`docker-compose.yml` and the `e2e` tier together if you do not ship one
+(Step 3).
 
 ## Step 3 — keep / replace / delete
 
@@ -99,8 +133,17 @@ exist.
 | Hermes | `AGENTS.md` — read **natively** | nothing |
 | Claude Code | `CLAUDE.md` — symlink → `AGENTS.md` | nothing |
 | opencode | `AGENTS.md` — read **natively**; `.agents/skills` is honoured natively too | nothing |
+| Codex CLI | `AGENTS.md` — read **natively**; `.agents/skills` honoured natively | nothing |
+| Cursor | `AGENTS.md` — read **natively** (`.cursor/rules` also read) | nothing |
+| Gemini CLI | `GEMINI.md` — symlink → `AGENTS.md` (its default context file) | nothing |
+| Aider | `AGENTS.md` — read via `aider --read AGENTS.md` (or `.aider.conf.yml` `read:`) | add `read: AGENTS.md` to `.aider.conf.yml` if you want it automatic |
 | DeepSeek / OpenAI-compatible | `AGENTS.md` — read **manually** (no vendor entry file exists to read) | nothing — inline a skill's `SKILL.md` into the prompt when a gate names one |
 | Copilot / anything else | `.github/copilot-instructions.md` — symlink → `AGENTS.md` | nothing |
+
+Entry files are symlinks this repo already ships; only Aider needs one line of your own
+config, because it has no default instruction filename. The pipeline (the `sub1`–`sub4`
+phase blocks) is run by prompting those blocks in order — see `README.md` § *Harness
+Support* for the per-harness row and the doc link.
 
 Reproducing the full capability-by-capability binding — skills, sub-agents, code graph,
 KB synthesis, pipeline invocation — is `AGENTS.md`'s *Harness Adapter*, including its

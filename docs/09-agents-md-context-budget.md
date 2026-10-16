@@ -2,12 +2,16 @@
 
 ## What
 
-`AGENTS.md` is this repo's single agent instruction file — `CLAUDE.md` and
+`AGENTS.md` is this repo's single agent instruction file — `CLAUDE.md`, `GEMINI.md` and
 `.github/copilot-instructions.md` are symlinks to it — and every harness auto-loads it
-into each prompt, silently truncating it above a 20,000-character context-file cap. This
-doc records the trim that brought it from 42,936 to 19,467 chars, which regions were
-preserved byte-for-byte versus compressed, the guard expectations the trim invalidated,
-and the unit tripwire that keeps the file under the cap.
+into each prompt, silently truncating it above its own context-file cap. The budget this
+repo pins is `AGENTS_MD_BUDGET_CHARS` — *the tightest auto-load cap among the harnesses
+this template targets* (currently the Hermes 20,000-char floor; Claude Code, Codex CLI,
+opencode, Cursor and Aider load the file with no such cap, and other harnesses differ), so
+a file under it is under all of them. This doc records the trim that brought `AGENTS.md`
+from 42,936 to 19,482 chars, which regions were preserved byte-for-byte versus compressed,
+the guard expectations the trim invalidated, and the unit tripwire that keeps the file
+under the budget.
 
 ## Why
 
@@ -30,10 +34,13 @@ and the unit tripwire that keeps the file under the cap.
 
 ### The cap
 
-`CONTEXT_FILE_MAX_CHARS = 20_000` in `agent/prompt_builder.py` is the flat floor of a
-dynamic cap — `context_length × 4 × 0.06` characters, clamped to 20,000–500,000. The floor
-applies whenever the model window is not threaded through, which is the common case, so it
-is the number this repo targets. Read off the staged tree:
+The repo budget is `AGENTS_MD_BUDGET_CHARS = 20_000` — *the tightest auto-load cap among
+the harnesses this template targets*. Its value is the flat floor of Hermes's dynamic cap:
+`CONTEXT_FILE_MAX_CHARS = 20_000` in `agent/prompt_builder.py`, the floor of
+`context_length × 4 × 0.06` clamped to 20,000–500,000, which applies whenever the model
+window is not threaded through (the common case), so it is the number this repo targets.
+Claude Code, Codex CLI, opencode, Cursor and Aider load `AGENTS.md` with no such cap, so a
+file under this budget is under all of them. Read off the staged tree:
 
 ```text
 floor 20000 | head 0.7 | tail 0.2
@@ -80,7 +87,7 @@ checking `ls -l` or a byte-counting `wc -m` sees no over-cap number either.
 `/context` source status went `AGENTS.md status=truncated chars=42935` →
 `AGENTS.md status=loaded chars=19466`, with `CLAUDE.md` reported `shadowed` in both
 readings — the symlink families resolve to one loaded copy, so the trim cannot be
-double-counted. The committed file is byte-identical to the measured draft
+double-counted. The committed file is the measured draft (re-measure per run; round-3 values below are the record)
 (sha256 `17a663d392b92c0b80a80cf4164c3d160bb4970c9b47fcde1370e076d7f23248`), so the
 measurement still describes the shipped artifact.
 
@@ -148,16 +155,16 @@ compression. Each was recomputed against the new file rather than loosened:
 ### The tripwire
 
 `tests/unit/test_agents_md_budget.py` (unit tier) carries four guards. `AC-CTX-001` —
-`AGENTS.md` is under the 20,000-character flat cap, in characters and in bytes.
-`AC-CTX-002` — the file fits the host-pinned cap (`AGENTS_MD_CAP_CHARS`); a malformed or
-non-positive pin fails loudly instead of being ignored. `AC-CTX-003` — the file keeps at
-least 500 characters of headroom, so accretion fails the tier *before* the cap is crossed.
-`AC-CTX-004` — the harness entry-point symlinks (`CLAUDE.md`,
-`.github/copilot-instructions.md`) still resolve to `AGENTS.md` and read back the same
-bytes. All four are hermetic: file reads and the stdlib only, no subprocess, no service
-import, no transport. The failure messages name the actual count, the cap, the lossy
-head-70/tail-20 middle truncation and the remedy. This repo keeps no separate test-index
-file, so the tripwire is registered here.
+`AGENTS.md` is under the `AGENTS_MD_BUDGET_CHARS` repo budget (20,000 chars), in characters
+and in bytes. `AC-CTX-002` — the file fits the host-pinned cap (`AGENTS_MD_CAP_CHARS`); a
+malformed or non-positive pin fails loudly instead of being ignored. `AC-CTX-003` — the
+file keeps at least 500 characters of headroom, so accretion fails the tier *before* the
+budget is crossed. `AC-CTX-004` — the harness entry-point symlinks (`CLAUDE.md`,
+`GEMINI.md`, `.github/copilot-instructions.md`) still resolve to `AGENTS.md` and read back
+the same bytes. All four are hermetic: file reads and the stdlib only, no subprocess, no
+service import, no transport. The failure messages name the actual count, the budget, the
+lossy head-70/tail-20 middle truncation and the remedy. This repo keeps no separate
+test-index file, so the tripwire is registered here.
 
 ### Round 2 — the output-medium order (2026-10-03)
 
@@ -183,6 +190,76 @@ the regions `AC-HRN-011` (`/goal` line numbers) and `AC-CG-00x` (`## codegraph` 
 pin — stays byte-identical. The two compressions saved slightly more than §7 cost, for a
 net −3 chars: the file shrank while a new standing order was added. The unit tier grew
 122 → 135 (AC-CTX-002 and AC-CTX-003 are new; the old symlink guard became AC-CTX-004).
+
+### Round 3 — the harness rows and the Gemini CLI entry point (2026-10-16)
+
+The harness-neutrality round added four harnesses the doctrine must serve (Codex CLI,
+Cursor, Gemini CLI, Aider) without re-crossing the budget. One compact row carries them in
+the *Per-harness rows* table — entry `AGENTS.md` native (Gemini CLI reads `GEMINI.md`),
+skills `.agents/skills` or the `README.md` § *Skills* install source, pipeline "prompt the
+phases" — and `GEMINI.md` joins the entry-point symlink fence. Adding four harness bindings
+this way was possible only by compressing three existing regions by more than they cost,
+keeping the `/goal` block byte-identical:
+
+| Region | Change | chars |
+|---|---|---|
+| Per-harness rows | one row added: Codex CLI / Cursor / Gemini CLI / Aider | +208 |
+| Entry-point symlink fence | `GEMINI.md -> AGENTS.md` added | +46 |
+| *Per-harness rows* lead-in | "Two harnesses … their bindings in full:" → "Harnesses not columned above:" | −57 |
+| *Adding a harness* paragraph | `root-cause` / `investigator.md` gate binding kept, tightened | −48 |
+| DeepSeek / OpenAI-compatible row | detail delegated to `README.md` § *Harness Support*; the no-MCP-client and `codegraph explore` tokens kept | −107 |
+| opencode row | pipeline and KB-synthesis cells tightened | −13 |
+| **net** | | **+29** |
+
+The added row cites the **fact**, not the URL: the four install-source URLs and the
+per-harness prose live in `README.md` § *Harness Support*, which the row points at. The
+preservation set is intact — the `/goal` block (lines 150–194) is byte-identical, the two
+symlink families and their members are unchanged, and the `/goal` occurrence lines
+`AC-HRN-011` pins (`[109, 145, 147, 196, 198, 201]`) did not move, because the four
+line-neutral edits above it add and remove the same number of lines.
+
+| Revision | chars | bytes | headroom vs 20,000 | unit tier |
+|---|---|---|---|---|
+| before round 3 | 19,464 | 19,697 | 536 | 173 collected (172 passed, 1 failing on the pre-added README rows) |
+| after round 3 | 19,493 | 19,733 | 507 | 176 passed |
+
+The harness guard grew AC-HRN-015 (every mandated skill resolves to a vendored `SKILL.md`
+or a README install-source URL), AC-HRN-016 (the canonical four are a floor — a fifth
+harness named in both documents pairs, a README-only one is drift) and AC-HRN-017 (the
+Gemini CLI entry point is a symlink to `AGENTS.md`).
+
+### Round 4 — the lifecycle restructure (2026-10-16)
+
+Upstream restructured its pipeline section from the `/goal`-only cluster into a two-stage
+**Lifecycle** (`## Lifecycle — Zero to Deployment (coding-agent entry point)`): a *Development*
+stage (D0–D4) then a *Delivery* stage (`sub1`–`sub4`, plus an opt-in UAT variant that replaces
+`sub4` with `sub4`/`sub5`). It re-fits the same budget mainly because it **dedupes the shared
+footer** — the old section repeated the four footer lines once per sub block (five fenced copies,
+20 lines), while upstream stores them once in a `Shared footer` block and cites it by name
+elsewhere. The restructure still cost more than the dedupe saved, so the surplus came from
+compressing non-load-bearing regions, not from appending:
+
+| Region | Change | chars |
+|---|---|---|
+| Lifecycle section | replaced the `/goal`-only cluster: D0–D4 table, kickoff line, single shared-footer block, `sub1`–`sub4`, opt-in UAT `sub4`/`sub5`, phase table incl. the UAT row, `Report each step's …` | +762 (footer dedupe folded in) |
+| § 6 + Development Commands | the act `-j` hazard stated: `repeated -j flags under act run only the last job (act 0.2.89, verified 2026-10-16)` | +170 |
+| Skill-to-phase mapping | 2-column table → the repo's one-line pointer (`README.md` § *Skills* carries the full table, as after round 2) | −295 |
+| `## codegraph` | routing-rule form; the `AC-CG-001..003` tokens kept, install / CLI detail already in the stage-4 PRD | −495 |
+| Harness Adapter / Security / Lifecycle intro | cosmetic prose unwrapping; no binding, rule or token removed | −161 |
+| **net** | | **−11** |
+
+Two guard expectations the restructure invalidated were recomputed, not relaxed:
+
+| Guard | Old expectation | New expectation |
+|---|---|---|
+| `AC-HRN-011` (`tests/unit/test_harness_neutrality.py`) | `/goal` occurrence lines `[109, 145, 147, 196, 198, 201]` | `[108, 148, 153, 198, 200]` — adapter row, D1 row, kickoff line, and the no-`/goal` heading + its paragraph; still every occurrence outside a fence |
+| `AC-HRN-003` (same file) | the cross-harness-contract paragraph carries `sub1` + `phase table` | the upstream paragraph is reworded to keep `canonical cross-harness contract`, `sub1` and `phase table` in one paragraph |
+
+`tests/unit/test_agents_md_lifecycle.py` (unit tier, **AC-LC-001..003**) is the new layout guard:
+it reads `AGENTS.md` by exact heading — Lifecycle → Development → Delivery — asserts the D0–D4
+rows in order with their skills, the four `subN` blocks plus the opt-in UAT variant in order, and
+that each shared-footer line appears **once**. A rename, a reordered stage or a re-duplicated
+footer fails the tier.
 
 ## Verification
 
@@ -251,10 +328,63 @@ Expected (round 2): 19,464 characters and 19,697 bytes — 536 characters of hea
 the AC-CTX-003 floor of 500; four guards in `test_agents_md_budget.py`; 135 unit tests and
 16 integration tests, `RESULT: PASSED`.
 
+Round 3 (2026-10-16) re-verified after the harness rows and the `GEMINI.md` symlink:
+
+```bash
+python3 -c "t=open('AGENTS.md',encoding='utf-8').read(); print(len(t), len(t.encode()))"
+# -> 19493 19733
+LC_ALL=C.UTF-8 wc -m AGENTS.md
+# -> 19493 AGENTS.md
+python3 -m pytest tests/unit/test_agents_md_budget.py -q
+# -> 4 passed
+python3 -m pytest tests/unit/test_harness_neutrality.py -q
+# -> 17 passed
+python3 -m pytest tests/unit/test_harness_neutrality.py tests/unit/test_agents_md_budget.py \
+  tests/unit/test_docs_template.py tests/unit/test_codegraph_adoption.py \
+  tests/unit/test_funnel_structure.py -q
+# -> 44 passed
+bash scripts/verify-clone.sh
+# -> PASS  5 harness entry point(s) are resolving symlinks
+#    RESULT: PASSED — 35 check(s) passed
+```
+
+The `/goal` block is byte-identical to the pre-edit snapshot (lines 150–194, 2032 chars,
+sha256 `c08ef37f…`), and its `/goal` occurrence lines did not move.
+
+Expected (round 3): 19,493 characters and 19,733 bytes — 507 characters of headroom, above
+the AC-CTX-003 floor of 500; four budget guards green; the harness guard's 17 tests
+(AC-HRN-001..017) green; `verify-clone.sh` reports 5 harness entry-point symlinks.
+
+Round 4 (2026-10-16) re-verified after the lifecycle restructure:
+
+```bash
+python3 -c "t=open('AGENTS.md',encoding='utf-8').read(); print(len(t), len(t.encode()))"
+# -> 19482 19774
+LC_ALL=C.UTF-8 wc -m AGENTS.md
+# -> 19482 AGENTS.md
+python3 -m pytest tests/unit/test_agents_md_budget.py -q
+# -> 4 passed
+python3 -m pytest tests/unit/test_agents_md_lifecycle.py -q
+# -> 3 passed
+python3 -m pytest tests/unit/test_harness_neutrality.py -q
+# -> 17 passed
+python3 -m pytest tests/unit -q
+# -> 190 passed   (under pytest 9.1.1)
+bash scripts/verify-clone.sh
+# -> PASS  5 harness entry point(s) are resolving symlinks
+#    RESULT: PASSED — 35 check(s) passed
+```
+
+Expected (round 4): 19,482 characters and 19,774 bytes — 518 characters of headroom, above the
+AC-CTX-003 floor of 500; four budget guards green; the new layout guard
+`test_agents_md_lifecycle.py` (AC-LC-001..003) green; the harness guard's 17 tests
+(AC-HRN-001..017) green with the recomputed `AC-HRN-011` line list; the full unit tier green
+under **pytest 9.1.1** (190 tests); `verify-clone.sh` reports 5 harness entry-point symlinks.
+
 ## What Works
 
-- `AGENTS.md` is under the cap in both readings — 19,467 chars / 19,691 bytes against a
-  20,000-char cap, with 533 chars (2.7%) of headroom
+- `AGENTS.md` is under the budget in both readings — 19,482 chars / 19,774 bytes against the
+  20,000-char `AGENTS_MD_BUDGET_CHARS` repo budget, with 518 chars (2.6%) of headroom
 - The real prompt builder delivers the file verbatim and queues **zero** `TRUNCATED`
   warnings, down from one at 42,936 chars; delivered chars went **18,372 → 19,577** while
   the file got 23,469 chars smaller, because the whole file now arrives instead of a
@@ -273,6 +403,15 @@ the AC-CTX-003 floor of 500; four guards in `test_agents_md_budget.py`; 135 unit
   still fail on a removed claim
 - `AC-CTX-001`/`AC-CTX-002` make a future regression loud instead of silent — the cap
   breach and a forked entry-point symlink both fail the unit tier
+- The *Per-harness rows* table now binds Codex CLI / Cursor / Gemini CLI / Aider and the
+  entry-point fence carries `GEMINI.md -> AGENTS.md`, so the four added harness bindings cost
+  +29 net chars — the row cites the fact and delegates the URLs to `README.md` § *Harness
+  Support* (round 3, 2026-10-16)
+- The pipeline section is now the upstream two-stage **Lifecycle** (D0–D4 Development, then
+  `sub1`–`sub4` Delivery with an opt-in UAT `sub4`/`sub5` variant), and it fit by **deduping the
+  shared footer** — 20 duplicated lines (five fenced copies) down to the four in one `Shared
+  footer` block — with the surplus (−11 net chars) taken from the mapping table, `## codegraph`
+  and cosmetic Harness Adapter prose, never from a rule, binding or token (round 4, 2026-10-16)
 
 ## What Fails
 
@@ -286,16 +425,21 @@ the AC-CTX-003 floor of 500; four guards in `test_agents_md_budget.py`; 135 unit
   `945bac5a…`; *Harness Adapter* `91584049…`; `/goal` `d1a0d8a9…`; *Standing Orders*
   `4496ed57…`; *Repository Structure* `96705ab9…`; *Development Commands* `c99d1374…`;
   *Security* `62429f04…`; *codegraph* `0ee75c2d…`) are an audit reference, not an
-  assertion — a later reflow of a contract region passes the tests that exist.
-- **The cap is host-dependent.** The tripwire asserts the 20,000-char flat floor. A host
-  profile that pins a *lower* `context_file_max_chars` truncates a file this test passes —
-  the guard reads the repo, not host state.
+  assertion — a later reflow of a contract region passes the tests that exist. The
+  *Harness Adapter* entry predates round 3's harness rows and no longer matches; round 4 also
+  reflowed *Harness Adapter*, *Security*, *codegraph* and the `/goal`-cluster successor (the
+  `## Lifecycle` section), so recompute any of them before relying on it.
+- **The budget is a repo budget, and the cap is host-dependent.** `AGENTS_MD_BUDGET_CHARS`
+  is the tightest auto-load cap among the harnesses this template targets (currently the
+  Hermes 20,000-char floor; others differ). The tripwire reads the repo, not host state, so
+  a host profile that pins a *lower* `context_file_max_chars` truncates a file this test
+  passes.
 - **A bare `wc -m` is a byte count on this host.** `LC_CTYPE=C` is set, so `wc -m AGENTS.md`
   prints 19,691 — the same output as `wc -c` — while the file carries 115 non-ASCII
   characters and the two readings differ by 224. A char check that reads a bare `wc -m` is
   really a byte check.
-- **Headroom is thin — 533 chars (2.7% of the cap).** That is roughly 15 lines of prose. A
-  few appended Standing Orders re-cross the cap; the tripwire reports that, it does not
+- **Headroom is thin — 518 chars (2.6% of the budget).** That is roughly 15 lines of prose.
+  A few appended Standing Orders re-cross the budget; the tripwire reports that, it does not
   prevent it.
 
 ## Resolution
@@ -311,9 +455,9 @@ the AC-CTX-003 floor of 500; four guards in `test_agents_md_budget.py`; 135 unit
   tests/unit/test_funnel_structure.py -q` — plus `bash scripts/verify-clone.sh` for the
   symlink and tracked-path bindings. A future author who wants the byte half adds a
   snapshot-hash test; it is not claimed here.
-- **Host-dependent cap:** read the effective value off the live host before quoting a
-  number — the `CONTEXT_FILE_MAX_CHARS` probe above — and pin `context_file_max_chars`
-  explicitly where the repo must not depend on the model window.
+- **A repo budget over a host-dependent cap:** read the effective value off the live host
+  before quoting a number — the `CONTEXT_FILE_MAX_CHARS` probe above — and pin
+  `context_file_max_chars` explicitly where the repo must not depend on the model window.
 - **`wc -m` counts bytes under `LC_CTYPE=C`:** run it as `LC_ALL=C.UTF-8 wc -m`, or measure
   in Python with `len(text)` — which is what the tripwire does. Never trust a bare `wc -m`
   on a host whose locale is not UTF-8.
@@ -324,13 +468,21 @@ the AC-CTX-003 floor of 500; four guards in `test_agents_md_budget.py`; 135 unit
 ## Verdict
 
 **partial** — The trim verifies end to end: the file reaches the prompt byte-for-byte
-under the cap (19,467 chars / 19,691 bytes at round 1) with zero truncation warnings, the
+under the budget (19,493 chars / 19,733 bytes at round 3) with zero truncation warnings, the
 delivered block grew from 18,372 to 19,577 chars, every tightened region retains its rules
-and resolvable pointers, and a hermetic unit tripwire now fails loudly on a cap breach, a
+and resolvable pointers, and a hermetic unit tripwire now fails loudly on a budget breach, a
 malformed host pin, a thin headroom margin and a forked entry-point symlink. The open
 limits are that this repo cannot preserve its contract regions byte-for-byte (19,791 chars
 of preserve-set against a 19,500-char budget), that nothing guards those regions
 byte-for-byte, and that the headroom margin is thin for a file that grows by accretion.
 Round 2 (2026-10-03) added Standing Order 7 and preserved the margin — 19,464 chars /
 19,697 bytes, 536 chars of headroom, unit tier 135 passed — by compressing two
-non-load-bearing regions rather than appending.
+non-load-bearing regions rather than appending. Round 3 (2026-10-16) added four harness rows
+(Codex CLI / Cursor / Gemini CLI / Aider) and the `GEMINI.md` symlink — 19,493 chars /
+19,733 bytes, 507 chars of headroom, harness guard 17 passed — by compressing existing rows
+rather than appending, keeping the `/goal` block byte-identical. Round 4 (2026-10-16) adopted the upstream
+Lifecycle section (Development D0–D4 + Delivery sub1–sub4 with the opt-in UAT sub4/sub5
+variant; shared footer stated once instead of 4×) — 19,482 chars / 19,774 bytes, 518 chars
+of headroom, `AC-LC-001..003` green — funded by the footer dedupe plus the round-2
+compressions re-applied (skill-to-phase table → pointer, codegraph section → routing
+form); the byte-identity preserve-set was superseded by the upstream layout itself.

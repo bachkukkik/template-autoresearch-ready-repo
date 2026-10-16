@@ -1,10 +1,10 @@
 ---
 title: Evaluator Legitimacy
 created: 2026-09-04
-updated: 2026-09-26
+updated: 2026-10-16
 type: concept
 tags: [autoresearch, research-method, decision]
-sources: [raw/articles/autoresearch-template-research-conclusions.md, raw/articles/2026-09-26-autoresearch-methodology-registration.md]
+sources: [raw/articles/autoresearch-template-research-conclusions.md, raw/articles/2026-09-26-autoresearch-methodology-registration.md, raw/articles/2026-10-16-autoresearch-oss-landscape.md]
 confidence: medium
 ---
 
@@ -42,4 +42,13 @@ failure: val_bpb −55% while output collapsed into repetition; placeholder
 cost series (constant 1.0) read as data; saturated D (99.92–100.00) read as
 progress.
 
-Related: [[autoresearch-contract]] · [[val-bpb-metric]] · [[autonomous-research-systems]] · [[better-cheaper-faster-metrics]] · [[adversarial-optimization-layer]]
+## Determinism and the noise floor
+
+The judge must be deterministic — an LLM judge reintroduces the very variance
+the loop engineered out ([[deterministic-keep-gate]]). But a deterministic gate
+is only legitimate if it can tell a real delta from noise: the OSS study's
+recurring answer is a **noise floor** (autokernel's explicit 1% rule; MAD-based
+confidence in davebcn87 and Bilevel; a repeat-stability gate in autoguardrails).
+Without one, a strict-improvement loop chases run-to-run jitter.
+
+Related: [[autoresearch-contract]] · [[val-bpb-metric]] · [[autonomous-research-systems]] · [[better-cheaper-faster-metrics]] · [[adversarial-optimization-layer]] · [[deterministic-keep-gate]]

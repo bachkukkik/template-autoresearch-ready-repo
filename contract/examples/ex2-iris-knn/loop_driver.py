@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Faithful autoresearch loop driver for ex2-iris-knn.
+"""SCRIPTED REFERENCE RUN driver for ex2-iris-knn.
+
+This is a scripted reference run: a fixed candidate list (`CANDIDATES`) replayed
+by a deterministic driver. A live agent would generate candidates itself from the
+run log; nothing here claims an LLM chose them.
 
 Same pattern as ex1-music-abc/loop_driver.py, with the comparison direction
 inverted: the metric here is ACCURACY (higher is better), so a candidate is
@@ -7,8 +11,7 @@ kept only on a STRICT INCREASE (`acc > best`), otherwise
 `git reset --hard HEAD~1`.
 
 Each candidate: apply edit -> git commit -> run -> parse `^accuracy:` from
-run.log -> append results.tsv -> keep or reset. The edits below are the
-mutation operator's choices (LLM-driven), applied mechanically.
+run.log -> append results.tsv -> keep or reset.
 
 Patch syntax: (regex, replacement), applied with re.subn(count=1, flags=M) so a
 candidate stays valid regardless of whether the previous candidates were kept
@@ -16,13 +19,26 @@ or reverted. A miss (n != 1) aborts the driver.
 
 Contract guard: asserts train.evaluate_accuracy IS prepare.evaluate_accuracy
 before running anything — `prepare.py` is frozen, the agent never redefines it.
+
+Reproduce the vendored ledger in a scratch clone, starting from the tracked
+baseline (results.tsv stays untracked / gitignored):
+
+    cp -r contract/examples/ex2-iris-knn /tmp/ex2 && cd /tmp/ex2
+    git init -q && git add -A && git commit -qm "contract: baseline"
+    python3 loop_driver.py --from-baseline
+
+Commit hashes differ on a re-run; compare the metric / status / description
+columns only.
 """
+import os
 import re
+import shutil
 import subprocess
 import sys
 import time
 
 HEADER = "commit\taccuracy\tseconds\tstatus\tdescription"
+BASELINE = "train_baseline.py"
 
 # K, METRIC, NORMALIZE, WEIGHTED are the four knobs at the top of train.py.
 # Each candidate chains from the CURRENT kept state; after a discard the driver
@@ -42,6 +58,18 @@ CANDIDATES = [
 
 def sh(*args, **kw):
     return subprocess.run(args, capture_output=True, text=True, **kw)
+
+
+def reset_to_baseline():
+    """--from-baseline: copy the tracked baseline over train.py, then commit it."""
+    if not os.path.exists(BASELINE):
+        print(f"--from-baseline: {BASELINE} not found beside {__file__}")
+        sys.exit(1)
+    shutil.copyfile(BASELINE, "train.py")
+    sh("git", "add", "train.py")
+    sh("git", "commit", "-qm", "contract: baseline train.py (reconstructed)")
+    head = sh("git", "rev-parse", "--short", "HEAD").stdout.strip()
+    print(f"--from-baseline: train.py <- {BASELINE} (HEAD {head})")
 
 
 def assert_frozen_evaluator():
@@ -65,6 +93,8 @@ def parse(log, key):
 
 
 def main():
+    if "--from-baseline" in sys.argv[1:]:
+        reset_to_baseline()
     assert_frozen_evaluator()
     # results.tsv is untracked (gitignored) and re-initialized by the driver.
     with open("results.tsv", "w") as f:

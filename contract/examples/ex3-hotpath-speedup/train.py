@@ -1,13 +1,22 @@
 """train.py — the ONLY agent-edited file (ex3-hotpath-speedup).
 
+This tracked file is the FINAL kept state of the worked run (the best candidate
+the loop kept). The BASELINE it started from is `train_baseline.py`;
+`loop_driver.py --from-baseline` replays the scripted candidate list from there.
+
 Contract: implement ``run(data) -> dict`` exactly as specified in prepare.py.
 Gate: the frozen evaluator compares ``run(data)`` against its frozen reference
 result — exact dict equality — and runs the same check on a held-out workload.
 Speed only counts when the gate passes.
 
-Baseline (as-shipped): deliberately suboptimal but correct — a per-character
-cleanup loop, one full token pass per starting letter, a per-offset occurrence
-scan, character-by-character palindrome tests, and a duplicated tokenize.
+Kept optimizations relative to the baseline: tokenize once with ``re.findall``,
+count with ``Counter``, project initials with ``map(itemgetter(0))``, locate the
+rare word with one C-level substring scan over a single lowercase copy, take
+``len(data)`` for ``total_chars``, and derive ``longest_word`` /
+``palindrome_count`` from the unique-word counts. The baseline's per-character
+cleanup, per-letter passes and per-offset scan are what those candidates
+replaced; the naive helpers they orphaned are kept here because the ``simplify``
+candidate that would delete them was discarded on timing (see results.tsv).
 """
 import re
 import sys
@@ -81,8 +90,8 @@ def run(data):
     counts = Counter(words)
     rare = rare_positions(low)
     return {
-        "total_chars": len(data),   # naive per-character loop
-        "word_count": len(words),      # tokenize a second time
+        "total_chars": len(data),      # len() is O(1); the baseline counted chars
+        "word_count": len(words),      # reuse the token list; the baseline re-split
         "top50": top_n(counts, 50),
         "by_initial": by_initial(words),
         "longest_word": min(counts, key=lambda w: (-len(w), w)),

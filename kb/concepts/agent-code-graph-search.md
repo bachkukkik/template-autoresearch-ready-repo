@@ -15,7 +15,7 @@ The job: let a coding agent answer structural questions ("how does X reach Y?",
 calls instead of many Read/Grep turns. The 2026 tool set splits along two axes:
 
 - **Surface** — MCP-native (agent tool calls; e.g. [[codegraph]]) vs
-  skill/CLI-first (agent invokes slash commands or CLI; MCP is an add-on; e.g.
+  skill/CLI-first (agent invokes its built-in commands or CLI; MCP is an add-on; e.g.
   graphify).
 - **Artifact scope** — code-only structural graphs vs knowledge graphs that also
   index docs/SQL schemas/PDFs.

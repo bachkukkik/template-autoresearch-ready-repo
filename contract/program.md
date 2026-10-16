@@ -33,9 +33,21 @@ Once you get confirmation, kick off the experimentation.
 
 ## Experimentation
 
-Each experiment runs for a **fixed time budget** defined by `prepare.TIME_BUDGET`
-(default 300s = 5 minutes of wall-clock training time, excluding startup).
-Launch it simply as: `python3 train.py`.
+Each experiment runs within a **fixed time budget** defined by
+`prepare.TIME_BUDGET` (default 300s = 5 minutes of wall-clock training time,
+excluding startup). Launch it as:
+
+```bash
+timeout 600 python3 train.py
+```
+
+`TIME_BUDGET` is a **ceiling, not a target**: `train.py` checks the deadline
+every training step and stops at it (`stop_reason: budget`), or earlier if the
+fit converges (`stop_reason: converged`). The shipped toy baseline converges in
+milliseconds, so a normal run reports `converged` — the budget still bounds any
+candidate you write. Because the ceiling is fixed, two candidates are only
+comparable at **iso-compute** (an equal ceiling); record the platform and
+`TIME_BUDGET` with every claim.
 
 **What you CAN do:**
 - Modify `train.py` — this is the only file you edit. Everything is fair game:
@@ -62,14 +74,15 @@ the code runs without crashing and finishes within the time budget.
 **VRAM** is a soft constraint. Some increase is acceptable for meaningful
 val_bpb gains, but it should not blow up dramatically.
 
-**Simplicity criterion**: All else being equal, simpler is better. A small
-improvement that adds ugly complexity is not worth it. Conversely, removing
-something and getting equal or better results is a great outcome — that's a
-simplification win. When evaluating whether to keep a change, weigh the
-complexity cost against the improvement magnitude. A 0.001 val_bpb improvement
-that adds 20 lines of hacky code? Probably not worth it. A 0.001 val_bpb
-improvement from deleting code? Definitely keep. An improvement of ~0 but much
-simpler code? Keep.
+**Simplicity criterion**: All else being equal, simpler is better. There is a
+**noise floor**: a val_bpb move inside `prepare.NOISE_FLOOR` (0.1% relative) is
+not signal. The rule the evaluator applies (`prepare.decide`): keep on a strict
+improvement beyond the noise floor; inside the noise floor keep **only if the
+artifact also shrinks** (a simplification); otherwise discard. A small
+improvement that adds ugly complexity is not worth it — a 0.001 val_bpb
+improvement that adds 20 lines of hacky code? Probably not worth it. A 0.001
+val_bpb improvement from deleting code? Definitely keep. An improvement of ~0
+but much simpler code? Keep.
 
 **The first run**: your very first run should always be to establish the
 baseline, so you will run the training script as is.
@@ -85,6 +98,7 @@ val_bpb:          1.234567
 training_seconds: 0.1
 total_seconds:    0.1
 peak_vram_mb:     0.0
+stop_reason:      converged
 num_steps:        1234
 num_params_M:     0.001
 ---
@@ -113,19 +127,21 @@ commit	val_bpb	memory_gb	status	description
 
 1. git commit hash (short, 7 chars)
 2. val_bpb achieved (e.g. 1.234567) — use 0.000000 for crashes
-3. peak memory in GB, round to .1f (e.g. 12.3 — divide peak_vram_mb by 1024) —
-   use 0.0 for crashes
-4. status: `keep`, `discard`, or `crash`
-5. short text description of what this experiment tried
+3. peak **host RSS** in GB, 3 decimals (measured via `resource.getrusage`; the
+   printed `peak_vram_mb` stays 0.0 on the CPU-only demo) — use 0.000 for crashes
+4. status: `keep`, `discard`, or `crash`. On a `--results` run `train.py`
+   computes this with `prepare.decide` against the best `keep` row already in
+   the ledger — the evaluator decides; you never self-award a keep.
+5. short text description of what this experiment tried (pass `--description`)
 
 Example:
 
 ```
 commit	val_bpb	memory_gb	status	description
-a1b2c3d	1.234567	0.0	keep	baseline
-b2c3d4e	1.220000	0.0	keep	increase LR to 0.04
-c3d4e5f	1.240000	0.0	discard	switch to GeLU activation
-d4e5f6g	0.000000	0.0	crash	double model width (OOM)
+a1b2c3d	1.234567	0.012	keep	baseline
+b2c3d4e	1.220000	0.013	keep	increase LR to 0.04
+c3d4e5f	1.240000	0.012	discard	switch to GeLU activation
+d4e5f6g	0.000000	0.000	crash	double model width (OOM)
 ```
 
 NOTE: do not commit the `results.tsv` file — leave it untracked by git.
@@ -145,22 +161,24 @@ LOOP FOREVER:
 6. If the grep output is empty, the run crashed. Run `tail -n 50 run.log` to
    read the Python stack trace and attempt a fix. If you can't get things to
    work after more than a few attempts, give up.
-7. The row is appended to the tsv automatically by `train.py --results` on
-   success — do NOT record the results again here. Record manually only when
-   the script did NOT append a row (crash rows, or runs that failed before
-   logging). (NOTE: do not commit the results.tsv file, leave it untracked by
-   git)
-8. If val_bpb improved (lower), you "advance" the branch, keeping the git commit
-9. If val_bpb is equal or worse, you git reset back to where you started
+7. `train.py --results results.tsv` appends the row with the status
+   `prepare.decide` returns (keep/discard) against the incumbent — do NOT
+   hand-edit a success row. Record a row by hand only when the script did NOT
+   append one (a crash, or a run killed by `timeout`) — log it as `crash`.
+   After each experiment run `python3 prepare.py --check-ledger results.tsv` and
+   fix any reported violation before continuing. (NOTE: do not commit the
+   results.tsv file, leave it untracked by git)
+8. If the row's status is `keep`, you "advance" the branch, keeping the git commit
+9. If the row's status is `discard`, you git reset back to where you started
 
 The idea is that you are a completely autonomous researcher trying things out.
 If they work, keep. If they don't, discard. And you're advancing the branch so
 that you can iterate. If you feel like you're getting stuck in some way, you can
 rewind but you should probably do this very very sparingly (if ever).
 
-**Timeout**: Each experiment should take ~`TIME_BUDGET` (~5 minutes) total (+ a
-few seconds for startup and eval overhead). If a run exceeds ~10 minutes, kill
-it and treat it as a failure (discard and revert).
+**Timeout**: `TIME_BUDGET` bounds a candidate in-loop, and the `timeout 600`
+prefix is the outer **hard kill** for a wedged or non-converging candidate. A
+run killed by `timeout` counts as a `crash` — log it as `crash` and move on.
 
 **Crashes**: If a run crashes (OOM, or a bug, or etc.), use your judgment: If
 it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and
@@ -180,6 +198,26 @@ As an example use case, a user might leave you running while they sleep. If each
 experiment takes you ~5 minutes then you can run approx 12/hour, for a total of
 about 100 over the duration of the average human sleep. The user then wakes up
 to experimental results, all completed by you while they slept!
+
+## Porting to any X
+
+The contract is domain-agnostic. Any X with a scalar metric, a known direction,
+and an automated evaluation ports by changing only the **data side** of
+`prepare.py` (corpus constants + `tokenizer()` + `dataloader()`) and these
+notes. The four invariants never change:
+
+1. **One editable artifact** — exactly one file is the agent's (`train.py`);
+   everything else is read-only.
+2. **The evaluator owns the measurement** — `prepare.py` holds the metric
+   (`evaluate_bpb`), the eval inputs, `DIRECTION` (`lower`/`higher`),
+   `NOISE_FLOOR`, and `TIME_BUDGET`; `train.py` imports the metric and never
+   redefines it.
+3. **An append-only ledger, checked** — `results.tsv` is append-only, and
+   `python3 prepare.py --check-ledger results.tsv` validates the header,
+   columns, commit, status vocabulary, baseline-first and keep-consistency rules.
+4. **The metric is read from the run log, never self-reported** —
+   `grep "^val_bpb:" run.log` — and **T2 timing fields never gate** (a wall-clock
+   delta within ~10% is jitter, not signal).
 
 ## Caveats
 

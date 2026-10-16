@@ -1,10 +1,14 @@
 """train.py — the ONLY agent-edited file (iris-knn example).
 
-Baseline: 1-nearest-neighbour classifier, raw Euclidean distance, no
-normalization. Every candidate edit changes ONLY this file; `evaluate_accuracy`
-is imported from prepare (never redefined).
+This tracked file is the FINAL kept state of the worked run: 7-nearest-neighbour
+Euclidean, raw features, plain (unweighted) vote. The BASELINE it started from
+is `train_baseline.py` (1-NN, same distance and features);
+`loop_driver.py --from-baseline` replays the scripted candidate list from there.
 
-Knobs (the mutation operator edits exactly these four lines):
+Every candidate edit changes ONLY this file; `evaluate_accuracy` is imported
+from prepare (never redefined).
+
+Knobs (each candidate edits exactly these four lines):
     K         — number of neighbours in the vote
     METRIC    — "euclidean" | "manhattan"
     NORMALIZE — z-score standardize features (per-feature mean/std of TRAIN)
