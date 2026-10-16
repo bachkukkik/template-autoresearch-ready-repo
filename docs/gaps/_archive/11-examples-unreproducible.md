@@ -1,7 +1,7 @@
 # 11 — Worked examples cannot regenerate their ledgers and over-state their provenance
 
 **Layers:** prd ↔ code
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-10-16
 
 ## Observation

@@ -1,7 +1,7 @@
 # 08 — Seven of eight mandated skills cannot be resolved outside a Hermes host
 
 **Layers:** prd ↔ code
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-10-16
 
 ## Observation
