@@ -1,7 +1,7 @@
 # 02 — Contract claims a budget, a keep/discard decision and an immutable evaluator that no code enforces
 
 **Layers:** prd ↔ code
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-10-16
 
 ## Observation

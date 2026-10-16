@@ -1,7 +1,7 @@
 # 16 — Foundation-template quality controls never adopted
 
 **Layers:** prd ↔ code
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-10-16
 
 ## Observation

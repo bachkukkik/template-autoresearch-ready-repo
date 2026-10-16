@@ -93,10 +93,7 @@ Rules:
 
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
-| 02 | [Contract claims unenforced](02-contract-claims-unenforced.md) | prd ↔ code | open | 2026-10-16 |
-| 08 | [Mandated skills unresolvable](08-mandated-skills-unresolvable.md) | prd ↔ code | open | 2026-10-16 |
-| 11 | [Examples unreproducible](11-examples-unreproducible.md) | prd ↔ code | open | 2026-10-16 |
-| 16 | [Quality controls not adopted](16-quality-controls-not-adopted.md) | prd ↔ code | open | 2026-10-16 |
+| — | *no open gaps* | — | — | — |
 
 Resolved gaps leave this directory but stay in the repo, their path structure preserved
 under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a tombstone there instead of
@@ -113,6 +110,12 @@ returning its `NN` to circulation (rule 6):
   `kb/_archive/raw/articles/`, layer-2 re-synthesis a no-op): `03-kb-raw-scratchpad-citations.md`.
 - **Archived 2026-10-16** — `07-codegraph-sync-affected-untested.md`: PRD-07 SC4/SC5
   claimed a tracking gap that did not exist; closed to GitHub issue #29.
+- **Archived 2026-10-16 (post-merge)** — resolutions landed in PR #31 (squash-merged as
+  `639166b`): `02-contract-claims-unenforced.md` (contract enforcement, PRD 02 SC7–SC11),
+  `08-mandated-skills-unresolvable.md` (vendored skills + install sources, PRD 08 SC9–SC12),
+  `11-examples-unreproducible.md` (baseline replay + honest provenance, PRD 11),
+  `16-quality-controls-not-adopted.md` (quality controls ported, PRD 16; the `main`
+  ruleset verified via `gh api …/rulesets` post-merge, AC-QC-011).
 - **Withdrawn tombstones** — `02-contract-files-missing.md`,
   `03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
   `05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`. These
