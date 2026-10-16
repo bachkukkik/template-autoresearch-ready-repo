@@ -73,7 +73,7 @@ credentials anywhere in the wiring.
 - **SC4** — **`codegraph sync` before trusting a fresh graph.** A session whose
   working tree has moved past the index runs `codegraph sync` (the resident file
   watcher otherwise auto-syncs); `codegraph status` reports pending changes and
-  points at the command. _Verify:_ (no test yet — tracked as a gap); instruction
+  points at the command. _Verify:_ (no test yet — tracked as issue [#29](https://github.com/bachkukkik/template-autoresearch-ready-repo/issues/29)); instruction
   surface `AGENTS.md` `## codegraph`; `codegraph status` / `codegraph sync` output.
 
 - **SC5** — **Test selection via `codegraph affected`.** `git diff --name-only |
@@ -95,8 +95,8 @@ credentials anywhere in the wiring.
 | MCP surface exposes exactly one tool (`codegraph_explore`) — documented surface | `tests/unit/test_codegraph_adoption.py` | AC-CG-001 |
 | CLI twins answer without an MCP client; `CODEGRAPH_MCP_TOOLS` re-enables hidden tools — documented fallback | `tests/unit/test_codegraph_adoption.py` | AC-CG-002 |
 | `.codegraph/` contents gitignored; only `.gitkeep` tracked — placeholder + `.gitignore` pair | `tests/unit/test_codegraph_adoption.py` | AC-CG-004 |
-| `codegraph sync` brings a stale index current | — (no test yet — tracked as a gap) | — |
-| `codegraph affected --stdin` maps changed files to test files | — (no test yet — tracked as a gap) | — |
+| `codegraph sync` brings a stale index current | — (no test yet — tracked as issue [#29](https://github.com/bachkukkik/template-autoresearch-ready-repo/issues/29)) | — |
+| `codegraph affected --stdin` maps changed files to test files | — (no test yet — tracked as issue [#29](https://github.com/bachkukkik/template-autoresearch-ready-repo/issues/29)) | — |
 | `DO_NOT_TRACK=1` set on scripted/CI runs — stated for every scripted run | `tests/unit/test_codegraph_adoption.py` | AC-CG-003 |
 | Stage-3 grounding present (3 layer-2 kb pages + the raw article) | `tests/unit/test_codegraph_adoption.py` | AC-CG-005 |
 | Stage-4/stage-6 doc pair present and listed in `PRD.md` | `tests/unit/test_codegraph_adoption.py` | AC-CG-006 |
@@ -107,8 +107,8 @@ credentials anywhere in the wiring.
   `AGENTS.md` `## codegraph`, the `.codegraph/.gitkeep` placeholder, `.gitignore`
   lines 88–93 and the three `kb/` pages are the footprint, and
   `tests/unit/test_codegraph_adoption.py` (AC-CG-001..006) now asserts that
-  footprint directly. Two SCs still carry `_Verify:_ (no test yet — tracked as a
-  gap)` — **SC4** (`codegraph sync`) and **SC5** (`codegraph affected`) describe
+  footprint directly. Two SCs still carry `_Verify:_ (no test yet — tracked as issue
+  #29)` — **SC4** (`codegraph sync`) and **SC5** (`codegraph affected`) describe
   live tool behaviour the unit tier cannot reach hermetically (the tool is Node and
   not guaranteed on a CI runner), and `codegraph affected` currently maps nothing
   on this repo's layout. SC1/SC2/SC3/SC6 point at test IDs that assert the

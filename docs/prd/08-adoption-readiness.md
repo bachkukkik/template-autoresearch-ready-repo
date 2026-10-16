@@ -7,6 +7,7 @@
 > *enforced*.
 > Verified reality: [docs/08-adoption-readiness.md](../08-adoption-readiness.md).
 > Grounded in: [document-funnel-doctrine](../../kb/concepts/document-funnel-doctrine.md),
+> [harness-portability](../../kb/concepts/harness-portability.md),
 > [template-agentic-ready-repo](../../kb/entities/template-agentic-ready-repo.md),
 > [autoresearch-template-research-conclusions](../../kb/raw/articles/autoresearch-template-research-conclusions.md).
 >
@@ -130,6 +131,40 @@ jobs.
   `doctrine` job in `.github/workflows/ci.yml`, which enforces the same invariants on
   every PR.
 
+- **SC9** — **Every mandated skill is reachable from this repo.** Each
+  skill named in `AGENTS.md` §1 resolves either to a `SKILL.md` that travels with the
+  repo (`.agents/skills/<name>/SKILL.md`, the two gates `llm-wiki` and
+  `coding-agents-docs-guideline` vendored per their upstream licences with a provenance
+  header) or to a row in `README.md` § *Skills* carrying an `https://` install source —
+  so a clone can satisfy the gates without network archaeology.
+  _Verify:_ `tests/unit/test_harness_neutrality.py` (AC-HRN-015, with a negative control).
+
+- **SC10** — **The canonical harness set is a MINIMUM, and the
+  README ↔ AGENTS.md pairing is kept.** `AGENTS.md` and `README.md` each name at least
+  Hermes, Claude Code, opencode and DeepSeek/OpenAI-compatible plus a generic fallback; a
+  harness row added to `README.md` § *Harness Support* must also be named in the
+  `AGENTS.md` adapter, so the pair cannot drift — and adding a harness (Codex CLI, Cursor,
+  Gemini CLI, Aider) no longer requires editing a test regex.
+  _Verify:_ `tests/unit/test_harness_neutrality.py` (AC-HRN-004 re-expressed as a pairing
+  check; AC-HRN-016, with a synthetic-fifth-harness control).
+
+- **SC11** — **The Gemini CLI entry point is a symlink, not a copy.**
+  `GEMINI.md` resolves to `AGENTS.md` (Gemini CLI reads `GEMINI.md` by default), and is
+  registered wherever a tracked root/entry point is enumerated.
+  _Verify:_ `tests/unit/test_harness_neutrality.py` (AC-HRN-017) +
+  `tests/unit/test_agents_md_budget.py` (AC-CTX-004) +
+  `tests/unit/test_funnel_structure.py` (AC-FUN-004) + the `doctrine` job's symlink step
+  in `.github/workflows/ci.yml`.
+
+- **SC12** — **The context budget is a REPO budget, not a universal law.**
+  `tests/unit/test_agents_md_budget.py` and `docs/09-agents-md-context-budget.md` state the
+  ~20,000-char ceiling as *the tightest auto-load cap among the harnesses this template
+  targets* (currently the Hermes flat floor; Claude Code / Codex CLI / opencode load
+  `AGENTS.md` uncapped), keeping the `AGENTS_MD_CAP_CHARS` host-pin override, the 500-char
+  headroom floor and the AC-CTX ids intact; `AGENTS.md` itself stays under the budget.
+  _Verify:_ `tests/unit/test_agents_md_budget.py` (AC-CTX-001..004) with
+  `AGENTS_MD_BUDGET_CHARS = 20_000`.
+
 ## Test Mapping
 
 | Expected behavior | Test file | Test IDs |
@@ -142,6 +177,10 @@ jobs.
 | A host-dependent test cannot decide a tier's verdict; a whole-tier skip is a red run | `.github/workflows/ci.yml` (`integration`) + `tests/conftest.py` + `tests/unit/test_ops_sync.py` | `integration` junit guard step; `resolve_ambient`/`require_tool` preflight (module-wide `require_tool("bash")` in `test_ops_sync.py`) |
 | All four harnesses first-class; no harness needs a slash command; README ↔ AGENTS.md cannot drift; every Hermes-only mechanism documents a fallback and a missing mechanism never waives a skill gate | `tests/unit/test_harness_neutrality.py` | AC-HRN-001..007 (negative controls) + AC-HRN-008..014 (fallback completeness, skill-gate escape) |
 | A fresh clone is proven healthy in one read-only command, broken-clone negative controls included | `tests/unit/test_verify_clone.py` + `.github/workflows/ci.yml` (`doctrine`) | AC-VC-001..008 + the `doctrine` tracked-path / tracked-root coverage steps |
+| Every mandated skill resolves — vendored `.agents/skills/<name>/SKILL.md`, or a README § *Skills* row with an `https://` install source | `tests/unit/test_harness_neutrality.py` | AC-HRN-015 (+ negative control) |
+| The canonical harness set is a minimum; README harness rows pair with the `AGENTS.md` adapter; a harness can be added without editing a test regex | `tests/unit/test_harness_neutrality.py` | AC-HRN-004 (pairing) + AC-HRN-016 (synthetic fifth harness) |
+| `GEMINI.md` is a symlink resolving to `AGENTS.md`, registered at every entry-point/root enumeration site | `tests/unit/test_harness_neutrality.py`, `tests/unit/test_agents_md_budget.py`, `tests/unit/test_funnel_structure.py` + `.github/workflows/ci.yml` (`doctrine`) | AC-HRN-017, AC-CTX-004, AC-FUN-004 + the `doctrine` symlink step |
+| The ~20,000-char ceiling is a repo budget (tightest harness auto-load cap) with the host-pin override and headroom floor intact; `AGENTS.md` stays under it | `tests/unit/test_agents_md_budget.py` | AC-CTX-001..004 (`AGENTS_MD_BUDGET_CHARS`) |
 
 ## Assumptions
 
@@ -171,12 +210,15 @@ jobs.
   host — the ambient-dependency class that tier bans. A project wanting the live-client
   half would add it as an opt-in integration-tier entry behind `RUN_INTEGRATION_TESTS=1`.
   `[ASSUMPTION]`
-- **The four-harness enumeration is repo-artifact doctrine, not KB knowledge.** The KB
-  grounds the *capability* adapter ("a missing mechanism never waives the rule") and the
-  funnel/CI doctrine; it names Hermes, Claude Code, Copilot and "generic" and does not
-  enumerate opencode or a DeepSeek/OpenAI-compatible harness. The equality claim is
-  grounded in `AGENTS.md`'s Harness Adapter + *Per-harness rows* and `README.md`'s
-  *Harness Support*, which is exactly what SC7 pins. `[ASSUMPTION]`
+- **The harness enumeration is now KB-grounded.** `kb/concepts/harness-portability.md`
+  (ingested 2026-10-16) enumerates the entry file per harness — opencode, Codex CLI,
+  Cursor, Copilot, Claude Code, Gemini CLI, Aider and a generic fallback — each against
+  the vendor's own documentation, so the earlier note that the KB "does not enumerate
+  opencode or a DeepSeek/OpenAI-compatible harness" no longer holds: the *capability*
+  adapter and the *harness list* both have a `kb/` page behind them. The DeepSeek /
+  OpenAI-compatible row stays repo-artifact doctrine (it is the generic
+  inline-`SKILL.md` case, not a distinct vendor product). `[ASSUMPTION]` resolved
+  2026-10-16.
 - **One new CI job.** The `ops-drift` job is added to `.github/workflows/ci.yml`; every
   other guard lands in an existing job (`unit`, `integration`, `doctrine`) or in
   `tests/conftest.py`.

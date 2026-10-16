@@ -34,8 +34,10 @@ GitHub issues         everything else
 ```
 
 A new `.md` that fits none of these stages is a defect — file an issue instead.
-`kb/` follows the [llm-wiki spec](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md)
-strictly; unused KB material is archived to `kb/_archive/`, never deleted. The add-only
+`kb/` follows the [`llm-wiki` spec](.agents/skills/llm-wiki/SKILL.md) strictly — the
+stage-3 gate travels with the repo, vendored (MIT) from
+[`NousResearch/hermes-agent`](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md);
+unused KB material is archived to `kb/_archive/`, never deleted. The add-only
 rule for `kb/raw/` is enforced in CI by
 [`sources-readonly.yml`](.github/workflows/sources-readonly.yml), not just by instruction.
 
@@ -95,10 +97,11 @@ python3 scripts/audit-ste.py            # default: docs/*.md + README.md, 80% th
 ├── AGENTS.md              # Agent instructions (read first) — CANONICAL
 ├── ADOPTING.md            # How to adopt this template for a new project
 ├── CLAUDE.md              # symlink → AGENTS.md
+├── GEMINI.md              # symlink → AGENTS.md (Gemini CLI's default context file)
 ├── .gitattributes         # Merge drivers + line-ending policy (graphify; see AGENTS.md)
 ├── contract/              # Autoresearch contract — program.md / prepare.py / train.py
 ├── .agents/               # Repo-scoped agent assets — CANONICAL
-│   └── skills/            # Skills pinned to this repo (root-cause ships here)
+│   └── skills/            # Skills pinned here: root-cause, llm-wiki, coding-agents-docs-guideline
 ├── .claude/               # skills, plugins → symlinks into ../.agents/
 │   └── agents/            # investigator.md — root-cause gate as a sub-agent
 ├── PRD.md                 # Master PRD → topic PRDs in docs/prd/
@@ -133,28 +136,59 @@ python3 scripts/audit-ste.py            # default: docs/*.md + README.md, 80% th
 
 ## Harness Support
 
-`AGENTS.md` is the one instruction file. Harness entry points are symlinks to it, so
-adding a harness never forks the content:
+`AGENTS.md` is the one instruction file. Every harness reads it — natively, through a
+symlinked entry point, or (Aider) through an explicit `--read`; only Gemini CLI insists on
+its own filename, which `GEMINI.md` supplies as a symlink. Adding a harness never forks the
+content. The pipeline is harness-neutral: every harness runs the `sub1`–`sub4` phase blocks
+by prompting them in order (`AGENTS.md` § *The `/goal` Orchestration Workflow*); `/goal` is
+a Hermes-only convenience and **"go through sub1-4"** is valid everywhere.
 
-| Harness | Entry point | Skills dir |
-|---|---|---|
-| Hermes | `AGENTS.md` (native) | `~/.hermes/skills/` or `.agents/skills/` |
-| Claude Code | `CLAUDE.md` → `AGENTS.md` | `.claude/skills` → `.agents/skills` |
-| opencode | `AGENTS.md` (native) | `.agents/skills` honoured natively |
-| Copilot | `.github/copilot-instructions.md` → `AGENTS.md` | vendor dir → `.agents/skills` |
-| DeepSeek / OpenAI-compatible | read `AGENTS.md` manually | vendor into `.agents/skills/`, or inline `SKILL.md` |
-| Anything else | read `AGENTS.md` directly | paste `SKILL.md` into the prompt |
+| Harness | Entry point | Skills | Run the `sub1`–`sub4` phases |
+|---|---|---|---|
+| [Hermes](https://hermes-agent.nousresearch.com/docs) | `AGENTS.md` (native) | `~/.hermes/skills/` or `.agents/skills/` | `/goal <request>`, else prompt the phase blocks |
+| Claude Code | `CLAUDE.md` → `AGENTS.md` | `.claude/skills` → `.agents/skills` | prompt the phase blocks in order |
+| [opencode](https://opencode.ai/docs/skills/) | `AGENTS.md` (native) | `.agents/skills` honoured natively | prompt the phase blocks in order |
+| Copilot | `.github/copilot-instructions.md` → `AGENTS.md` | vendor dir → `.agents/skills` | prompt the phase blocks in order |
+| [Codex CLI](https://developers.openai.com/codex/skills) | `AGENTS.md` (native) | `.agents/skills` honoured natively | prompt the phase blocks in order |
+| [Cursor](https://cursor.com/docs/skills) | `AGENTS.md` (native); `.cursor/rules` | `.agents/skills` / `.cursor/skills` | prompt the phase blocks in order |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md) | `GEMINI.md` → `AGENTS.md` (its default context file; `contextFileName` configurable) | `.agents/skills` honoured natively; `.gemini/skills` | prompt the phase blocks in order |
+| [Aider](https://aider.chat/docs/usage/conventions.html) | `aider --read AGENTS.md` (or `.aider.conf.yml` `read:`) | none — inline the skill's `SKILL.md` | prompt the phase blocks in order |
+| DeepSeek / OpenAI-compatible | read `AGENTS.md` manually | vendor into `.agents/skills/`, or inline `SKILL.md` | prompt the phase blocks in order |
+| Anything else | read `AGENTS.md` directly | paste `SKILL.md` into the prompt | prompt the phase blocks in order |
 
-No harness needs a vendor entry file or config of its own — the entry points above are
-symlinks that already exist. `AGENTS.md`'s *Harness Adapter*, including its *Per-harness
-rows* table, is the authoritative binding; `ADOPTING.md` step 4 is the short version.
+No harness needs a vendor entry file or config of its own beyond the entry points above.
+`AGENTS.md`'s *Harness Adapter*, including its *Per-harness rows* table, is the
+authoritative binding; `ADOPTING.md` step 4 is the short version.
+
+**No-deploy adopters** — a clone that ships no service has no redeploy step, so `sub4` is
+*clean `main` + green* `bash tests/run.sh --with-e2e` (never a redeploy cycle).
 
 ## Skills
 
 Skills resolve wherever the harness provides them — a host-level skills dir, the
 repo-scoped `.agents/skills/`, or, last resort, the skill's `SKILL.md` inlined into the
-prompt (a missing tool never waives a gate; `AGENTS.md` §1). The `/goal` phase → skill
-mapping:
+prompt (a missing tool never waives a gate; `AGENTS.md` §1). Three of the mandated skills
+**travel with the repo**; every other one has an install source below. Install from a
+neutral cwd (`cd /tmp`), never from inside this repo, so auto-detecting installers do not
+pollute the working tree.
+
+| Skill | Source | Install shape |
+|-------|--------|---------------|
+| `llm-wiki` | **vendored** at [`.agents/skills/llm-wiki/SKILL.md`](.agents/skills/llm-wiki/SKILL.md); upstream [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md) (MIT, LICENSE travels with it) | Already present. Funnel stage-3 gate — **the only writer of `kb/` layer-2 pages**; invoke as `llm-wiki ./kb/` so it does not default to `~/wiki` |
+| `coding-agents-docs-guideline` | **vendored** at [`.agents/skills/coding-agents-docs-guideline/SKILL.md`](.agents/skills/coding-agents-docs-guideline/SKILL.md); upstream [bachkukkik/coding-agents-docs-guideline](https://github.com/bachkukkik/coding-agents-docs-guideline) | Already present (SKILL.md + `examples/`). Funnel stage-6 gate — required to author or edit any `docs/NN-slug.md` |
+| `root-cause` | **vendored** at [`.agents/skills/root-cause/SKILL.md`](.agents/skills/root-cause/SKILL.md) | Already present. Gates every "why does X fail / what does X require" answer; [`.claude/agents/investigator.md`](.claude/agents/investigator.md) is its Claude Code binding (other harnesses run it inline) |
+| `opencode-plan-build-orchestrator` | https://github.com/bachkukkik/opencode-plan-build-orchestrator | Plain skill — clone the whole repo (SKILL.md + `agents/` + `references/`) |
+| `karpathy-guidelines` | https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md | Plain skill — a single `SKILL.md`. **Not vendored** (the upstream carries no licence file): a copy is captured at [`kb/raw/articles/karpathy-guidelines-skill.md`](kb/raw/articles/karpathy-guidelines-skill.md) |
+| `security-best-practices` | https://github.com/openai/skills/tree/main/skills/.curated/security-best-practices | Plain skill — sparse-checkout `skills/.curated/security-best-practices` (SKILL.md + `references/`, `LICENSE.txt`). Python / JS-TS / Go only. Not vendored (large) |
+| `webapp-testing` | https://github.com/anthropics/skills/tree/main/skills/webapp-testing | Plain skill — sparse-checkout `skills/webapp-testing` (SKILL.md + `scripts/`, `examples/`, `LICENSE.txt`). Playwright-based. Not vendored |
+| `yeet` | https://github.com/openai/skills/tree/main/skills/.curated/yeet | Plain skill — sparse-checkout `skills/.curated/yeet` (SKILL.md + `agents/`, `assets/`, `LICENSE.txt`). Needs `gh` authenticated. Not vendored |
+| `simple-english` | https://github.com/AminBlg/SimpleEnglish | §7 rung 1 — STE-style controlled English. Hermes ships it host-level (`creative/simple-english`) |
+| `diagrams` | [Karpathy's output-medium post](https://x.com/karpathy/status/2105819303471976479) | §7 rung 2 — DOT/Mermaid → SVG via a deterministic renderer, verified by parsing |
+| `render-verify` | [Karpathy's output-medium post](https://x.com/karpathy/status/2105819303471976479) | §7 glue — render → parse verification, never by looking |
+| `explainer-video` | [Karpathy's output-medium post](https://x.com/karpathy/status/2105819303471976479) | §7 rung 4 — HTML → MP4 via HyperFrames; needs `/dev/shm` ≥ 256 MB |
+| `pm` | https://github.com/phuryn/pm-skills | **Caveat** — a Claude Code plugin bundle (`.claude-plugin/marketplace.json` + `commands/`), not a plain `SKILL.md` skill; install through that mechanism or lift the `commands/*.md` you need (`write-prd`, `test-scenarios`, `triage-requests`, …) by hand |
+
+The `/goal` phase → skill mapping:
 
 | Phase | Skill | Output |
 |-------|-------|--------|
@@ -173,10 +207,10 @@ The output-medium doctrine (`AGENTS.md` §7) adds the consumer-side skills: `sim
 
 - [x] Skeleton doctrine (funnel, harness adapter, CI gates)
 - [x] `kb/` built: raw sources ingested + layer-2 pages synthesized (2026-09-04)
-- [x] PRD topics 01–04 (docs/prd/) — scaffold, autoresearch contract, funnel governance, examples corpus
+- [x] PRD topics 01–08, 11, 13–16 (docs/prd/) — scaffold, autoresearch contract, funnel governance, examples corpus, service, codegraph, adoption readiness, worked examples, output medium, gen-env, STE audit, quality controls
 - [x] Autoresearch contract implemented (`program.md` / `prepare.py` / `train.py` + `AC-TPL-*` tests)
-- [x] Governance + corpus integrity tests (`AC-FUN-*`, `AC-EXC-*`) — 34/34 unit tests green
+- [x] Governance + corpus integrity tests (`AC-FUN-*`, `AC-EXC-*`) — unit tier green (count of record: run `bash tests/run.sh`; 187 unit tests at the 2026-10-16 improvement wave)
 - [x] One-command onboarding — `ADOPTING.md` + `scripts/verify-clone.sh` (read-only clone health check). Funnel stage 7 is GitHub issues: there is no examples stage
 - [x] Output-medium doctrine — `AGENTS.md` §7 (prose → controlled English → diagram → HTML → explainer video) + `kb/` grounding + `AC-OM-*` / `AC-CTX-*` tripwires
 - [x] `scripts/gen-env.py` (`--fresh` byte copy / `--update` value-carry, no clobber) + `AC-GEN-001..005`
-- [x] `scripts/audit-ste.py` (the "80% to ASD-STE100" prose gate) + `AC-STE-001..003`; repo docs measured at 98.8% within-limit
+- [x] `scripts/audit-ste.py` (the "80% to ASD-STE100" prose gate) + `AC-STE-001..003`; repo docs measured at 99.0% within-limit (1544/1559, 2026-10-16)

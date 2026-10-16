@@ -1,10 +1,10 @@
 ---
 title: Autoresearch Contract
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-10-16
 type: concept
 tags: [autoresearch, research-method, agentic]
-sources: [raw/articles/autoresearch-program-md-reference.md, raw/articles/autoresearch-template-research-conclusions.md]
+sources: [raw/articles/autoresearch-program-md-reference.md, raw/articles/autoresearch-template-research-conclusions.md, raw/articles/2026-10-16-autoresearch-oss-landscape.md]
 confidence: high
 ---
 
@@ -30,6 +30,8 @@ fixed-time budget and a keep/discard loop.
 4. NEVER STOP: after setup the agent keeps iterating until manually stopped — the human may be asleep.
 
 Results log to `results.tsv`: commit, val_bpb, memory_gb, status (keep/discard/crash), notes.
+The keep/discard decision is a deterministic, LLM-free comparison with an
+explicit exit-code contract — see [[deterministic-keep-gate]].
 
 ## Why it transfers
 
@@ -40,6 +42,6 @@ contract maps `SKILL.md` ↔ `train.py` and an eval suite ↔ `prepare.py` — s
 [[skill-self-improvement]].
 
 Related: [[karpathy-autoresearch]] · [[val-bpb-metric]] · [[fixed-time-budget]] ·
-[[document-funnel-doctrine]] · [[template-agentic-ready-repo]]
+[[document-funnel-doctrine]] · [[deterministic-keep-gate]] · [[template-agentic-ready-repo]]
 
 ^[raw/articles/autoresearch-program-md-reference.md]

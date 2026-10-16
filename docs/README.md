@@ -13,12 +13,13 @@
 
 | # | Topic | Verdict | Updated | Covers | PRD | Gaps |
 |---|-------|---------|---------|--------|-----|------|
+| 16 | [Quality Controls](16-quality-controls.md) | works | 2026-10-16 | `.github/workflows/{ci,sources-readonly}.yml` hardened (top-level `permissions: {}` + per-job `contents: read`, SHA-pinned actions, `persist-credentials: false`), the `qc-gate` aggregate + `zizmor` jobs, `SECURITY.md`, `.github/CODEOWNERS`, `.github/dependabot.yml`, `.github/pull_request_template.md`, `tests/unit/test_quality_controls.py` (`AC-QC-001..012`) | [16-quality-controls](prd/16-quality-controls.md) | [16-quality-controls-not-adopted](gaps/16-quality-controls-not-adopted.md) |
 | 15 | [STE-style Audit](15-ste-audit.md) | works | 2026-10-03 | `scripts/audit-ste.py`, `tests/unit/test_ste_audit.py`, `docs/prd/15-ste-audit.md` | [15-ste-audit](prd/15-ste-audit.md) | — |
 | 14 | [gen-env Script](14-gen-env-script.md) | works | 2026-10-03 | `scripts/gen-env.py`, `tests/unit/test_gen_env.py`, `.env.example` | [14-gen-env-script](prd/14-gen-env-script.md) | — |
 | 13 | [Output-Medium Doctrine](13-output-medium-doctrine.md) | works | 2026-10-03 | `AGENTS.md` §7, `docs/prd/13-output-medium-doctrine.md`, `kb/{raw/articles,concepts}/`, `tests/unit/test_{output_medium_doctrine,agents_md_budget}.py` | [13-output-medium-doctrine](prd/13-output-medium-doctrine.md) | — |
 | 12 | [Service Runtime State](12-service-runtime-state.md) | works | 2026-09-26 | `data/` + `service/data/` (gitkeep placeholders; `/data/*` + un-ignore rules in `.gitignore:60-66`), the 453-workspace purge (13 MB, Sep 5–21 scan; commit `7c5613a` records only the placeholders), rule-11 triple declaration (`ci.yml` DOCTRINE_ROOTS + `tests/unit/test_funnel_structure.py` REQUIRED_DIRS + `README.md` tree), the test-refill hazard and TTL-sweeper upgrade path | [05-mcp-rest-service](prd/05-mcp-rest-service.md) — the service owns the root; no PRD of its own | — |
 | 11 | [Worked Example Pipelines](11-worked-example-pipelines.md) | works | 2026-09-26 | `contract/examples/` (ex1-music-abc val_bpb −42.1%, ex2-iris-knn accuracy 0.933→1.000 higher-is-better, ex3-hotpath-speedup 8.41× under an exact-output gate with a rejected `attack:` row), vendored `results.tsv` ledgers + verbatim git histories, `dashboard.html`, loop-mechanics calibration lessons | [02-autoresearch-contract](prd/02-autoresearch-contract.md) — the docs the examples instantiate | — |
-| 10 | [Methodology Registration](10-methodology-registration.md) | works | 2026-09-26 | `kb/raw/articles/2026-09-26-autoresearch-methodology-registration.md` (deep research: karpathy upstream + slash-commerce instance), 5 new `kb/concepts/` pages + 2 updates (index 21→26), `.agents/skills/autoresearch-methodology/`, the body.strip() sha256 stamp drift (4813d98 → 80b78b2) | [04-examples-corpus](prd/04-examples-corpus.md) — extends the KB corpus | — |
+| 10 | [Methodology Registration](10-methodology-registration.md) | works | 2026-09-26 | `kb/raw/articles/2026-09-26-autoresearch-methodology-registration.md` (deep research: karpathy upstream + a private commerce-pipeline instance), 5 new `kb/concepts/` pages + 2 updates (index 21→26), `.agents/skills/autoresearch-methodology/`, the body.strip() sha256 stamp drift (4813d98 → 80b78b2) | [04-examples-corpus](prd/04-examples-corpus.md) — extends the KB corpus | — |
 | 05 | [MCP REST Service](05-mcp-rest-service.md) | works | 2026-09-18 | `service/`, `docker-compose.yml`, `tests/{unit,integration,e2e}`, `.github/workflows/` | [05-mcp-rest-service](prd/05-mcp-rest-service.md) | — (resolved; archived 2026-09-18) |
 | 06 | [Concurrent Multi-Topic Service](06-multi-topic-concurrency.md) | works | 2026-09-18 | `service/src/{workspace,runner,main}.py`, `contract/` (consumed by the service), `tests/unit/test_{workspace,service_readme}.py`, `tests/integration/test_multi_topic.py`, `tests/e2e/service.bats`, `service/README.md` | [06-multi-topic-concurrent-service](prd/06-multi-topic-concurrent-service.md) | — (resolved; archived 2026-09-18) |
 | 02 | [Autoresearch Template Contract](02-autoresearch-contract.md) | works | 2026-09-18 | `contract/program.md`, `contract/prepare.py`, `contract/train.py`, `results.tsv`, `tests/unit/test_{program_md,prepare_py,train_loop,val_bpb,domain_hooks}.py` | [02-autoresearch-contract](prd/02-autoresearch-contract.md) | — (resolved; archived 2026-09-18) |
@@ -26,17 +27,17 @@
 | 04 | [Examples Corpus](04-examples-corpus.md) | works | 2026-09-18 | `kb/raw/` (15 sources), `kb/{concepts,entities,comparisons}/` (21 pages), `tests/unit/test_{corpus_integrity,kb_synthesis}.py` | [04-examples-corpus](prd/04-examples-corpus.md) | — (resolved; archived 2026-09-18) |
 | 07 | [CodeGraph Adoption](07-codegraph-adoption.md) | partial | 2026-09-19 | `AGENTS.md` (`## codegraph`), `.codegraph/` (gitignored local index), `tests/unit/test_codegraph_adoption.py`, `kb/raw/articles/codegraph-mcp-code-intelligence.md`, `kb/{concepts/agent-code-graph-search,entities/codegraph,comparisons/codegraph-vs-graphify}.md` | [07-codegraph-adoption](prd/07-codegraph-adoption.md) | — (resolved; archived 2026-09-19) |
 | 08 | [Adoption Readiness](08-adoption-readiness.md) | works | 2026-10-03 | `ops/` (`README.md`, `sync.sh`, `artifacts/`, `state-allowlist.txt`), `ADOPTING.md`, `scripts/verify-clone.sh`, `tests/unit/test_{ops_sync,verify_clone,docs_template,harness_neutrality,funnel_structure,gaps_lifecycle,corpus_integrity}.py`, `.github/workflows/ci.yml` (`ops-drift` drift gate, `integration` junit guard, `doctrine` tracked-root coverage), `tests/conftest.py`, `docs/gaps/_archive/{03,07}-*.md` | [08-adoption-readiness](prd/08-adoption-readiness.md) | — (resolved; archived 2026-09-19) |
-| 09 | [AGENTS.md Context Budget](09-agents-md-context-budget.md) | partial | 2026-10-03 | `AGENTS.md` (19,464 chars / 19,697 bytes after the round-2 §7 accretion; 536 chars of headroom), `tests/unit/test_agents_md_budget.py` (AC-CTX-001..004), the instruction-entry symlinks `CLAUDE.md` + `.github/copilot-instructions.md`, and the three recomputed guard expectations in `tests/unit/test_{harness_neutrality,codegraph_adoption}.py` | [03-funnel-kb-governance](prd/03-funnel-kb-governance.md) — the PRD that owns the `AGENTS.md` doctrine; `09` files no PRD of its own | — (no gap filed; the trim's limits are recorded in the doc's *What Fails*) |
+| 09 | [AGENTS.md Context Budget](09-agents-md-context-budget.md) | partial | 2026-10-16 | `AGENTS.md` (19,482 chars / 19,774 bytes after the round-4 lifecycle restructure; 518 chars of headroom), `tests/unit/test_agents_md_{budget,lifecycle}.py` (AC-CTX-001..004, AC-LC-001..003), the instruction-entry symlinks `CLAUDE.md`, `.github/copilot-instructions.md` + `GEMINI.md`, and the recomputed guard expectations in `tests/unit/test_{harness_neutrality,codegraph_adoption}.py` | [03-funnel-kb-governance](prd/03-funnel-kb-governance.md) — the PRD that owns the `AGENTS.md` doctrine; `09` files no PRD of its own | — (no gap filed; the trim's limits are recorded in the doc's *What Fails*) |
 
 Rows 02–06 were re-verified 2026-09-18 in one pass: `bash tests/run.sh
---with-e2e` → `RESULT: PASSED` (68 unit + 16 integration + 4 e2e) and all four
+--with-e2e` → `RESULT: PASSED` (135 unit + 16 integration + 4 e2e at the time of writing; count of record per run) and all four
 local `act` jobs (`unit`, `integration`, `secret-scan`, `doctrine`) report
 `Job succeeded`. The `AC-TPL-*`/`AC-FUN-*`/`AC-EXC-*` unit tests are green
 (31 tests; full unit tier 68 — see each doc's *Verification*). Row 07 was
 verified 2026-09-19 against the CodeGraph CLI + MCP surfaces on this machine —
 see its *Verification*. Row 08 was re-verified 2026-09-19 on closure of its three
-recorded failures: `bash tests/run.sh` → `RESULT: PASSED` (120 unit + 16 integration;
-the e2e tier needs a container) with `bash scripts/verify-clone.sh` → `RESULT: PASSED — 33
+recorded failures: `bash tests/run.sh` → `RESULT: PASSED` (135 unit + 16 integration;
+the e2e tier needs a container) with `bash scripts/verify-clone.sh` → `RESULT: PASSED — 34
 check(s) passed`, and the `ops-drift` job green end to end under `act` in both modes —
 see its *Verification*.
 
@@ -44,7 +45,7 @@ see its *Verification*.
 cannot preserve its contract regions byte-for-byte (the four protected regions total
 19,791 chars against a 19,500-char working budget), nothing guards those regions
 byte-for-byte, the tripwire asserts the 20,000-char flat floor (a lower host-pinned
-`context_file_max_chars` is invisible to it), and the remaining headroom is 533 chars
+`context_file_max_chars` is invisible to it), and the remaining headroom is 536 chars (2026-10-16 measurement; re-measure per run)
 (2.7%). `09` files no `docs/prd/` PRD: the `AGENTS.md` doctrine it reports on is owned by
 `03`, and the guard expectations it recomputed live in `tests/unit/`.
 

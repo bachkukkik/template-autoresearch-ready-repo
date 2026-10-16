@@ -5,14 +5,21 @@ kind: article
 source_url: https://github.com/karpathy/autoresearch
 source_type: primary-upstream + real-world instance diff
 ingested: 2026-09-26
-sha256: 2879373f9e76b14f7549e9a359b61e2c006425cc24c8884266a7c3fb8bb6cc8b
+reingested: 2026-10-16
+sha256: c86e044d258cc1a87fa7b26e7ad8054240269f4e2ce7cfa1921ff1d50ee83e19
 tags: [autoresearch, methodology, optimization, kanban, game-theory, markov-chain, template]
 ---
 # Autoresearch methodology — the registered template pattern
 
+
+> **Supersedes:** the 2026-09-26 revision of this source (archived verbatim at
+> `kb/_archive/raw/articles/2026-09-26-autoresearch-methodology-registration.md`),
+> re-issued 2026-10-16 with the private-instance identifiers replaced by neutral
+> wording ("a private commerce-pipeline instance" / "the instance"). The body is
+> otherwise unchanged; the sha256 below is recomputed over the new body.
 Deep-research registration of the autoresearch methodology, distilled from
 karpathy/autoresearch (upstream, master, ~97k stars) and its first real-world
-instance, `slash-roast/slash-commerce-pipeline-autoresearch` (private; commerce
+instance, a private commerce-pipeline instance (commerce
 pipelines). Full 7-item investigation archived 2026-09-26 in this repo's
 research scaffold; this page carries the load-bearing findings.
 
@@ -48,7 +55,7 @@ Evaluator/optimizer separation makes the objective **exogenous**: it removes
 "make the metric easier" from the action space and relocates residual risk
 from cheating (supervisable) to proxy-legitimacy / Goodhart (designable).
 
-**Portability proof:** the slash instance changed the upstream `contract/` by
+**Portability proof:** the instance changed the upstream `contract/` by
 exactly **zero bytes** (all three files byte-identical to the template) and met
 its objective by re-instantiating the same shape one layer down in `pipeline/`.
 Only the DATA side ever moved (embedded corpus, stdlib-only, domain hooks,
@@ -180,7 +187,7 @@ series read as progress (D pinned 99.92–100.00, escape_rate structurally 1.0).
 | Source | What it grounds |
 |---|---|
 | https://github.com/karpathy/autoresearch — `program.md` (upstream master, files sha256-verified 2026-09-26) | contract trio, loop invariants, simplicity criterion, NEVER STOP |
-| slash-commerce-pipeline-autoresearch `docs/02` (verdict works; 17 AC-TPL tests green 2026-09-26) | contract adaptation; invariance of the three-role split |
+| the private commerce-pipeline instance `docs/02` (verdict works; 17 AC-TPL tests green 2026-09-26) | contract adaptation; invariance of the three-role split |
 | same repo `docs/07, 11, 15, 18` (partial / works / works / works) | kanban factory, dynamic scheduling, ops source-of-truth, self-healing |
 | same repo `docs/09, 10, 13` (partial / partial / works) | game layer, research metrics honesty gap, conductor |
 | same repo `docs/19` (verdict works, 2026-09-25) | better/cheaper/faster Wave 1, metrics contract, T0–T3 tiers |
@@ -193,7 +200,7 @@ series read as progress (D pinned 99.92–100.00, escape_rate structurally 1.0).
 - The Goodhart/"sample generated output" caveat is NOT upstream karpathy — it
   was added by this template lineage's `contract/program.md` (Caveats section);
   the two linked upstream X threads were not checkable.
-- The slash instance's shipped contract is still a byte-level char-LM demo;
+- The instance's shipped contract is still a byte-level char-LM demo;
   genuinely non-text evaluators (web load time, cost ledgers) exist as
   prescriptions, not as shipped harnesses.
 - Dual regulator inertness (KR2), season loop (PBT) designed-not-observed,

@@ -1,7 +1,7 @@
 ---
 title: Kanban Factory (the generative research process)
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-10-16
 type: concept
 tags: [autoresearch, agentic, ops]
 sources: [raw/articles/2026-09-26-autoresearch-methodology-registration.md]
@@ -12,7 +12,7 @@ confidence: high
 
 When wall-time/cost are themselves objectives, autoresearch candidates become
 cards on a queue: the loop stops being one agent in a repo and becomes a
-card-graph factory (the slash-commerce instance's operating mode).
+card-graph factory (a private commerce-pipeline instance's operating mode).
 
 ## Mechanics
 

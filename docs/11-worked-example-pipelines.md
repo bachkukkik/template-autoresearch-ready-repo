@@ -92,8 +92,10 @@ the gate.
 
 `contract/examples/dashboard.html` is one self-contained file (inline `RUNS` data, no
 JavaScript dependencies) rendering the progression of all three ledgers, coloring
-keep / discard / crash / best, and reading every value from the vendored
-`results.tsv` files.
+keep / discard / crash / best. It **hand-transcribes** the vendored ledger values into
+its inline `RUNS` array — it does not read the `results.tsv` files at load time —
+so `tests/unit/test_examples_replay.py` (AC-EXA-003) asserts the inline numbers equal
+the vendored ledgers and fails on any drift.
 
 ## Verification
 
@@ -136,6 +138,48 @@ redefining `evaluate_accuracy` in `train.py` and calling
 untouched `train.py` prints
 `contract ok: train.evaluate_accuracy is prepare.evaluate_accuracy (train=105 test=45 seed=23)`.
 
+### Run 2026-10-16
+
+Re-run after the examples gained their tracked `train_baseline.py` and the two replay
+tiers (PRD 11). Commands from the repo root:
+
+```bash
+python3 -m pytest -q tests/unit/test_examples_replay.py
+# 12 passed in 0.78s
+
+python3 -m pytest -q tests/integration/test_examples_replay.py
+# 2 passed in 88.44s (0:01:28)
+
+(cd contract/examples/ex1-music-abc && python3 train.py 2>/dev/null | grep val_bpb)
+# val_bpb:          2.178535
+
+(cd contract/examples/ex2-iris-knn && python3 train.py 2>/dev/null | grep '^accuracy:')
+# accuracy:         1.000000
+
+(cd contract/examples/ex3-hotpath-speedup && python3 train.py 2>/dev/null | grep -E 'median_seconds|gate_ok')
+# median_seconds: 0.296541   # representative run; timing jitters (~0.29 ±0.01)
+# gate_ok: True
+```
+
+The endpoints reproduce (`2.178535` / `1.000000` / `gate_ok True`); ex3's
+`median_seconds` is a fresh measurement, not the vendored `0.275`, because timing is T2.
+
+**The ex3 replay is the one run the tiers do not compare row for row.** Its
+keep/discard statuses are a T2 statistical field: two candidates sit within a few
+percent of their incumbent (row 2, the `word_count` reuse, ≈3%; row 7, the `Counter`
+counting step, ≈4%) and flip between keep and discard under load. A flipped keep is not
+cosmetic — it diverges the patch cascade. The discarded row's file state survives, so a
+later candidate that assumed its structural change raises inside `run()` (e.g. the
+`re.findall` tokenize removing `clean` while `len(clean.split())` is still referenced);
+the frozen gate records that extra crash as gate `invalid` (or `n/a` when it dies before
+printing a verdict), the candidate is reset, and the final `attack:` anchor is left
+dangling — `PATCH MISS`, driver exit 1, no attack row. The integration tier therefore
+compares only what is deterministic: that the replay starts from the tracked baseline and
+completes the baseline row, that the descriptions it produces are a prefix of the vendored
+ledger, and that the final kept `train.py` — the vendored artifact when a flip diverged
+the cascade, the replay's own HEAD otherwise — still passes the exact-output gate. It
+never compares the `median_seconds`, `status` or `gate` columns.
+
 ## What Works
 
 - **One contract, three objective shapes.** ex1 (lower-is-better `val_bpb`), ex2
@@ -152,9 +196,13 @@ untouched `train.py` prints
 - **Direction inversion is real, not cosmetic.** ex2 maximizes accuracy while ex1/ex3
   minimize, and the loop's comparison, ledger and keep/reset rule hold against `>`
   exactly as against `<`.
-- **A zero-headroom split is a recorded decision, not tampering.** ex2's `prepare.py`
-  documents that the seed-42 split had no headroom (the 1-NN baseline WAS the kNN-family
-  ceiling at 0.977778 = 44/45), records the seeds 0–39 scan, and freezes seed 23.
+- **A seed chosen to widen the headline delta is disclosed evaluator-input tuning, not a
+  hidden win.** ex2's `prepare.py` records a seeds-0–39 scan and freezes seed 23. On the
+  first candidate, seed 42, the 1-NN raw baseline already scores 0.977778 (= 44/45) and
+  the K × metric × normalize × weighted grid still reaches 1.000000, so that split has
+  headroom too — a one-test-row delta against seed 23's three. The seed was picked to
+  enlarge the headline delta and the note names that as a Goodhart risk; see
+  `ex2-iris-knn/prepare.py:204-217`.
 - **The dashboard is portable.** `dashboard.html` carries its data inline and loads no
   external script, so it renders offline from the vendored ledgers.
 - **Every documented run is reproducible from the tracked copy.** `python3 train.py` on
@@ -174,9 +222,10 @@ untouched `train.py` prints
 - **A spot-check gate is not shape-proof.** ex3's attack candidate passed the first
   spot-check field and still failed the full-output comparison — a field-sample gate
   would have kept a badly wrong answer.
-- **A split with zero headroom turns the loop into a no-op.** On ex2's seed-42 split the
-  1-NN baseline was the whole kNN family's ceiling, so every candidate could only
-  discard.
+- **A widened headline delta is a metric choice, not a modelling gain.** ex2's seed 23
+  was picked after a 0–39 scan because it makes the `0.933333 → 1.000000` delta three
+  test rows wide, against one row on seed 42 — the delta is widened by the split, so the
+  seed choice is recorded as evaluator-input tuning rather than read as a modelling win.
 - **Timing columns are T2 and jitter between runs.** A wall-clock delta within ~10% is
   not signal, so a re-run of `results.tsv` never reproduces its `seconds` column exactly
   (ex3's fresh run measured 0.291 s against the vendored 0.275 s).
@@ -196,9 +245,9 @@ untouched `train.py` prints
   so a simplification that is within the timing noise but deletes code is a win.
 - Compare the whole output, not a field: the exact-output gate matches the reference
   dict-for-dict, which is what made ex3's fast-but-wrong candidate fail.
-- Pre-register a split with headroom in the frozen evaluator: scan seeds and freeze one
-  (ex2 seed 23), documenting the rejected split and the scan in `prepare.py` as a
-  recorded decision.
+- Pre-register the split in the frozen evaluator and document the choice: scan seeds and
+  freeze one (ex2 seed 23), recording the scan and the seed-42 split in `prepare.py` as
+  evaluator-input tuning (a Goodhart risk) rather than as a headroom constraint.
 - Never treat a sub-10% wall-clock delta as signal, and vendor `results.tsv` once: new
   measurements go to a scratch clone, and only the endpoints (not the timing column) are
   compared across runs.

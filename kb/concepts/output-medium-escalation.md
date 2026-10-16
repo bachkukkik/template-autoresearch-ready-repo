@@ -95,9 +95,9 @@ goal-verified. Simple production earns the right to a rich, throwaway explanatio
 ## Repo bindings
 
 - **Standing Order §7** — `AGENTS.md` carries the pointer-based order and the ladder
-  ([docs/prd/13-output-medium-doctrine.md](../docs/prd/13-output-medium-doctrine.md)).
+  ([docs/prd/13-output-medium-doctrine.md](../../docs/prd/13-output-medium-doctrine.md)).
 - **Rung-2 gate** — `scripts/audit-ste.py` measures the served docs against the
-  "80% to ASD-STE100" rule ([docs/15-ste-audit.md](../docs/15-ste-audit.md)).
+  "80% to ASD-STE100" rule ([docs/15-ste-audit.md](../../docs/15-ste-audit.md)).
 
 ## Provenance
 

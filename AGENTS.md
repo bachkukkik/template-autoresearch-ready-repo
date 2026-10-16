@@ -95,8 +95,7 @@ anything else           GitHub issue, or a comment on an existing issue
 
 ## Harness Adapter
 
-Harness-neutral: written against **capabilities**, not one agent product. Each harness
-supplies its own mechanism; if yours lacks one, do the capability manually.
+Harness-neutral: written against **capabilities**, not one agent product — a harness supplies its own mechanism or does the capability manually.
 
 | Capability | Hermes | Claude Code | Copilot / other | Generic fallback |
 |---|---|---|---|---|
@@ -110,19 +109,19 @@ supplies its own mechanism; if yours lacks one, do the capability manually.
 | KB synthesis (funnel stage 3) | `/llm-wiki ./kb/` (native) | invoke `llm-wiki` on `./kb/` | invoke `llm-wiki` on `./kb/` | inline `.agents/skills/llm-wiki/SKILL.md` by hand |
 | Issue tracking (funnel stage 7) | `gh issue create` / `comment` | same | same | same |
 
-**Per-harness rows.** Two harnesses this template must serve are not columned above;
-their bindings in full:
+**Per-harness rows.** Harnesses not columned above:
 
 | Harness | Entry instruction file | Repo-scoped skills | Host-level skills | Sub-agents | Code graph | Plan scratch space | KB synthesis (stage 3) | Pipeline invocation |
 |---|---|---|---|---|---|---|---|---|
-| **opencode** | `AGENTS.md` (native) | `.agents/skills` honoured natively | `~/.config/opencode/skills/` or vendor in | — | MCP via `codegraph install`, or the CLI twins | `scratchpads/` | invoke `llm-wiki` on `./kb/` | prompt the phase blocks (no slash command) |
-| **DeepSeek / OpenAI-compatible** | read `AGENTS.md` manually | vendor into `.agents/skills/`, or inline the skill's `SKILL.md` | — | none — run the documented phase order inline | **no MCP client — use the codegraph CLI twins** `codegraph explore\|node\|callers\|callees\|impact\|query\|affected` | `scratchpads/` | run the `llm-wiki` workflow by hand | prompt the phase blocks |
+| **opencode** | `AGENTS.md` (native) | `.agents/skills` honoured natively | `~/.config/opencode/skills/` or vendor in | — | MCP via `codegraph install`, or the CLI twins | `scratchpads/` | `llm-wiki` on `./kb/` | prompt the phases (no slash command) |
+| **DeepSeek / OpenAI-compatible** | read `AGENTS.md` manually | vendor into `.agents/skills/`, or inline `SKILL.md` | — | run the phase order inline | no MCP client — the codegraph CLI twins `codegraph explore\|…` | `scratchpads/` | `llm-wiki` by hand | prompt the phases |
+| **Codex CLI / Cursor / Gemini CLI / Aider** | `AGENTS.md` native (Gemini CLI: `GEMINI.md`) | `.agents/skills`, else README § *Skills* | — | — | — | `scratchpads/` | `llm-wiki` by hand | prompt the phases |
 
-**Two symlink families, both pointing at one canonical source.** Instruction entry
-points — every one resolves to `AGENTS.md`:
+**Two symlink families, both pointing at one canonical source.** Entry points — every one resolves to `AGENTS.md`:
 
 ```
 CLAUDE.md                        -> AGENTS.md
+GEMINI.md                        -> AGENTS.md
 .github/copilot-instructions.md  -> ../AGENTS.md
 ```
 
@@ -135,25 +134,34 @@ Skill/plugin roots — `.agents/` is canonical, harness dirs point into it:
 .claude/plugins                  -> ../.agents/plugins
 ```
 
-Adding a harness = two symlinks (`ln -s AGENTS.md <entry-file>`,
-`ln -s ../.agents/skills <vendor-dir>/skills`) plus a row above. `.agents/` holds what this
-project pins (`root-cause`, whose procedure the gate depends on);
-`.claude/agents/investigator.md` binds that gate for Claude Code: a read-only sub-agent
-returning cited repo evidence, or an explicit "not found" — never a guess; other harnesses
-run it inline.
+Adding a harness = two symlinks (`ln -s AGENTS.md <entry-file>`, `ln -s ../.agents/skills <vendor-dir>/skills`) plus a row above. `.agents/` pins `root-cause` (the gate's procedure); `.claude/agents/investigator.md` binds it for Claude Code (a read-only sub-agent returning cited evidence or "not found"); other harnesses run it inline.
 
-## The `/goal` Orchestration Workflow (coding-agent entry point)
+## Lifecycle — Zero to Deployment (coding-agent entry point)
 
-Every substantive request is driven through the `/goal` pipeline. The coding agent MUST capture and follow this sequence.
+Every substantive request runs two stages in order; the coding agent MUST follow this sequence.
+
+### Development stage — idea → implemented
+
+| # | Step | Do | Done when |
+|---|------|----|-----------|
+| D0 | Entry | **Zero:** fill the `[Project Name]` / *(adapt)* placeholders. **Existing:** capture current code + docs into `kb/raw/`, `codegraph sync` | No placeholder left / project in `kb/raw/` |
+| D1 | Prompt → intent | `/goal` kickoff: triage, then funnel stages 0–4 (`scratchpads/` → `kb/raw/` → `llm-wiki ./kb/` → PRD + SC + verification policy) | SC list with `_Verify:` annotations, each traceable to a `kb/` page |
+| D2 | Gaps | Diff `kb/` ↔ PRD ↔ codebase into `docs/gaps/` (stage 5) | Every gap names its Resolution |
+| D3 | Implement | `opencode-plan-build-orchestrator`: plan → build → verify via subagents (tests per §5) | SC tests green locally |
+| D4 | Empirical docs | `docs/NN-slug.md` + verdict row via `coding-agents-docs-guideline` (stage 6) | Verdict recorded with its verification commands |
+
+**Kickoff prompt:** `/goal <whatever user request>` + the shared footer.
+
+**Shared footer** — append to the kickoff and every sub block (sub2/sub3: prefix `if problems surface, `):
 
 ```
-/goal <whatever user request>
-
-use pm skills for PRD, problem triage, success criteria definition and verification policy
-use karpathy skill for codebase investigation and all resource analysis
-prioritize task delegation over direct execution
-use opencode-plan-build-orchestrator skill for all coding tasks
+use pm skills for PRD, problem triage, success criteria definition and verification policy.
+use karpathy skill for codebase investigation and all resource analysis.
+prioritize task delegation over direct execution.
+use opencode-plan-build-orchestrator skill for all coding tasks.
 ```
+
+### Delivery stage — ship to UAT or production
 
 **Subsequent prompts (run in order):**
 
@@ -161,61 +169,49 @@ use opencode-plan-build-orchestrator skill for all coding tasks
 ## sub1 — docs/tests gap sync
 check gaps in docs/ and tests/ against codebase. update + drop obsolescences accordingly.
 
-use pm skills for PRD, problem triage, success criteria definition and verification policy.
-use karpathy skill for codebase investigation and all resource analysis.
-prioritize task delegation over direct execution.
-use opencode-plan-build-orchestrator skill for all coding tasks.
-
 ## sub2 — local CI
 run github action locally using https://github.com/nektos/act
 
-if problems surface, use pm skills for PRD, problem triage, success criteria definition and verification policy.
-use karpathy skill for codebase investigation and all resource analysis.
-prioritize task delegation over direct execution.
-use opencode-plan-build-orchestrator skill for all coding tasks.
-
 ## sub3 — PR + CI monitor
 PR using yeet. thoroughly provide context in the PR using coding agent docs skill. lastly monitor CI/CD in PR.
-
-if problems surface, use pm skills for PRD, problem triage, success criteria definition and verification policy.
-use karpathy skill for codebase investigation and all resource analysis.
-prioritize task delegation over direct execution.
-use opencode-plan-build-orchestrator skill for all coding tasks.
 
 ## sub4 — merge + redeploy
 squash and merge to main all test-passed PRs.
 then git checkout main and pull here.
 lastly do full redeployment cycle from pull to serve.
+```
 
-use pm skills for PRD, problem triage, success criteria definition and verification policy.
-use karpathy skill for codebase investigation and all resource analysis.
-prioritize task delegation over direct execution.
-use opencode-plan-build-orchestrator skill for all coding tasks.
+**UAT variant (opt-in)** — a repo with a `uat` branch + UAT stack replaces `sub4` with these; the contract becomes `sub1`–`sub5`:
+
+```
+## sub4 — merge to uat + redeploy
+squash and merge to uat all test-passed PRs (create uat from main if it is missing).
+then git checkout uat and pull here.
+lastly do full redeployment cycle from pull to serve — the UAT stack.
+
+## sub5 — promote uat → main
+open ONE PR from uat into main and monitor its CI to terminal, then squash and merge it.
+then git checkout main and pull here.
+lastly do full redeployment cycle from pull to serve — the production stack.
 ```
 
 ### Running the pipeline without `/goal`
 
-`/goal` is a **Hermes-only** convenience. The canonical cross-harness contract is the
-`sub1`–`sub4` phase blocks plus the phase table below: a harness with no slash commands
-prompts those phases in order, and **"go through sub1-4"** is valid everywhere. Paste the
-blocks above (minus the `/goal` line), or use this table:
+`/goal` is a **Hermes-only** slash command; a harness without it prompts the same steps in order — the canonical cross-harness contract is the `D0`–`D4` and `sub1`–`sub4` (UAT: `sub1`–`sub5`) labels plus the phase table below, so **"go through sub1-4"** is valid everywhere. Or use this table:
 
 | # | Phase | Do | Done when |
 |---|-------|----|-----------|
-| kickoff | Triage | Triage; ingest sources to `kb/raw/` + `llm-wiki ./kb/`; refresh the PRD grounded in `kb/`; define SCs + verification policy | SC list with `_Verify:` annotations, each traceable to a `kb/` page |
-| `sub1` | Docs/tests gap sync | Diff `kb/` ↔ `docs/prd/` ↔ codebase ↔ `tests/`; record divergences in `docs/gaps/`, update, drop obsolescences | No SC without a test; no doc claiming behaviour the code lacks; every gap has a Resolution |
-| `sub2` | Local CI | Run the § 6 jobs locally with [`nektos/act`](https://github.com/nektos/act); E2E runs directly, not under act | those jobs green + `bash tests/run.sh --with-e2e` green |
+| `sub1` | Docs/tests gap sync | Diff `kb/` ↔ `docs/prd/` ↔ codebase ↔ `tests/`; record divergences in `docs/gaps/`, update, and drop obsolescences | No SC without a test; no doc claiming behaviour the code lacks; every `docs/gaps/` file has a Resolution |
+| `sub2` | Local CI | Run the workflows locally with [`nektos/act`](https://github.com/nektos/act) — `-j unit`, `-j integration`, `-j secret-scan`, `-j doctrine`, `-j ops-drift`; E2E runs directly, not under act (see §6) | those five jobs green + `bash tests/run.sh --with-e2e` green |
 | `sub3` | PR + CI monitor | Open the PR with full context in the body; watch remote CI to completion | Remote CI green |
-| `sub4` | Merge + redeploy | Squash-merge green PRs, `git checkout main && git pull`, full redeploy cycle | Service healthy from a clean pull |
+| `sub4` | Merge + redeploy | Squash-merge green PRs, `git checkout main && git pull`, run the full redeploy cycle | Service healthy from a clean pull |
+| `sub4`/`sub5` (UAT) | UAT variant | As the UAT blocks above | UAT, then production, healthy from a clean pull |
 
-Report each phase's *Done when* before starting the next; a problem re-enters kickoff triage.
+Report each step's *Done when* before the next; a surfacing problem re-enters D1 triage first.
 
-**Skill-to-phase mapping** (full table: `README.md` § Skills): stage-3 knowledge
-`llm-wiki` on `./kb/`; PRD / triage / success criteria / verification policy `pm`
-(`create-prd`, `identify-assumptions-*`, `test-scenarios`); codebase and resource
-investigation `karpathy-guidelines`; root-cause questions `root-cause` (Claude Code:
-`investigator`); empirical docs `coding-agents-docs-guideline`; delegation the harness's
-adapter mechanism; all coding `opencode-plan-build-orchestrator` (plan → build → verify).
+**Skill-to-phase mapping** (full table: `README.md` § *Skills*): stage-3 knowledge `llm-wiki` on `./kb/`; PRD / triage / SCs / verification policy `pm`; codebase & resource investigation `karpathy-guidelines`; root-cause questions `root-cause`; empirical docs `coding-agents-docs-guideline`; delegation the harness's adapter mechanism; all coding `opencode-plan-build-orchestrator`.
+
+---
 
 ## Standing Orders (ALWAYS apply)
 
@@ -238,7 +234,7 @@ Every `docs/prd/` PRD: SC bullets with inline `_Verify:` annotations (test file 
 
 ### 6. CI/CD Pipeline — Local-First, Then Remote
 
-**No PR opens on a known-red local CI run.** The pre-PR command is `act push -j` each of `unit`, `integration`, `secret-scan`, `doctrine`, `ops-drift`. **Never run `act push` unqualified, or `-j e2e`, on a host that also serves this compose project**: the E2E job's `docker compose up -d --build` **replaces the running containers**; run E2E off the deployment.
+**No PR opens on a known-red local CI run.** The pre-PR command is `act push -j` each of `unit`, `integration`, `secret-scan`, `doctrine`, `ops-drift` — one `-j` per invocation; multi-`-j` silently drops all but the last (act 0.2.89, verified 2026-10-16). **Never run `act push` unqualified, or `-j e2e`, on a host that also serves this compose project**: the E2E job's `docker compose up -d --build` **replaces the running containers**; run E2E off the deployment.
 
 ### 7. Output-Medium Escalation
 
@@ -258,6 +254,7 @@ Canonical tree in `README.md` § *Repository Structure*. `.agents/` is canonical
 git config core.symlinks true   # once per clone — entry points are symlinks
 bash scripts/verify-clone.sh    # read-only clone health check
 bash tests/run.sh --with-e2e    # unit + integration + container tiers
+act push -j unit                # one -j per invocation (see § 6)
 ```
 
 Pre-PR local CI has ONE home: § 6. → `README.md`
@@ -265,22 +262,16 @@ Pre-PR local CI has ONE home: § 6. → `README.md`
 ## Security
 
 - **Never commit `.env`, API keys or JWT secrets** — only `.example` shapes are tracked → `.credentials/README.md`.
-- **Credential homes:** `.env` = injected at deploy time (the default); `.credentials/` = a key file the runtime reads, an operator places — record the home and the variable/file NAME, never the value (rule 9).
+- **Credential homes:** `.env` = injected at deploy time (the default); `.credentials/` = an operator-placed key file — record the home and the variable/file NAME, never the value (rule 9).
 - **Never paste a live value into `kb/` or `docs/`** — `kb/raw/` is add-only, so a leak is unfixable by edit.
 - **Every inbound webhook is signature-verified before its payload is read** — unsigned or unknown senders are rejected; CI's `secret-scan` enforces it.
 
 ## codegraph
 
-[CodeGraph](https://github.com/colbymchenry/codegraph) is the **primary graph search for coding agents** here — a local-first tree-sitter → SQLite symbol/edge graph over MCP (MIT, 30+ languages); grounding in `kb/raw/articles/codegraph-mcp-code-intelligence.md`.
+[CodeGraph](https://github.com/colbymchenry/codegraph) is the **primary graph search for coding agents** here — a local-first tree-sitter → SQLite symbol/edge graph over MCP (MIT).
 
-```bash
-npm i -g @colbymchenry/codegraph   # once per machine (per-user)
-codegraph install                  # once per machine: wires agent MCP configs
-codegraph init                     # once per clone: builds .codegraph/
-```
-
-One MCP tool by design, `codegraph_explore`; the other 7 need `CODEGRAPH_MCP_TOOLS=explore,node,…`. **Without an MCP client, use the CLI twins** `codegraph explore|node|callers|callees|impact|query|affected`; `codegraph sync` before trusting the graph; test selection `git diff --name-only | codegraph affected --stdin`; scripted runs set `DO_NOT_TRACK=1`. → `docs/prd/07-codegraph-adoption.md`
+One MCP tool by design, `codegraph_explore`. **Without an MCP client, use the CLI twins** `codegraph explore|node|callers|callees|impact|query|affected`. Install `npm i -g @colbymchenry/codegraph` → `codegraph install` → `codegraph init`. Scripted runs set `DO_NOT_TRACK=1`. → `docs/prd/07-codegraph-adoption.md`
 
 ### graphify (optional)
 
-Non-code knowledge graph (docs, SQL, configs, PDFs): `graphify query|path|explain`; `graphify-out/graph.json` is untracked by rule (tracking it needs the `.gitattributes` merge driver). → `kb/comparisons/codegraph-vs-graphify.md`
+Non-code knowledge graph (docs, SQL, configs, PDFs): `graphify query|path|explain`. → `kb/comparisons/codegraph-vs-graphify.md`

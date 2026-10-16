@@ -3,28 +3,35 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-10-03 | Total pages: 30
+> Last updated: 2026-10-16 | Total pages: 36
 
 ## Concepts
 
 | Concept | File | Confidence |
 |---------|------|------------|
-| Agent code-graph search | [concepts/agent-code-graph-search.md](concepts/agent-code-graph-search.md) | high |
+| Actions Hardening | [concepts/actions-hardening.md](concepts/actions-hardening.md) | high |
 | Adversarial Optimization Layer | [concepts/adversarial-optimization-layer.md](concepts/adversarial-optimization-layer.md) | medium |
+| Agent code-graph search | [concepts/agent-code-graph-search.md](concepts/agent-code-graph-search.md) | high |
 | Autoresearch Contract | [concepts/autoresearch-contract.md](concepts/autoresearch-contract.md) | high |
 | Better/Cheaper/Faster Metrics | [concepts/better-cheaper-faster-metrics.md](concepts/better-cheaper-faster-metrics.md) | high |
+| Deterministic Keep Gate | [concepts/deterministic-keep-gate.md](concepts/deterministic-keep-gate.md) | high |
 | Document Funnel Doctrine | [concepts/document-funnel-doctrine.md](concepts/document-funnel-doctrine.md) | high |
 | Domain Adaptation | [concepts/domain-adaptation.md](concepts/domain-adaptation.md) | medium |
 | Evaluator Legitimacy | [concepts/evaluator-legitimacy.md](concepts/evaluator-legitimacy.md) | medium |
+| Fixed Time Budget | [concepts/fixed-time-budget.md](concepts/fixed-time-budget.md) | high |
 | Formal Mapping (optimization theory, Markov chains, game theory) | [concepts/formal-mapping-autoresearch.md](concepts/formal-mapping-autoresearch.md) | medium |
+| GitHub Merge Gates | [concepts/github-merge-gates.md](concepts/github-merge-gates.md) | high |
+| Harness Portability | [concepts/harness-portability.md](concepts/harness-portability.md) | high |
 | Kanban Factory | [concepts/kanban-factory.md](concepts/kanban-factory.md) | high |
 | Karpathy coding guidelines | [concepts/karpathy-coding-guidelines.md](concepts/karpathy-coding-guidelines.md) | high |
-| Output-medium escalation | [concepts/output-medium-escalation.md](concepts/output-medium-escalation.md) | medium |
-| Fixed Time Budget | [concepts/fixed-time-budget.md](concepts/fixed-time-budget.md) | high |
 | MCP Streamable HTTP Transport | [concepts/mcp-streamable-http-transport.md](concepts/mcp-streamable-http-transport.md) | high |
 | Methodology Registration (the reusable template pattern) | [concepts/methodology-registration.md](concepts/methodology-registration.md) | high |
+| Output-medium escalation | [concepts/output-medium-escalation.md](concepts/output-medium-escalation.md) | medium |
 | Problem Selection | [concepts/problem-selection.md](concepts/problem-selection.md) | medium |
+| QC Test Tiers | [concepts/qc-test-tiers.md](concepts/qc-test-tiers.md) | high |
+| Quality Controls | [concepts/quality-controls.md](concepts/quality-controls.md) | high |
 | Research Job Pattern | [concepts/research-job-pattern.md](concepts/research-job-pattern.md) | high |
+| Scanning Without Advanced Security | [concepts/scanning-without-advanced-security.md](concepts/scanning-without-advanced-security.md) | high |
 | Skill Self-Improvement | [concepts/skill-self-improvement.md](concepts/skill-self-improvement.md) | medium |
 | Val-BPB Metric | [concepts/val-bpb-metric.md](concepts/val-bpb-metric.md) | high |
 
@@ -41,6 +48,7 @@
 
 | Comparison | File | Confidence |
 |------------|------|------------|
+| Autoresearch OSS Landscape | [comparisons/autoresearch-oss-landscape.md](comparisons/autoresearch-oss-landscape.md) | medium |
 | Autoresearch Platform Forks | [comparisons/autoresearch-platform-forks.md](comparisons/autoresearch-platform-forks.md) | medium |
 | Autoresearch Video Corpus | [comparisons/autoresearch-video-corpus.md](comparisons/autoresearch-video-corpus.md) | medium |
 | Autonomous Research Systems | [comparisons/autonomous-research-systems.md](comparisons/autonomous-research-systems.md) | medium |
@@ -65,6 +73,9 @@
 | CodeGraph — MCP code intelligence (v1.6.0 evidence) | [raw/articles/codegraph-mcp-code-intelligence.md](raw/articles/codegraph-mcp-code-intelligence.md) | 2026-09-16 |
 | Karpathy — output-medium escalation (ASD-STE100 → diagram → HTML → explainer video) | [raw/articles/karpathy-output-medium-escalation.md](raw/articles/karpathy-output-medium-escalation.md) | 2026-10-03 |
 | Karpathy coding guidelines skill (the four principles, vendored copy) | [raw/articles/karpathy-guidelines-skill.md](raw/articles/karpathy-guidelines-skill.md) | 2026-10-03 |
+| Quality-controls audit dossier (review controls, Actions hardening, scanning, peer survey) | [raw/articles/quality-controls-audit-dossier.md](raw/articles/quality-controls-audit-dossier.md) | 2026-10-14 |
+| OSS autoresearch landscape — 19 MIT/Apache-2.0 implementations | [raw/articles/2026-10-16-autoresearch-oss-landscape.md](raw/articles/2026-10-16-autoresearch-oss-landscape.md) | 2026-10-16 |
+| Template self-audit — contract, examples, harness, integrity | [raw/articles/2026-10-16-template-self-audit.md](raw/articles/2026-10-16-template-self-audit.md) | 2026-10-16 |
 | transcript — music AI model | [raw/transcripts/-Ip9EtoBjbk.txt](raw/transcripts/-Ip9EtoBjbk.txt) | 2026-09-04 |
 | transcript — can you autoresearch everything | [raw/transcripts/bMoNOb0iXpA.txt](raw/transcripts/bMoNOb0iXpA.txt) | 2026-09-04 |
 | transcript — best local LLM | [raw/transcripts/jCNeVZJAYGM.txt](raw/transcripts/jCNeVZJAYGM.txt) | 2026-09-04 |
@@ -79,10 +90,10 @@
 
 ## Stats
 
-- Concepts: 18
+- Concepts: 25
 - Entities: 4
-- Comparisons: 6
+- Comparisons: 7
 - Queries: 0
-- Raw sources: 18
-- Archived: 1
-- Total: 30
+- Raw sources: 21
+- Archived: 4
+- Total: 36

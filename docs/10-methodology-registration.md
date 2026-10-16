@@ -5,8 +5,8 @@
 The registration of the autoresearch methodology into the knowledge base: a
 deep-research ingest dated 2026-09-26 that adds one raw article, five layer-2
 concept pages and two page updates, distilled from `karpathy/autoresearch`
-(upstream master, files sha256-verified) and its first real-world instance, the
-slash-commerce pipeline. It registers the invariant pattern — three mutability
+(upstream master, files sha256-verified) and its first real-world instance, a private
+commerce-pipeline instance. It registers the invariant pattern — three mutability
 classes inside one loop — rather than the ML training loop that carries it.
 
 ## Why
@@ -54,8 +54,8 @@ metric easier" leaves the action space, and residual risk moves from cheating
 
 ### Portability proof
 
-The slash-commerce instance changed the upstream `contract/` by exactly zero
-bytes — all three files byte-identical to this template's — and met its
+The private commerce-pipeline instance changed the upstream `contract/` by exactly
+zero bytes — all three files byte-identical to this template's — and met its
 objective by re-instantiating the same shape one layer down in `pipeline/`.
 Only the DATA side of an instantiation ever moves (embedded corpus, domain
 hooks, `--results` auto-append).

@@ -28,12 +28,15 @@ scaling, voting scheme, per-class structure). Everything in-model is fair game.
   never redefine it. (`loop_driver.py` asserts
   `train.evaluate_accuracy is prepare.evaluate_accuracy` and aborts otherwise.)
 - Touch the split: `TRAIN`, `TEST`, the seed and the raw dataset are frozen in
-  `prepare.py`. Re-splitting is metric tampering.
+  `prepare.py`. Re-splitting is metric tampering. (`prepare.py` also discloses
+  that the frozen seed was picked after scanning seeds 0–39 for the largest
+  headline delta — evaluator-input tuning, recorded rather than hidden.)
 - Install packages. Stdlib only.
 - Modify any other file.
 
-**Goal: highest accuracy.** TIME_BUDGET=60s is fixed by prepare.py (a kNN run
-here takes milliseconds; the budget bounds the search, not the fit).
+**Goal: highest accuracy.** TIME_BUDGET=60s is a **ceiling** fixed by prepare.py
+(a kNN run here takes milliseconds; the budget bounds a runaway candidate, it is
+not a target and never gates a normal run).
 
 **Simplicity criterion:** all else equal, simpler is better. A deletion that
 holds the metric is a win.

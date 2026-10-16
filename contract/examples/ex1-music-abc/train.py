@@ -1,7 +1,13 @@
 """train.py — the ONLY agent-edited file (music-abc example).
 
-Baseline: unigram LM with add-alpha smoothing. Candidate edits change ONLY
-this file; evaluate_bpb is imported from prepare (never redefined).
+This tracked file is the FINAL kept state of the worked run: a smoothed unigram
+with a bigram interpolation (lam=0.7) and a lighter add-alpha backoff
+(alpha=0.5). The BASELINE it started from is `train_baseline.py` (pure unigram,
+alpha=1.0); `loop_driver.py --from-baseline` replays the scripted candidate list
+from there.
+
+Candidate edits change ONLY this file; evaluate_bpb is imported from prepare
+(never redefined).
 """
 import math
 import time

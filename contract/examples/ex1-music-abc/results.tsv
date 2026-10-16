@@ -1,3 +1,4 @@
+commit	val_bpb	seconds	status	description
 15d522f	3.765056	0.0	keep	baseline (unigram add-alpha=1, no context)
 3dfcd1d	2.435208	0.0	keep	bigram interpolation lam=0.5
 f3d6349	2.178568	0.0	keep	bigram interpolation lam=0.7

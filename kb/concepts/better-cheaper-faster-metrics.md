@@ -1,7 +1,7 @@
 ---
 title: Better/Cheaper/Faster Metrics (T0–T3 tiers)
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-10-16
 type: concept
 tags: [autoresearch, research-method]
 sources: [raw/articles/2026-09-26-autoresearch-methodology-registration.md]
@@ -11,7 +11,7 @@ confidence: high
 # Better/Cheaper/Faster Metrics
 
 How the slogan "max test coverage, min wall time, min LLM cost" becomes a
-decidable objective (slash-commerce Wave 1).
+decidable objective (a private commerce-pipeline instance's Wave 1).
 
 ## Field tiers
 

@@ -9,7 +9,7 @@ description: Use when instantiating or registering an autoresearch loop.
 "register the autoresearch methodology"; "run an autonomous research loop on X".
 
 Registered 2026-09-26 from deep research on karpathy/autoresearch (upstream) +
-slash-roast/slash-commerce-pipeline-autoresearch (first real-world instance).
+a private commerce-pipeline instance (first real-world instance).
 Canonical ingest: `kb/raw/articles/2026-09-26-autoresearch-methodology-registration.md`
 (in template-autoresearch-ready-repo). Full 7-item report archived in that
 repo's research scaffold.

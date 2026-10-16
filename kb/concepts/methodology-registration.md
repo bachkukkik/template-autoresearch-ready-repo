@@ -1,7 +1,7 @@
 ---
 title: Methodology Registration (the reusable template pattern)
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-10-16
 type: concept
 tags: [autoresearch, research-method, doctrine]
 sources: [raw/articles/2026-09-26-autoresearch-methodology-registration.md, raw/articles/autoresearch-program-md-reference.md]
@@ -11,8 +11,8 @@ confidence: high
 # Methodology Registration (the reusable template pattern)
 
 The registered, domain-independent distillation of the autoresearch pattern,
-grounded by deep research (2026-09-26) on the upstream repo and the
-slash-commerce real-world instance. The transferable pattern is NOT the ML
+grounded by deep research (2026-09-26) on the upstream repo and a
+private commerce-pipeline instance. The transferable pattern is NOT the ML
 training loop.
 
 ## The invariant core
@@ -35,7 +35,7 @@ easier" is removed from the action space, and residual risk moves from cheating
 
 ## Portability proof
 
-The slash-commerce instance's `contract/` is byte-identical to this template's
+The instance's `contract/` is byte-identical to this template's
 (zero bytes changed) and met its objective by re-instantiating the same shape
 one layer down. Only the DATA side of an instantiation ever moves.
 

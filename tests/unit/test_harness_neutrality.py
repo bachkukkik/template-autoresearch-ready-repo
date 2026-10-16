@@ -1,4 +1,4 @@
-"""Harness-neutrality guard (unit tier). IDs: AC-HRN-001..014.
+"""Harness-neutrality guard (unit tier). IDs: AC-HRN-001..017.
 
 Locks in the repo's own claim that this template serves Hermes, Claude Code,
 opencode and a DeepSeek/OpenAI-compatible harness as equals, with no
@@ -16,17 +16,27 @@ skill. That is the invariant the original defect — `/goal` offered as the
 pipeline entry point with no fallback for the three harnesses lacking slash
 commands — would have failed.
 
+AC-HRN-015..017 close three seams. A mandated skill could be named in
+`AGENTS.md` §1 and resolve nowhere (AC-HRN-015 — it must resolve to a vendored
+`.agents/skills/<name>/SKILL.md` or to a README install-source row carrying an
+https URL). The harness set was an exact four, so adding a README row for a
+harness `AGENTS.md` did not list tripped a regex instead of reporting drift
+(AC-HRN-016 — the four are a MINIMUM, and a README row must pair with an
+`AGENTS.md` binding). And the Gemini CLI entry point had to be a symlink to the
+one canonical file (AC-HRN-017).
+
 What this guard still cannot reach: it reads the document, not a live client.
 A harness whose *behaviour* diverges from the documented binding (an opencode
 that ignores `.agents/skills`, a Claude Code whose `Task` tool no longer
 exists) is outside a hermetic unit test; this file only proves the document
 tells every such harness what to do instead.
 
-Hermetic: two file reads and stdlib parsing. No subprocess, no network, no
+Hermetic: file reads and stdlib parsing. No subprocess, no network, no
 harness binary. Tables are parsed by header text, never by column index, so a
 rewrite that reorders a column still passes while removing a harness binding
 fails.
 """
+import os
 import re
 from pathlib import Path
 
@@ -39,8 +49,12 @@ SECTION_SPLIT_RE = re.compile(r"(?m)^##\s+")
 TABLE_SPLIT_RE = re.compile(r"(?<!\\)\|")
 SEPARATOR_RE = re.compile(r":?-{2,}:?")
 
-# The four harnesses this template must serve as equals. The patterns tolerate
-# the spellings the documents actually use.
+# The four harnesses this template must serve at MINIMUM — a FLOOR, not the whole
+# set. Codex CLI, Cursor, Gemini CLI and Aider are bound too, and the canonical
+# four stay canonical: AC-HRN-004 asserts they are named, AC-HRN-016 asserts a
+# harness beyond them is accepted when both documents carry it and reported when
+# only the README does. Adding a harness therefore edits two documents, never a
+# regex here. The patterns tolerate the spellings the documents actually use.
 HARNESS_PATTERNS = {
     "Hermes": re.compile(r"\bhermes\b", re.I),
     "Claude Code": re.compile(r"claude\W{0,2}code", re.I),
@@ -52,13 +66,12 @@ CANONICAL_HARNESSES = tuple(HARNESS_PATTERNS)
 # The binding for a harness nobody columned: a generic/fallback column or row.
 GENERIC_RE = re.compile(r"generic\s+fallback|anything\s+else", re.I)
 
-# A harness name the two catalog tables may legitimately carry beyond the
-# canonical four — used by AC-HRN-004 to catch a row the adapter does not know.
-KNOWN_HARNESS_LABEL_RE = re.compile(
-    r"hermes|claude\W{0,2}code|\bopencode\b|copilot|deepseek[^\n|]*openai-compatible"
-    r"|anything\s+else|generic\s+fallback",
-    re.I,
-)
+# A README harness label pairs with a name in AGENTS.md — the two documents are
+# one binding, not two lists. Link syntax and parentheticals are stripped, and a
+# label carrying alternatives ("DeepSeek / OpenAI-compatible") pairs on its first
+# alternative.
+MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+PARENTHETICAL_RE = re.compile(r"\([^)]*\)")
 
 # Capability rows in the adapter's capability table.
 ENTRY_FILE_ROW_RE = re.compile(r"entry\s+instruction\s+file", re.I)
@@ -166,6 +179,62 @@ def missing_harnesses(text, required=CANONICAL_HARNESSES):
     return [name for name in required if not HARNESS_PATTERNS[name].search(text)]
 
 
+def harness_key(label):
+    """The name a README harness label must be paired with in AGENTS.md.
+
+    Link syntax and parentheticals are dropped and a label with alternatives
+    pairs on its first alternative, so `[Gemini CLI](url)`,
+    `Codex CLI` and `DeepSeek / OpenAI-compatible` reduce to `Gemini CLI`,
+    `Codex CLI` and `DeepSeek`.
+    """
+    text = MARKDOWN_LINK_RE.sub(r"\1", label)
+    text = text.split("/", 1)[0]
+    text = PARENTHETICAL_RE.sub(" ", text).replace("`", " ")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def readme_harness_labels(readme_text):
+    """The row labels of README.md's *Harness Support* table.
+
+    Located by the `Harness` column header, never by position, and read off the
+    fence-stripped text so a table inside a ``` fence is invisible.
+    """
+    readme = strip_fenced_blocks(readme_text)
+    tables = [
+        table
+        for table in parse_tables(readme)
+        if any(re.fullmatch(r"harness", header, re.I) for header in table["headers"])
+    ]
+    assert len(tables) == 1, (
+        f"expected exactly one table with a `Harness` column in README.md, "
+        f"found {len(tables)}"
+    )
+    return [row["__label__"] for row in tables[0]["rows"]]
+
+
+def unpaired_harnesses(agents_text, labels):
+    """README harness labels that AGENTS.md does not also name. Empty == paired.
+
+    The pairing is the drift guard: a harness may be ADDED — the canonical four
+    are a floor, not a closed set — but it must be added to both documents. A
+    generic/fallback row is not a harness name and is skipped.
+    """
+    findings = []
+    for label in labels:
+        if not label.strip() or GENERIC_RE.search(label):
+            continue
+        key = harness_key(label)
+        if not key:
+            continue
+        if not re.search(r"\b" + re.escape(key) + r"\b", agents_text, re.I):
+            findings.append(
+                f"{label!r} carries a row in README.md's Harness Support table but "
+                "AGENTS.md never names it — add the harness to AGENTS.md too (a "
+                "README-only row is drift), or drop the row"
+            )
+    return findings
+
+
 def _adapter():
     text = AGENTS_MD.read_text(encoding="utf-8")
     adapter = section(text, "Harness Adapter")
@@ -264,35 +333,24 @@ def test_no_harness_is_required_to_have_a_slash_command():
 
 
 def test_readme_harness_support_names_the_same_four():
-    """AC-HRN-004: `README.md`'s *Harness Support* table names the same four
-    harnesses the adapter does, so the two documents cannot drift apart."""
+    """AC-HRN-004: every harness in `README.md`'s *Harness Support* table is
+    also named in `AGENTS.md`'s adapter — the canonical four are a floor, not
+    a closed set, but a README-only row means the pair has drifted."""
     readme = strip_fenced_blocks(README_MD.read_text(encoding="utf-8"))
-    harness_tables = [
-        table
-        for table in parse_tables(readme)
-        if any(re.fullmatch(r"harness", header, re.I) for header in table["headers"])
-    ]
-    assert len(harness_tables) == 1, (
-        f"expected exactly one table with a `Harness` column in README.md, "
-        f"found {len(harness_tables)}"
-    )
-    rows = harness_tables[0]["rows"]
-    assert rows, "README.md's Harness Support table has no rows"
-    labels = "\n".join(row["__label__"] for row in rows)
+    labels = readme_harness_labels(readme)
+    assert labels, "README.md's Harness Support table has no rows"
+    joined = "\n".join(labels)
 
-    missing = missing_harnesses(labels)
+    missing = missing_harnesses(joined)
     assert missing == [], (
         f"README.md's Harness Support table never names: {missing} — the doc pair "
         "must name the same harnesses as the Harness Adapter"
     )
-    assert GENERIC_RE.search(labels), (
+    assert GENERIC_RE.search(joined), (
         "README.md's Harness Support table has no generic/fallback row"
     )
-    unknown = [
-        row["__label__"]
-        for row in rows
-        if not KNOWN_HARNESS_LABEL_RE.search(row["__label__"])
-    ]
+    agents_text = _agents_text()
+    unknown = unpaired_harnesses(agents_text, labels)
     assert unknown == [], (
         f"README.md names harness row(s) the Harness Adapter does not know: "
         f"{unknown} — add each to AGENTS.md too, or the pair has drifted"
@@ -737,7 +795,11 @@ def test_fallback_check_reports_a_deleted_fallback():
     # moved up when the doctrine was compressed, so the six occurrences now sit
     # at these lines. The assertion is unchanged in intent — it still pins EVERY
     # `/goal` occurrence, so a dropped or added one fails here.
-    assert reported_lines == [109, 145, 147, 196, 198, 201], (
+    # Recomputed again for the Lifecycle restructure (2026-10-16): the upstream
+    # Lifecycle section replaced the `/goal`-only cluster, so the occurrence set
+    # is now five lines (adapter row, D1 row, kickoff line, the no-/goal heading
+    # and its paragraph). Same intent — every occurrence is pinned.
+    assert reported_lines == [108, 148, 153, 198, 200], (
         f"the blanked copy should report every `/goal` occurrence, got {reported_lines}"
     )
 
@@ -821,4 +883,149 @@ def test_fallback_check_scopes_to_the_occurrence_context():
     )
     assert check_fallback_completeness(row, GOAL_ONLY) == [], check_fallback_completeness(
         row, GOAL_ONLY
+    )
+
+
+# --- mandated-skill reachability & the canonical-set floor -------------------
+#
+# AC-HRN-015..017 close the three seams left after the fallback-completeness
+# block. A mandated skill could be named in `AGENTS.md` §1 and resolve nowhere
+# (015); the harness set was read as an exact four rather than a floor (016);
+# and the Gemini CLI entry point had to be a symlink, not a fork (017).
+
+MANDATED_SKILLS_HEADING = "1. Mandated Skills"
+MANDATED_LIST_RE = re.compile(r"Load on EVERY task:(.*?)(?:\.\s|\.$)", re.S)
+BACKTICK_RE = re.compile(r"`([^`]+)`")
+HTTP_SOURCE_RE = re.compile(r"https?://")
+
+
+def mandated_skills(text):
+    """The skill names `AGENTS.md` §1 names in its *Load on EVERY task* list.
+
+    Read off the `### 1. Mandated Skills` region, so a skill named anywhere else
+    in the file does not count, and restricted to that one sentence's backticked
+    tokens: a token that is a path (`.agents/skills/`) or a file (`SKILL.md`) is
+    not a skill NAME and is dropped.
+    """
+    region = heading_region(text, MANDATED_SKILLS_HEADING, level=3)
+    assert region, f"AGENTS.md has no '### {MANDATED_SKILLS_HEADING}' heading"
+    match = MANDATED_LIST_RE.search(region)
+    assert match, "the mandated-skills subsection states no 'Load on EVERY task' list"
+    return [
+        token
+        for token in BACKTICK_RE.findall(match.group(1))
+        if "/" not in token and "." not in token
+    ]
+
+
+def readme_skill_sources(readme_text):
+    """{skill name: source cell} for `README.md` § *Skills*' install table.
+
+    Located by its `Skill` + `Source` headers, never by position, so the table
+    can move or grow a column without blinding the check.
+    """
+    sources = {}
+    for table in parse_tables(strip_fenced_blocks(readme_text)):
+        headers = table["headers"]
+        if not any(re.fullmatch(r"skill", h, re.I) for h in headers):
+            continue
+        source_col = next((h for h in headers if re.search(r"source", h, re.I)), None)
+        if source_col is None:
+            continue
+        for row in table["rows"]:
+            name = row["__label__"].strip().strip("`").strip()
+            if name:
+                sources[name] = row.get(source_col, "")
+    return sources
+
+
+def skill_resolution_findings(skills, repo_root, sources):
+    """Findings for a mandated-skill list. Empty list == every skill resolves.
+
+    A skill resolves when it is vendored — `.agents/skills/<name>/SKILL.md`
+    travels with the repo — OR when a `README.md` § *Skills* row names it with an
+    install-source URL. Either is reachable from a fresh clone.
+    """
+    findings = []
+    for name in skills:
+        if (repo_root / ".agents" / "skills" / name / "SKILL.md").is_file():
+            continue
+        if HTTP_SOURCE_RE.search(sources.get(name, "")):
+            continue
+        findings.append(
+            f"{name!r} is mandated by AGENTS.md §1 but resolves nowhere: no "
+            f".agents/skills/{name}/SKILL.md travels with the repo and README.md "
+            "§ Skills carries no install-source URL for it"
+        )
+    return findings
+
+
+def test_every_mandated_skill_resolves_without_network_archaeology():
+    """AC-HRN-015: every skill `AGENTS.md` §1 mandates resolves to a vendored
+    `.agents/skills/<name>/SKILL.md` or to a `README.md` § *Skills* row carrying
+    an install-source URL, so a clone can satisfy every gate. Negative control: a
+    synthetic mandated skill with neither is reported."""
+    text = _agents_text()
+    skills = mandated_skills(text)
+    assert len(skills) >= 5, (
+        f"parsed only {len(skills)} mandated skill(s) out of §1: {skills} — the "
+        "list parse is broken, or the section shrank to near nothing"
+    )
+    sources = readme_skill_sources(README_MD.read_text(encoding="utf-8"))
+    assert sources, "README.md § Skills has no Skill/Source install table"
+    findings = skill_resolution_findings(skills, REPO_ROOT, sources)
+    assert findings == [], "; ".join(findings)
+
+    ghost = skill_resolution_findings(["ghost-skill"], REPO_ROOT, sources)
+    assert ghost, "the resolution check passed a skill that resolves nowhere"
+    assert any("ghost-skill" in f for f in ghost), ghost
+
+
+def test_canonical_harness_set_is_a_minimum_not_a_closed_set():
+    """AC-HRN-016: the canonical four are a FLOOR. A harness named in BOTH
+    `AGENTS.md` and `README.md` pairs and is accepted; the same harness with a
+    README-only row is reported as drift — so adding a harness edits two
+    documents, never a test regex."""
+    agents_text = _agents_text()
+    readme = strip_fenced_blocks(README_MD.read_text(encoding="utf-8"))
+    labels = readme_harness_labels(readme)
+    assert missing_harnesses(agents_text) == [], (
+        "the canonical four are no longer all named — AC-HRN-016's floor is broken"
+    )
+    assert unpaired_harnesses(agents_text, labels) == [], (
+        "the real README ↔ AGENTS.md pair already drifted (AC-HRN-004)"
+    )
+
+    # A synthetic FIFTH harness named in both documents pairs and passes.
+    fifth = "Zed IDE"
+    paired = unpaired_harnesses(
+        agents_text + f"\n{fifth} is a bound harness in this adapter.\n",
+        labels + [fifth],
+    )
+    assert paired == [], (
+        f"a fifth harness named in both documents was reported as drift: {paired} — "
+        "the canonical set is being read as a closed set"
+    )
+
+    # The same harness, README-only, is still drift.
+    findings = unpaired_harnesses(agents_text, labels + [fifth])
+    assert any(fifth in f for f in findings), (
+        "a README-only harness row passed the pairing check"
+    )
+
+
+def test_gemini_cli_entry_point_symlinks_to_agents_md():
+    """AC-HRN-017: the Gemini CLI entry point (`GEMINI.md`, its default context
+    file) is a symlink resolving to the one canonical `AGENTS.md`, not a copy."""
+    path = REPO_ROOT / "GEMINI.md"
+    assert os.path.islink(path), (
+        "GEMINI.md is not a symlink — Gemini CLI would read a forked copy of the "
+        "doctrine instead of the file the context budget is measured on"
+    )
+    assert os.path.exists(path), "GEMINI.md is a dangling symlink"
+    assert path.resolve() == AGENTS_MD.resolve(), (
+        f"GEMINI.md resolves to {path.resolve()}, not to {AGENTS_MD}"
+    )
+    assert path.read_text(encoding="utf-8") == AGENTS_MD.read_text(encoding="utf-8"), (
+        "GEMINI.md resolves to AGENTS.md but reads back different bytes"
     )
