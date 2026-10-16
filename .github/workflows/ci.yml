@@ -429,7 +429,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Install zizmor
-        run: pipx install zizmor
+        run: |
+          pipx install zizmor
+          # pipx installs to ~/.local/bin, which is not on the act/runner default
+          # PATH (verified under act 0.2.89: 'zizmor: command not found' without
+          # this export; the setup-python PATH additions do not cover it).
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Audit workflows (fail on findings)
         run: zizmor --min-severity low .github/workflows/
 
