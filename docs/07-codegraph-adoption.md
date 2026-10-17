@@ -23,7 +23,7 @@ that have no MCP client, and grounded in three `kb/` pages.
 ```bash
 npm i -g @colbymchenry/codegraph   # once per machine (per-user, not root)
 codegraph install                  # once per machine: wires agent MCP configs (auto-detects hermes/opencode/claude/…)
-codegraph init                     # once per clone: builds .codegraph/ (contents gitignored, .gitkeep tracked)
+codegraph init                     # once per clone: builds .codegraph/ (ignored wholesale — nothing tracked)
 ```
 
 | Surface | Detail |
@@ -31,9 +31,9 @@ codegraph init                     # once per clone: builds .codegraph/ (content
 | MCP | one tool by design — `codegraph_explore` (symbol-bag query → call path + source + blast radius in one call). The other 7 (`node`/`search`/`callers`/`callees`/`impact`/`files`/`status`) are unlisted by default |
 | Re-enable hidden tools | `CODEGRAPH_MCP_TOOLS=explore,node,search,callers` |
 | CLI twins (no MCP client) | `codegraph explore\|node\|callers\|callees\|impact\|query\|affected` |
-| Index | `.codegraph/` SQLite (WAL), local, gitignored; `.codegraph/.gitkeep` tracked |
+| Index | `.codegraph/` SQLite (WAL), local, ignored wholesale — nothing under it is tracked |
 | Fresh session | `codegraph sync` before trusting the graph (resident watcher otherwise auto-syncs) |
-| Test selection | `git diff --name-only \| codegraph affected --stdin` |
+| Test selection | `git diff --name-only \| codegraph affected --stdin -f 'tests/**/*.py'` (a test glob is required here — see *What Fails*) |
 | Telemetry | anonymous rollups, default ON, opt out with `DO_NOT_TRACK=1` (or `CODEGRAPH_TELEMETRY=0`) |
 
 Harness wiring is per harness (Hermes `$HERMES_HOME/config.yaml` `mcp_servers` +
@@ -43,7 +43,8 @@ intent and success criteria are in [docs/prd/07-codegraph-adoption.md](prd/07-co
 
 ## Verification
 
-Run from the repo root, 2026-09-19. CodeGraph v1.6.0 installed at
+Run from the repo root, 2026-09-19; the ignore, test-selection and test-coverage
+entries re-run 2026-10-17. CodeGraph v1.6.0 installed at
 `~/.npm-global/bin/codegraph`.
 
 ```bash
@@ -60,9 +61,14 @@ DO_NOT_TRACK=1 codegraph status
 #   Files by Language: python 32, yaml 3
 
 git check-ignore -v .codegraph/codegraph.db
-# .codegraph/.gitignore:4:*        .codegraph/codegraph.db        # ignored
+# .gitignore:93:.codegraph/        .codegraph/codegraph.db        # ignored (2026-10-17)
 git ls-files .codegraph
-# .codegraph/.gitkeep                                          # only tracked file
+# (no output — nothing under .codegraph/ is tracked)            # 2026-10-17
+
+# a fresh clone's own codegraph state stays out of git status (2026-10-17)
+DO_NOT_TRACK=1 codegraph init          # 66 files, 1,088 nodes
+git status --porcelain | grep -c codegraph/
+# 0   (codegraph.db AND the .codegraph/.gitignore it writes are both ignored)
 
 # MCP one-tool surface (stdio JSON-RPC probe)
 printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}' \
@@ -82,26 +88,44 @@ DO_NOT_TRACK=1 codegraph files
 # Project Structure (37 files): .github/…, contract/…, service/…
 
 echo service/src/runner.py | DO_NOT_TRACK=1 codegraph affected --stdin
-# ℹ No test files affected by the changed files.
+# ℹ No test files affected by the changed files.                # the DEFAULT filter matches nothing
+
+echo contract/prepare.py | DO_NOT_TRACK=1 codegraph affected --stdin -f 'tests/**/*.py' -q
+# tests/unit/test_domain_hooks.py                               # a test glob maps it (2026-10-17)
+# tests/unit/test_prepare_py.py
+echo service/src/main.py | DO_NOT_TRACK=1 codegraph affected --stdin -f 'tests/**/*.py' -q
+# tests/unit/test_routes.py
+# tests/unit/test_workspace.py
 
 DO_NOT_TRACK=1 codegraph sync
 # Syncing CodeGraph → Already up to date → Done
 
-ls .codegraph
-# .gitignore  .gitkeep  codegraph.db
+ls -a .codegraph
+# .  ..  .gitignore  codegraph.db                               # neither is tracked (2026-10-17)
 ```
 
 A live MCP `tools/call` with `{"query":"run_loop"}` returns "Found 36 symbols
 across 4 files" plus blast-radius lines that name the dependent tests
 (`tests/unit/test_runner.py`, `tests/unit/test_workspace.py`).
 
-The adoption *surface* is verified hermetically, with no `codegraph` binary present:
+The adoption *surface* is verified hermetically, with no `codegraph` binary present;
+SC4/SC5 run in the opt-in integration tier (2026-10-17):
 
 ```bash
 python3 -m pytest tests/unit/test_codegraph_adoption.py -q
 # 6 passed   (AC-CG-001..006: AGENTS.md ## codegraph + its stage-4 pointer, the
-# CLI-twins fallback, DO_NOT_TRACK=1, .codegraph/.gitkeep + the .gitignore pair,
-# the three kb pages + raw article, the stage-4/stage-6 pair listed in PRD.md)
+# CLI-twins fallback, DO_NOT_TRACK=1, the wholesale `.codegraph/` ignore rule with
+# nothing tracked under it, the three kb pages + raw article, the stage-4/stage-6
+# pair listed in PRD.md)
+
+python3 -m pytest tests/integration/test_codegraph_live.py -q
+# 2 passed   (AC-CG-201: init → status → sync → query; AC-CG-202: `affected --stdin
+# -f 'tests/*.py'` maps the changed source to its test, the default filter stays empty)
+
+# the skip path the CI runners take — no codegraph on PATH:
+PATH=<dir-with-a-python3-and-no-codegraph>:/usr/bin:/bin python3 -m pytest \
+  tests/integration/test_codegraph_live.py -q
+# 2 skipped  ("ambient tool 'codegraph' is not on PATH (shutil.which)")
 ```
 
 ## What Works
@@ -114,39 +138,48 @@ python3 -m pytest tests/unit/test_codegraph_adoption.py -q
 - **CLI twins answer without an MCP client:** `codegraph files` (37-file structure),
   `codegraph node run_loop` (definition + source at `service/src/runner.py:147`),
   `codegraph callers run_loop` (6 callers, including two test functions).
-- **The index is local and ignored:** `.codegraph/codegraph.db` (~1.05 MB) is
-  ignored, only `.codegraph/.gitkeep` is tracked, and `codegraph sync` reports
-  "Already up to date" — the graph never enters a diff, yet a clone can rebuild it.
+- **The index is local and ignored:** `.codegraph/codegraph.db` (~1.05 MB) and the
+  `.codegraph/.gitignore` codegraph writes for itself are both ignored by the single
+  `.codegraph/` directory rule, so `codegraph init` in a fresh clone leaves
+  `git status` clean — the graph never enters a diff, yet a clone can rebuild it.
 - **The adoption is documented where agents read it:** `AGENTS.md` carries 20
   `codegraph` mentions (the `## codegraph` section + the Harness-Adapter row), and
   three `kb/` pages (entity/concept/comparison) ground the decision.
 - **The adoption surface is test-covered:** `tests/unit/test_codegraph_adoption.py`
   (AC-CG-001..006) asserts, hermetically and without the Node tool, the
   `## codegraph` section and its stage-4 pointer, the CLI-twins fallback, the
-  `DO_NOT_TRACK=1` opt-out, the `.codegraph/.gitkeep` placeholder with its
-  `.gitignore` ignore-then-unignore pair, the three `kb/` pages + the raw article,
-  and the stage-4/stage-6 pair listed in `PRD.md` — removing any of them is red.
+  `DO_NOT_TRACK=1` opt-out, the wholesale `.codegraph/` ignore rule with nothing
+  tracked under it, the three `kb/` pages + the raw article, and the stage-4/stage-6
+  pair listed in `PRD.md` — removing any of them is red.
+- **SC4/SC5 run against the real CLI where it exists:** the opt-in integration module
+  `tests/integration/test_codegraph_live.py` (AC-CG-201..202) drives a hermetic tmp
+  git project through `codegraph init` → `status` → `sync` → `query` and
+  `affected --stdin -f 'tests/*.py'`. It skips, naming the tool, where `codegraph` is
+  absent, so the CI runners report skips and never a red tier.
 
 ## What Fails
 
-- **`codegraph affected` maps nothing on this layout:** `echo service/src/runner.py |
-  codegraph affected --stdin` returns "No test files affected by the changed files.",
-  even though the call edges exist.
-- **The index is per-clone:** a fresh clone has an empty `.codegraph/` until
+- **`codegraph affected` maps nothing with its default filter:** `echo
+  service/src/runner.py | codegraph affected --stdin` returns "No test files affected
+  by the changed files." on this Python layout, even though the call edges exist.
+  A test-file glob (`-f 'tests/**/*.py'`) is what maps a changed file to its tests.
+- **The index is per-clone:** a fresh clone has no `.codegraph/` until
   `codegraph install` + `codegraph init`; `codegraph status` flags pending changes
   and the graph cannot be trusted before `codegraph sync`.
 - **Dynamic dispatch is silent:** static analysis cannot see reactive/reconciler
   runtimes (Halo, MediatR, Vue Proxy); the tool is silent, not wrong — partial
   bridging is worse than none.
 - **Telemetry is default-on and opt-out is instruction-only:** `DO_NOT_TRACK=1` is
-  documented in `AGENTS.md`, but nothing in CI asserts that a scripted run sets it.
+  documented in `AGENTS.md` and set by the opt-in integration helper, but no CI job
+  asserts that a scripted run sets it.
 
 ## Resolution
 
-- **`codegraph affected` maps nothing:** use the `codegraph_explore` blast-radius
-  lines for test selection meanwhile (they already name `tests/unit/test_runner.py`
-  and `tests/unit/test_workspace.py` for `run_loop`); revisit with a `--filter` glob
-  or an upstream fix.
+- **`codegraph affected` maps nothing with its default filter:** pass a test glob —
+  `codegraph affected --stdin -f 'tests/**/*.py'` maps `contract/prepare.py` to
+  `tests/unit/test_domain_hooks.py` and `service/src/main.py` to
+  `tests/unit/test_routes.py` + `tests/unit/test_workspace.py`. The default filter
+  stays a limitation, so always give the recipient tier a glob.
 - **The index is per-clone:** run `codegraph install` then `codegraph init`, and
   `codegraph sync` in a fresh session — both are stated in `AGENTS.md` `## codegraph`
   and the root `README.md`.
@@ -154,17 +187,17 @@ python3 -m pytest tests/unit/test_codegraph_adoption.py -q
   source reading — recorded in `kb/concepts/agent-code-graph-search.md` ("Known
   limits of the class").
 - **Telemetry default-on:** set `DO_NOT_TRACK=1` on every scripted/CI codegraph run
-  (the instruction surface already says so); a future test can assert the env in the
-  wrapper.
+  (the instruction surface already says so); the opt-in integration helper does it
+  for its own calls, and a CI assertion over a scripted wrapper stays a future test.
 
 ## Verdict
 
 **partial** — the adoption works where it is verifiable by hand: the one-tool MCP
-surface, the CLI twins, the re-enable path, the gitignored local SQLite index and
-`codegraph sync` all reproduce on this machine (2026-09-19), and the adoption
-surface is now pinned by the hermetic unit test
-`tests/unit/test_codegraph_adoption.py` (AC-CG-001..006). One path stays incomplete:
-`codegraph affected` returns no test files on this repo's layout — and because no CI
-job runs the Node tool, the live calls (MCP `tools/list`, `sync`, `affected`) remain
-hand-verified rather than CI-asserted; read the doc for the working mechanism and
-those seams.
+surface, the CLI twins, the re-enable path, the ignored local SQLite index and
+`codegraph sync` all reproduce on this machine (2026-09-19, re-run 2026-10-17). The
+surface is pinned by the hermetic unit test `tests/unit/test_codegraph_adoption.py`
+(AC-CG-001..006), and SC4/SC5 by the opt-in integration test
+`tests/integration/test_codegraph_live.py` (AC-CG-201..202), which skips wherever the
+Node tool is absent. Two seams stay open: `codegraph affected` needs an explicit
+test-file glob on this layout, and no CI job exercises the live calls — read the doc
+for the mechanism and those seams.
