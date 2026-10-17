@@ -2,22 +2,25 @@
 
 The repo adopts CodeGraph as its primary agent graph search; these tests pin the
 adoption SURFACE a red PR could actually break — `AGENTS.md` `## codegraph` and
-the harness adapter, the gitignore/placeholder pair for the local index, the
-stage-3 kb grounding, and the stage-4/stage-6 PRD pair.
+the harness adapter, the gitignore rule for the local index, the stage-3 kb
+grounding, and the stage-4/stage-6 PRD pair.
 
-Hermetic: file reads and stdlib only. The optional `codegraph` binary is Node
-and not guaranteed present on a CI runner, so nothing here shells out to it, and
-nothing asserts the contents of the gitignored `.codegraph/` index — that is the
-ambient-dependency class the unit tier forbids.
+Hermetic: file reads and stdlib only, with one exception — AC-CG-004 reads the git
+index through a `git` subprocess behind the ambient preflight, because
+"git tracks nothing under .codegraph/" is a property of the index and not of any
+file. The optional `codegraph` binary is Node and not guaranteed present on a CI
+runner, so nothing here shells out to it, and nothing asserts the contents of the
+gitignored `.codegraph/` index — that is the ambient-dependency class the unit tier
+forbids.
 """
 import re
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AGENTS_MD = REPO_ROOT / "AGENTS.md"
 GITIGNORE = REPO_ROOT / ".gitignore"
 PRD_MD = REPO_ROOT / "PRD.md"
-GITKEEP = REPO_ROOT / ".codegraph" / ".gitkeep"
 PRD_STAGE4 = REPO_ROOT / "docs" / "prd" / "07-codegraph-adoption.md"
 DOC_STAGE6 = REPO_ROOT / "docs" / "07-codegraph-adoption.md"
 
@@ -124,23 +127,54 @@ def test_do_not_track_stated_for_scripted_runs():
     )
 
 
-def test_codegraph_index_ignored_with_the_placeholder_kept():
-    """AC-CG-004: `.codegraph/.gitkeep` is the tracked placeholder for the local
-    index, and `.gitignore` carries the ignore-then-unignore pair — `.codegraph/*`
-    negated by `!.codegraph/.gitkeep`, in that order.
+def test_codegraph_index_ignored_wholesale(require_tool):
+    """AC-CG-004: `.codegraph/` is ignored WHOLESALE (upstream's rule) and git
+    tracks nothing under it.
 
-    Tracked-ness itself is asserted against the git index by the CI `doctrine`
-    job (`.codegraph` is one of its DOCTRINE_ROOTS); this test asserts the
-    hermetic half — the placeholder exists and the ignore rules preserve it.
+    `.gitignore` carries the single directory rule `.codegraph/` — no
+    ignore-then-unignore pair — so the whole local index, including the
+    `.codegraph/.gitignore` codegraph writes for itself, stays out of `git status`.
+    The tracked-ness half is read from the git index through a `git` subprocess
+    behind the ambient preflight; the `codegraph` binary is still never invoked.
     """
-    assert GITKEEP.is_file(), ".codegraph/.gitkeep is missing — no tracked placeholder"
     lines = [line.strip() for line in _read(GITIGNORE).splitlines()]
-    assert ".codegraph/*" in lines, ".gitignore no longer ignores the codegraph index"
-    assert "!.codegraph/.gitkeep" in lines, (
-        ".gitignore no longer un-ignores the codegraph placeholder"
+    assert ".codegraph/" in lines, (
+        ".gitignore no longer ignores .codegraph/ — the local index would reach "
+        "`git status`"
     )
-    assert lines.index(".codegraph/*") < lines.index("!.codegraph/.gitkeep"), (
-        "the un-ignore rule precedes the ignore rule, so it cannot apply"
+    assert ".codegraph/*" not in lines, (
+        ".gitignore enumerates .codegraph/* again; the wholesale directory rule is "
+        "what keeps codegraph's own .codegraph/.gitignore out of `git status`"
+    )
+    assert not (REPO_ROOT / ".codegraph" / ".gitkeep").exists(), (
+        "a .codegraph placeholder is back — the directory is ignored wholesale, so "
+        "it must ship no tracked file"
+    )
+
+    git = require_tool("git")  # the tracked-ness claim is a property of the git index
+
+    ignored = subprocess.run(
+        [git, "check-ignore", "-q", ".codegraph/codegraph.db"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert ignored.returncode == 0, (
+        ".codegraph/codegraph.db is not gitignored — the whole directory must be"
+    )
+
+    tracked = subprocess.run(
+        [git, "ls-files", "--", ".codegraph"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert tracked.returncode == 0, f"git ls-files failed: {tracked.stderr.strip()}"
+    assert tracked.stdout.strip() == "", (
+        f"git still tracks {tracked.stdout.split()!r} under .codegraph/ — nothing "
+        "under the local index may be committed"
     )
 
 

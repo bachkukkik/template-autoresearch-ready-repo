@@ -34,7 +34,6 @@ REQUIRED_DIRS = [
     "docs",                 # stage 6
     ".agents",              # harness adapter (skills/plugins the symlinks point at)
     ".claude",              # harness symlink dir
-    ".codegraph",           # graph index placeholder
     ".credentials",         # documented credential home (README + *.example only)
     "data",                 # service runtime state root — gitignored except .gitkeep
     ".github",              # CI itself

@@ -87,12 +87,10 @@ scratchpads/*
 # committed. The `doctrine` job in .github/workflows/ci.yml fails the build if it
 # happens, so a local override here will not go unnoticed.
 
-# === codegraph local index (local SQLite artifact; upstream ignores the whole dir) ===
-# ignore everything inside, keep the directory's tracked placeholder
-.codegraph/*
-!.codegraph/.gitkeep
-# NB: codegraph re-creates .codegraph/.gitignore on every validating command. It is left
-# untracked on purpose — never commit it, and never stage .codegraph/ with a blanket add.
+# === codegraph local index (local SQLite artifact) ===
+# Ignore the whole directory — upstream's rule. codegraph writes its own .gitignore,
+# SQLite database and daemon files inside; nothing under .codegraph/ is tracked.
+.codegraph/
 
 # === graphify knowledge graph ===
 # Default: the graph is LOCAL — untracked, rebuilt on demand. Ignore the whole
