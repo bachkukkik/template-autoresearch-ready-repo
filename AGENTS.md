@@ -15,9 +15,9 @@ fixed-time budget, keep/discard).
 ## Read First
 
 1. *Document Funnel* below — where any piece of writing may live.
-2. `PRD.md` — requirements index → topic PRDs in `docs/prd/`.
-3. `docs/README.md` — verdict catalog → `docs/NN-slug.md` (what works / fails).
-4. `kb/index.md` — knowledge catalog (semantics, architecture, decisions).
+2. `PRD.md` — intent index → `docs/prd/` (wins on intent).
+3. `docs/README.md` — reality index → `docs/NN-slug.md` (wins on behaviour).
+4. `kb/index.md` — knowledge index. Three indexes, no overlap.
 5. `README.md` — quick start, services, commands, structure.
 
 ## Document Funnel (MANDATORY — every harness, every agent)
