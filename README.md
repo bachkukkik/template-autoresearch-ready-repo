@@ -44,7 +44,7 @@ rule for `kb/raw/` is enforced in CI by
 ## Knowledge Base — what is in `kb/` now
 
 Ingested 2026-09-04 from a deep-research run on the autoresearch pattern
-(research artifacts snapshot in `scratchpads/autoresearch-research/`, gitignored):
+(each `kb/raw/` file names its sources in its frontmatter):
 
 | Layer | Content |
 |-------|---------|
