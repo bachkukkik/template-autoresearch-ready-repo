@@ -11,11 +11,12 @@ file is owned by the evaluator and is never edited during a run:
   * reference()      — the frozen oracle
   * the child runner — screen -> import -> frozen tests -> held-out outputs ->
                        freshly seeded timed reps, all inside ONE subprocess
-  * run_evaluator()  — spawns that subprocess, chooses the benchmark seeds with
-                       ``secrets`` AFTER the child's import handshake, recomputes
-                       ``reference(...)`` and compares the child's reported
-                       outputs itself, kills the whole process group at
-                       ``TIME_BUDGET`` and reports ``stop_reason: budget``
+  * run_evaluator()  — spawns that subprocess, draws ONE fresh ``secrets`` seed
+                       per timed rep AFTER the child's import handshake, sends
+                       only that seed, times the round trip itself, verifies the
+                       output against a reference it computed BEFORE sending the
+                       seed, kills the whole process group at ``TIME_BUDGET`` and
+                       reports ``stop_reason: budget``
   * decide() / status_for() — the evaluator-owned keep/discard vocabulary
 
 Three roles, never merged (the whole point of the example):
@@ -56,24 +57,34 @@ Missing or malformed outputs, or any mismatch, is a failed gate or a crash —
 never a keep. So a candidate that writes a verdict file (no ``run()``), or that
 lets an ``atexit`` hook rewrite one, has no verified output and cannot be kept.
 
-Fresh inputs the candidate cannot precompute. The parent chooses ``BENCH_REPS``
-benchmark seeds with ``secrets.randbits`` and sends them over the child's stdin
-ONLY after the child signals (in the results channel) that it has imported the
-candidate. The child builds each timed workload from its seed with this file's
-own ``generate_data``. A workload precomputed at import time, or a cache reused
-across reps, is therefore empty: the seeds did not exist when the artifact's
-module body ran, and every rep uses a different one.
+TIMING is parent-side too, one rep at a time. The parent chooses a fresh
+benchmark seed with ``secrets.randbits`` for EACH rep, computes
+``reference(generate_data(N_BIG, seed))`` BEFORE it sends anything so reference
+time is excluded from the window, writes ONLY that seed to the child's stdin,
+starts its own ``perf_counter``, waits for the child's output record for THAT
+seed (a record for another seed, or one already read before this seed was sent,
+is never a match), stops its clock, and verifies the output against the
+reference it computed. The recorded median is the median of the PARENT's
+per-rep seconds; the child's own opinion of how long it took is never read (the
+protocol carries no ``seconds`` field at all). Because the seed for rep k does
+not exist until the parent sends it, a workload precomputed at import time — or
+a clock the candidate patched — cannot make a rep look faster; the window is
+the parent's own wall clock around the round trip. The metric is therefore
+**parent wall time per rep, including the child's workload generation
+(``generate_data``) and the IPC**. That generation cost is identical for every
+candidate, so it is a constant overhead that keeps comparisons valid rather than
+a bias. The whole bench stays bounded by ``TIME_BUDGET`` (the process-group kill
+is unchanged), and the parent never blocks forever: every wait polls against the
+overall deadline.
 
-RESIDUAL RISK (honest, by design). The *correctness* signal is parent-verified
-and cannot be forged. The *speed* number is still measured inside the candidate's
-process and reported by the child, so a hostile candidate that patches the clock
-could understate it. The parent applies one sanity bound — a run is rejected
-(``gate: ok`` with ``stop_reason: error``, i.e. a crash) when its reported
-``median * BENCH_REPS`` exceeds the wall time the parent actually measured for
-the bench phase, or when the median is ``<= 0`` — but that bound cannot catch an
-understatement. Run live loops only in a disposable sandbox; that is this
-template's T2 stance on timing (a wall-clock delta within ~10% is not signal), so
-the ledger's keep/discard decisions must not be read as precise.
+RESIDUAL RISK (honest, by design). Both the correctness signal and the speed
+number are parent-measured and cannot be forged. What remains is that the
+evaluated artifact is arbitrary Python run **unsandboxed with the caller's
+privileges** — it can read files, spawn processes and consume the machine
+(there is no container here). Run live loops only in a disposable
+sandbox/VM with no host mounts and no credentials; that is this template's
+stance on running model-written code. A wall-clock delta within ~10% is not
+signal, so the ledger's keep/discard decisions must not be read as precise.
 
 Budget: the ENTIRE evaluated run (import + tests + held-out + ``BENCH_REPS``
 timed calls) is one subprocess with a HARD ``TIME_BUDGET`` wall-clock limit. On
@@ -86,14 +97,15 @@ it is not decoration.
 
 The child is also started in its own process group with a scrubbed environment
 (no ``OPENAI_*`` or other secrets: only PATH / PYTHONPATH / PYTHONHASHSEED and
-a private HOME), so the evaluated code never inherits the caller's API key.
+a private HOME), and the whole group is killed on EVERY exit path (a clean
+``os._exit(0)`` included), so the evaluated code never inherits the caller's API
+key and never leaves an orphan behind.
 
 Stdlib only — no pytest, no third-party packages.
 """
 import argparse
 import importlib.util
 import json
-import math
 import os
 import random
 import secrets
@@ -108,17 +120,23 @@ from collections import Counter
 # --------------------------------------------------------------- constants --
 HERE = os.path.dirname(os.path.abspath(__file__))
 TIME_BUDGET = 5            # seconds, HARD wall clock for one evaluated run
-BENCH_REPS = 3             # median over 3 timed calls of run(big workload)
+BENCH_REPS = 3             # median over 3 parent-timed reps (one fresh seed each)
 SAMPLE_SEED = 20261017     # the --summary display workload only; reps are fresh
 SEED_HELD = 424242         # held-out workload seed (disjoint)
 N_BIG = 60_000             # items in each timed workload
 N_HELD = 3_000             # items in the held-out gate workload
 VOCAB_SIZE = 4_000         # distinct strings in the generated corpus
 DIRECTION = "lower"        # lower median seconds is better
-LEDGER_HEADER = "commit\tmedian_seconds\tgate\tstop_reason\tstatus\ttokens\tdescription"
-LEDGER_STATUSES = ("keep", "discard", "timeout", "crash")
 ARTIFACT = os.path.join("target", "solution.py")
-GATE_VALUES = ("ok", "failed")
+POLL_INTERVAL = 0.001      # how often the parent re-reads the results channel
+
+# The results channel is a one-way stream the CANDIDATE can also append to, so
+# it is a resource a hostile artifact can flood. The parent reads it
+# incrementally (an offset, never a whole-file re-read) and caps both the bytes
+# and the records it will keep: past either cap the run is a crash, not a slow
+# win (`_judge`: `overflow` -> `stop_reason: error`).
+CHANNEL_MAX_BYTES = 8 * 1024 * 1024     # 8 MiB
+CHANNEL_MAX_RECORDS = 1000
 
 # The child's report channel: one JSON record per line, written to a path the
 # parent creates. The parent reads ONLY the stages below -- a line the candidate
@@ -128,11 +146,15 @@ STAGE_IMPORTED = "imported"     # handshake: the candidate module has been impor
 STAGE_GATE = "gate_failed"      # a child-side failure (screen/no run/raise/tests)
 STAGE_TESTS = "tests"           # the frozen suite's result (extra child-side check)
 STAGE_OUTPUT = "output"         # one raw run(items) output for a parent-known input
+STAGE_READY = "ready"           # the child is blocked on stdin, waiting for a seed
 
 # The evaluated child gets ONLY these variables from the caller's environment.
 # Secrets (OPENAI_API_KEY and friends) are deliberately absent: the candidate
 # is model-written code and must not be able to read the caller's credentials.
 CHILD_ENV_PASSTHROUGH = ("PATH", "PYTHONPATH", "PYTHONHASHSEED", "SYSTEMROOT")
+
+# The sentinel a channel returns when no matching record exists yet.
+_MISSING = object()
 
 
 # --------------------------------------------------------------- workloads --
@@ -148,15 +170,15 @@ def generate_data(n, seed, vocab=VOCAB_SIZE):
     return rng.choices(words, weights=weights, k=n)
 
 
-def bench_seeds():
-    """Fresh benchmark seeds, chosen at run time by the parent.
+def fresh_seed():
+    """One fresh benchmark seed, drawn by the parent just before it is sent.
 
     ``secrets`` (not the module's fixed ``random`` stream), and handed to the
-    child only after it reports it has imported the candidate -- so the seeds do
-    not exist while the artifact's module body runs. That defeats a workload
-    precomputed at import time and a cache reused across reps.
+    child one rep at a time: the seed for rep k does not exist until the parent
+    writes it to the child's stdin, so the workload for that rep cannot be
+    precomputed at import time or reused from an earlier rep.
     """
-    return [secrets.randbits(64) for _ in range(BENCH_REPS)]
+    return secrets.randbits(64)
 
 
 def reference(items):
@@ -194,15 +216,24 @@ HELD_OUT_WANT = reference(HELD_OUT)
 TESTS_PATH = os.path.join(HERE, "target", "tests.py")
 
 # A candidate may not reach into the frozen truth: returning the oracle's
-# output would pass the gate trivially and be "infinitely fast". The screen
-# blocks importing the evaluator (the only route to HELD_OUT_WANT); parent-side
-# verification is what makes forging the reported result pointless.
+# output would pass the gate trivially and be "infinitely fast". This screen is
+# a BEST-EFFORT substring tripwire against ACCIDENTAL oracle use -- a two-token
+# bypass (`importlib.import_module('pre'+'pare')`) defeats it, and copying a
+# correct implementation is not a gate forgery anyway (the output is genuinely
+# correct). It is NOT a security boundary: the real defence is the parent-side
+# comparison (a wrong output is a failed gate whatever the source said), and the
+# reason a live loop belongs in a disposable sandbox is that the artifact runs
+# unsandboxed, not that this screen can be trusted.
 FORBIDDEN = ("import prepare", "from prepare", "prepare.reference")
 
 
 # ------------------------------------------------------------- the harness --
 def screen_source(path):
-    """Return a rejection message when the artifact reaches for frozen truth."""
+    """Return a rejection message when the artifact reaches for frozen truth.
+
+    Best-effort only (see ``FORBIDDEN``): it catches the accidental, first-order
+    use of the oracle's name, nothing more.
+    """
     try:
         with open(path, encoding="utf-8") as fh:
             src = fh.read()
@@ -279,32 +310,210 @@ def child_env(home):
     return env
 
 
-def _kill_group(proc):
+def _kill_group(proc, pgid=None):
     """SIGKILL the child's whole process group (it has its own session).
 
     A plain ``proc.kill()`` leaves grandchildren (anything the candidate
     spawned) running as orphans, still burning the machine after the budget.
+    ``pgid`` is the group captured BEFORE the child was reaped: once it exits,
+    ``os.getpgid(proc.pid)`` raises, so a kill on the clean-exit path needs the
+    captured id to still reach a candidate's orphaned grandchildren. Guarded so
+    an already-dead group is fine.
+    """
+    if pgid is None:
+        try:
+            pgid = os.getpgid(proc.pid)
+        except (ProcessLookupError, OSError):
+            pgid = None
+    if pgid is not None:
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+            return
+        except (ProcessLookupError, PermissionError, OSError):
+            pass
+    try:
+        proc.kill()
+    except (ProcessLookupError, OSError):
+        pass
+
+
+# --------------------------------------------------- the results channel -----
+class _Channel:
+    """Incremental reader of the child's JSON results channel.
+
+    Reads only the bytes appended since the last poll (an offset, never a
+    whole-file re-read), and caps the bytes and the records it will keep. Past
+    either cap ``overflow`` is set and the run is treated as a crash.
+    """
+
+    def __init__(self, path, max_bytes=CHANNEL_MAX_BYTES,
+                 max_records=CHANNEL_MAX_RECORDS):
+        self.path = path
+        self.max_bytes = max_bytes
+        self.max_records = max_records
+        self.offset = 0
+        self.bytes = 0
+        self._buffer = b""
+        self.records = []
+        self.overflow = False
+
+    def poll(self):
+        """Read and parse whatever was appended since the last poll."""
+        remaining = self.max_bytes - self.bytes
+        if remaining <= 0:              # already at the cap: never read again
+            self.overflow = True
+            return
+        try:
+            with open(self.path, "rb") as fh:
+                fh.seek(self.offset)
+                chunk = fh.read(remaining + 1)   # one byte past the cap is enough
+        except OSError:
+            chunk = b""
+        if not chunk:
+            return
+        self.offset += len(chunk)
+        self.bytes += len(chunk)
+        if self.bytes > self.max_bytes:
+            self.overflow = True
+            return
+        self._buffer += chunk
+        while b"\n" in self._buffer:
+            line, self._buffer = self._buffer.split(b"\n", 1)
+            record = self._parse(line)
+            if record is not None:
+                self.records.append(record)
+        if len(self.records) >= self.max_records:
+            self.overflow = True
+
+    @staticmethod
+    def _parse(line):
+        text = line.strip()
+        if not text:
+            return None
+        try:
+            record = json.loads(text.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return None
+        return record if isinstance(record, dict) else None
+
+    def stage(self, stage):
+        """True when a record with this stage has been read."""
+        return any(record.get("stage") == stage for record in self.records)
+
+    def bench(self, seed):
+        """The first bench record the child wrote for ``seed`` (else _MISSING).
+
+        A record for another seed, or one already read before this seed was
+        sent, is never a match.
+        """
+        for record in self.records:
+            if (record.get("stage") == STAGE_OUTPUT
+                    and record.get("name") == "bench"
+                    and record.get("seed") == seed):
+                return record.get("output")
+        return _MISSING
+
+
+def _await(channel, proc, deadline, predicate):
+    """Poll ``channel`` until ``predicate`` is true, the child is gone, or the
+    overall deadline. Never blocks forever."""
+    while time.perf_counter() < deadline:
+        channel.poll()
+        if predicate():
+            return True
+        if proc.poll() is not None:      # the child is gone; stop waiting
+            break
+        time.sleep(POLL_INTERVAL)
+    channel.poll()
+    return predicate()
+
+
+def _await_imported(channel, proc, deadline):
+    """Wait for the child's import handshake (the fresh seeds come after it)."""
+    return _await(channel, proc, deadline,
+                  lambda: channel.stage(STAGE_IMPORTED))
+
+
+def _await_ready(channel, proc, deadline):
+    """Wait for the child's ready signal: it is blocked on stdin for a seed.
+
+    Waiting for this BEFORE the first seed keeps the child's own tests/held-out
+    phase out of the timed window. An overflowing channel returns False.
+    """
+    if channel.overflow:
+        return False
+    return _await(channel, proc, deadline,
+                  lambda: channel.stage(STAGE_READY) or channel.overflow) \
+        and not channel.overflow
+
+
+def _await_bench(channel, proc, deadline, seed):
+    """Wait for the child's output record for ``seed`` (else _MISSING).
+
+    Polls against the overall deadline, so a hung child cannot wedge the
+    parent; an overflowing channel ends the wait immediately.
+    """
+    while time.perf_counter() < deadline:
+        channel.poll()
+        if channel.overflow:
+            return _MISSING
+        output = channel.bench(seed)
+        if output is not _MISSING:
+            return output
+        if proc.poll() is not None:
+            break
+        time.sleep(POLL_INTERVAL)
+    channel.poll()
+    return channel.bench(seed)
+
+
+def _send_seed(proc, seed):
+    """Write ONE fresh seed to the child's stdin. False when the child is gone.
+
+    A dead child raises BrokenPipe — nothing to send, and the judge will see no
+    output for that seed — so the error is swallowed rather than aborting.
     """
     try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-    except (AttributeError, ProcessLookupError, PermissionError):
-        proc.kill()
+        proc.stdin.write(json.dumps({"seed": seed}) + "\n")
+        proc.stdin.flush()
+        return True
+    except (BrokenPipeError, OSError, ValueError, AttributeError):
+        return False
 
 
-def _read_seeds():
-    """The fresh benchmark seeds the parent sends over stdin post-handshake."""
+def _close_stdin(proc):
+    """Close the child's stdin (end of the seed stream), guarding a closed one.
+
+    ``communicate()``/``wait()`` would flush a still-attached stdin and raise on
+    a closed one, so detach it now that the seeds are written.
+    """
+    if proc.stdin is None:
+        return
+    try:
+        proc.stdin.close()
+    except (BrokenPipeError, OSError, ValueError):
+        pass
+    proc.stdin = None
+
+
+def _read_seed():
+    """The next seed the parent sends, one JSON line per rep (None on EOF).
+
+    Parsed strictly: a malformed or non-integer line ends the seed stream
+    rather than being coerced.
+    """
     line = sys.stdin.readline()
     if not line:
-        return []
+        return None
     try:
         data = json.loads(line)
     except ValueError:
-        return []
-    seeds = data.get("seeds") if isinstance(data, dict) else None
-    if not isinstance(seeds, list):
-        return []
-    return [seed for seed in seeds
-            if isinstance(seed, int) and not isinstance(seed, bool) and seed >= 0]
+        return None
+    if isinstance(data, dict):
+        data = data.get("seed")
+    if isinstance(data, int) and not isinstance(data, bool) and data >= 0:
+        return data
+    return None
 
 
 def _child(candidate_path, results_path):
@@ -312,10 +521,10 @@ def _child(candidate_path, results_path):
 
     The child writes JSON records to ``results_path`` for the PARENT to judge:
     a handshake once the candidate is imported, the frozen suite's result, the
-    raw ``run()`` output on the held-out workload, and the raw ``run()`` output
-    plus its own measured seconds for each freshly seeded benchmark workload. It
-    reports no gate and no keep — the parent recomputes ``reference(...)`` and
-    compares. stdout is a human-readable log and nothing else.
+    raw ``run()`` output on the held-out workload, a ready signal, and the raw
+    ``run()`` output for each seed the parent sends — ONE seed per line, read
+    in turn. It reports no gate, no keep and no timing: the parent measures the
+    per-rep wall clock itself. stdout is a human-readable log and nothing else.
 
     Exit: 0 ok, 2 a child-side failure (screen / no run() / raise / tests).
     """
@@ -339,7 +548,7 @@ def _child(candidate_path, results_path):
     if module is None or not callable(getattr(module, "run", None)):
         return fail("artifact defines no callable run()")
 
-    # Handshake. The parent chooses and sends the fresh benchmark seeds ONLY
+    # Handshake. The parent draws and sends the fresh benchmark seeds ONLY
     # after this — the artifact's module body has already run, so a workload it
     # precomputed at import cannot use a seed it has not been given yet.
     emit({"stage": STAGE_IMPORTED})
@@ -366,192 +575,107 @@ def _child(candidate_path, results_path):
     emit({"stage": STAGE_OUTPUT, "name": "held_out", "output": _canonical(got)})
     _print("held_out: output reported ({} items)".format(N_HELD))
 
-    seeds = _read_seeds()          # the parent's fresh seeds, sent post-handshake
-    if not seeds:
-        return fail("no benchmark seeds on stdin")
-    for seed in seeds:
+    # Ready: from here the parent sends ONE fresh seed per rep and measures the
+    # round trip (workload generation + run + IPC) with its OWN clock.
+    emit({"stage": STAGE_READY})
+    _print("ready: waiting for benchmark seeds")
+    reported = 0
+    while True:
+        seed = _read_seed()
+        if seed is None:
+            break                # stdin closed by the parent: the stream is done
         payload = generate_data(N_BIG, seed)
-        start = time.perf_counter()
         try:
             got = module.run(payload)
         except Exception as exc:                    # noqa: BLE001
             return fail("run(bench seed {}) raised {}: {}".format(
                 seed, type(exc).__name__, exc))
-        seconds = time.perf_counter() - start
         emit({"stage": STAGE_OUTPUT, "name": "bench", "seed": seed,
-              "seconds": seconds, "output": _canonical(got)})
-        _print("bench seed {}: {:.6f}s".format(seed, seconds))
-    _print("done: {} benchmark(s) reported".format(len(seeds)))
+              "output": _canonical(got)})
+        _print("bench seed {}: output reported".format(seed))
+        reported += 1
+    _print("done: {} benchmark(s) reported".format(reported))
     return 0
 
 
-def _has_stage(path, stage):
-    """True when the results channel already holds a record with this stage."""
-    try:
-        with open(path, encoding="utf-8") as fh:
-            lines = fh.read().splitlines()
-    except OSError:
-        return False
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            record = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(record, dict) and record.get("stage") == stage:
-            return True
-    return False
-
-
-def _await_imported(proc, results_path, deadline):
-    """Wait for the child's import handshake, its exit, or the deadline.
-
-    The seeds are chosen and sent only after this signal returns True.
-    """
-    while time.perf_counter() < deadline:
-        if _has_stage(results_path, STAGE_IMPORTED):
-            return True
-        if proc.poll() is not None:      # the child is gone; stop waiting
-            break
-        time.sleep(0.005)
-    return _has_stage(results_path, STAGE_IMPORTED)
-
-
-def _send_seeds(proc, seeds):
-    """Hand the child its fresh benchmark seeds over stdin, then close it.
-
-    A dead child raises BrokenPipe — nothing to send, and the judge will see no
-    outputs — so the error is swallowed rather than aborting the run.
-    """
-    try:
-        proc.stdin.write(json.dumps({"seeds": list(seeds)}) + "\n")
-        proc.stdin.flush()
-    except (BrokenPipeError, OSError, ValueError):
-        pass
-    finally:
-        try:
-            proc.stdin.close()
-        except (BrokenPipeError, OSError, ValueError):
-            pass
-        # communicate() would flush a still-attached stdin and raise on a closed
-        # one, so detach it now that the seeds are written.
-        proc.stdin = None
-
-
-def _parse_records(path, seeds):
-    """The child's records, keeping only the recognised stages.
-
-    A line that is not one of the known stages (a candidate's forged verdict,
-    for instance) is ignored: it can never assert a verdict. A forged ``output``
-    record IS kept — and then judged like any other, by comparing it against
-    ``reference``, where a wrong one only adds a mismatch.
-    """
-    records = {"imported": False, "gate_failed": None, "tests": None,
-               "outputs": [], "seeds": set(seeds)}
-    try:
-        with open(path, encoding="utf-8") as fh:
-            lines = fh.read().splitlines()
-    except OSError:
-        return records
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            record = json.loads(line)
-        except ValueError:
-            continue
-        if not isinstance(record, dict):
-            continue
-        stage = record.get("stage")
-        if stage == STAGE_IMPORTED:
-            records["imported"] = True
-        elif stage == STAGE_GATE:
-            records["gate_failed"] = str(
-                record.get("detail") or "child-side gate failure")
-        elif stage == STAGE_TESTS:
-            records["tests"] = record
-        elif stage == STAGE_OUTPUT:
-            records["outputs"].append(record)
-    return records
-
-
-def _judge(records, code, timed_out, bench_wall):
+def _judge(records, bench_times, wants, code, timed_out, overflow):
     """The PARENT's verdict, from its own comparison of the child's outputs.
 
-    The parent recomputes ``reference(...)`` for the held-out workload and for
-    every benchmark workload whose seed the parent itself chose, and compares. A
-    mismatch, a child-reported gate failure, or a missing output is a failure or
-    a crash — never a keep. A timeout always wins: median ``inf``, ``budget``,
-    with ``gate: ok`` when the held-out outputs delivered first all matched.
+    ``bench_times[seed]`` is the PARENT's own wall time for that rep (the
+    child's opinion of its speed is never read); ``wants[seed]`` is the
+    reference output the parent computed BEFORE it sent the seed. A mismatch, a
+    child-reported gate failure, a missing output, an overflowing channel or a
+    non-zero exit is a failure or a crash — never a keep. A timeout always wins:
+    median ``inf``, ``budget``, with ``gate: ok`` when the held-out outputs
+    delivered first all matched.
     """
     inf = float("inf")
-    seeds = records["seeds"]
-    failed = records["gate_failed"]
-    if failed is None and (records["tests"] or {}).get("failures"):
-        failed = "frozen tests: " + str(records["tests"]["failures"][0])
-
+    failed = None
     held_out_seen = False
     held_out_ok = False
-    bench = {}                      # seed -> measured seconds (matched only)
-    for record in records["outputs"]:
-        name = record.get("name")
-        got = record.get("output")
-        if name == "held_out":
+    bench_ok = set()
+    for record in records:
+        stage = record.get("stage")
+        if stage == STAGE_GATE:
+            failed = failed or str(
+                record.get("detail") or "child-side gate failure")
+        elif stage == STAGE_TESTS:
+            failures = record.get("failures")
+            if failures:
+                failed = failed or "frozen tests: " + str(failures[0])
+        elif stage == STAGE_OUTPUT and record.get("name") == "held_out":
             held_out_seen = True
-            if got == HELD_OUT_WANT:
+            if record.get("output") == HELD_OUT_WANT:
                 held_out_ok = True
             else:
-                failed = failed or ("held-out output != reference: "
-                                    + _held_out_diff(got, HELD_OUT_WANT))
-        elif name == "bench":
+                diff = _held_out_diff(record.get("output"), HELD_OUT_WANT) or ""
+                failed = failed or "held-out output != reference: " + diff
+        elif stage == STAGE_OUTPUT and record.get("name") == "bench":
             seed = record.get("seed")
-            if seed not in seeds:
+            if seed not in wants:
                 continue            # a rep the parent never seeded: ignore it
-            if got != reference(generate_data(N_BIG, seed)):
-                failed = failed or "bench output != reference (seed {})".format(seed)
+            if record.get("output") == wants[seed]:
+                bench_ok.add(seed)
             else:
-                seconds = record.get("seconds")
-                numeric = (isinstance(seconds, (int, float))
-                           and not isinstance(seconds, bool)
-                           and math.isfinite(seconds) and seconds > 0)
-                bench[seed] = float(seconds) if numeric else None
+                failed = failed or "bench output != reference (seed {})".format(seed)
 
-    any_output = held_out_seen or bool(bench)
+    any_output = held_out_seen or bool(bench_times)
     if timed_out:
         gate = "failed" if failed else ("ok" if held_out_ok else "n/a")
         return {"median": inf, "gate": gate, "stop_reason": "budget"}
+    if overflow:
+        return {"median": inf, "gate": "n/a", "stop_reason": "error"}
     if failed is not None:
         return {"median": inf, "gate": "failed", "stop_reason": "gate_failed"}
     if not any_output or not held_out_seen:
         return {"median": inf, "gate": "n/a", "stop_reason": "error"}
-    if code != 0 or len(bench) != len(seeds) or any(v is None for v in bench.values()):
+    if code != 0 or len(bench_times) != len(wants) or bench_ok != set(wants):
         return {"median": inf, "gate": "ok", "stop_reason": "error"}
-    median = statistics.median(bench.values())
-    # Sanity bound only: the speed number is measured inside the candidate's own
-    # process, so an understated median passes. A median the phase wall clock
-    # could not have produced (or a non-positive one) is rejected outright.
-    if median <= 0 or median * BENCH_REPS > bench_wall:
-        return {"median": inf, "gate": "ok", "stop_reason": "error"}
-    return {"median": median, "gate": "ok", "stop_reason": "done"}
+    return {"median": statistics.median(bench_times.values()),
+            "gate": "ok", "stop_reason": "done"}
 
 
 def run_evaluator(candidate_path):
     """Evaluate one candidate under the budget. Returns ``(verdict, log)``.
 
-    The child runs with its own process group and a scrubbed environment, and
-    reports to a results file the parent reads: the raw ``run()`` outputs for the
-    held-out workload and for each benchmark workload whose seed the parent chose
-    with ``secrets`` after the child's import handshake. The parent recomputes
-    ``reference(...)`` and compares — it never reads a gate or a median the child
-    asserts. At ``TIME_BUDGET`` the whole process group is killed and the verdict
-    is ``median_seconds: inf`` / ``stop_reason: budget``.
+    The child runs with its own process group and a scrubbed environment. The
+    parent draws ONE fresh ``secrets`` seed per rep, computes ``reference`` on
+    that seed's workload BEFORE sending it (so reference time is outside the
+    window), writes only that seed to the child's stdin, starts its own
+    ``perf_counter``, waits for the child's output record for THAT seed, stops
+    its clock and verifies the output against the reference it computed. The
+    recorded median is the median of the PARENT's per-rep seconds — the child's
+    own timing is never read. At ``TIME_BUDGET`` the whole process group is
+    killed (on every exit path) and the verdict is ``median_seconds: inf`` /
+    ``stop_reason: budget``.
     """
+    candidate_path = os.path.abspath(candidate_path)
     start = time.perf_counter()
+    deadline = start + TIME_BUDGET
     timed_out = False
     code = None
+    bench_times = {}                # seed -> the PARENT's own seconds for that rep
+    wants = {}                      # seed -> reference output, computed pre-send
     with tempfile.TemporaryDirectory(prefix="ex4-run-") as tmp:
         results_path = os.path.join(tmp, "results.jsonl")
         log_path = os.path.join(tmp, "child.log")
@@ -564,23 +688,55 @@ def run_evaluator(candidate_path):
                                     stdin=subprocess.PIPE, stdout=logf,
                                     stderr=subprocess.STDOUT, text=True,
                                     start_new_session=True)
-            deadline = start + TIME_BUDGET
-            # Handshake first: the fresh seeds exist only after the child has
-            # imported the candidate, so nothing can precompute their workloads.
-            imported = _await_imported(proc, results_path, deadline)
-            seeds = bench_seeds() if imported else []
-            sent_at = time.perf_counter()
-            _send_seeds(proc, seeds)
             try:
-                proc.communicate(timeout=max(0.0, deadline - time.perf_counter()))
-                code = proc.returncode
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                _kill_group(proc)
-                proc.communicate()
-            bench_wall = time.perf_counter() - sent_at
-            verdict = _judge(_parse_records(results_path, seeds), code,
-                             timed_out, bench_wall)
+                pgid = os.getpgid(proc.pid)     # capture before it is reaped
+            except (ProcessLookupError, OSError):
+                pgid = None
+            channel = _Channel(results_path)
+            try:
+                # Handshake, then ready: the fresh seeds exist only after the
+                # child has imported the candidate AND finished its own
+                # tests/held-out phase, so nothing precomputes a workload and no
+                # other child work lands inside a timed rep.
+                if _await_imported(channel, proc, deadline) \
+                        and _await_ready(channel, proc, deadline):
+                    for _ in range(BENCH_REPS):
+                        if time.perf_counter() >= deadline:
+                            timed_out = True
+                            break
+                        seed = fresh_seed()
+                        # Computed BEFORE the seed is sent: its cost is outside
+                        # the parent's window and the parent owns the truth.
+                        wants[seed] = reference(generate_data(N_BIG, seed))
+                        if time.perf_counter() >= deadline:
+                            timed_out = True
+                            break
+                        if not _send_seed(proc, seed):
+                            break
+                        sent = time.perf_counter()
+                        output = _await_bench(channel, proc, deadline, seed)
+                        received = time.perf_counter()
+                        if output is _MISSING:
+                            if received >= deadline:
+                                timed_out = True
+                            break
+                        bench_times[seed] = received - sent
+                _close_stdin(proc)
+                try:
+                    proc.wait(timeout=max(0.0, deadline - time.perf_counter()))
+                    code = proc.returncode
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    _kill_group(proc, pgid)
+                    proc.wait()
+            finally:
+                # Reach any grandchild the candidate left behind on EVERY exit
+                # path — a clean os._exit(0) after spawning one must not leak a
+                # running process.
+                _kill_group(proc, pgid)
+            channel.poll()
+            verdict = _judge(channel.records, bench_times, wants, code,
+                             timed_out, channel.overflow)
         with open(log_path, encoding="utf-8") as fh:
             child_out = fh.read()
     wall = time.perf_counter() - start
@@ -590,8 +746,8 @@ def run_evaluator(candidate_path):
         lines.append("# killed at TIME_BUDGET={}s (whole process group)".format(
             TIME_BUDGET))
     lines.append("# verdict: the parent's own comparison of the child's reported "
-                 "run() outputs; child exit={}".format(
-                     "timeout" if timed_out else code))
+                 "run() outputs and its own per-rep wall clock; child exit={}"
+                 .format("timeout" if timed_out else code))
     lines.append("median_seconds: {}".format(format_median(verdict["median"])))
     lines.append("gate: {}".format(verdict["gate"]))
     lines.append("stop_reason: {}".format(verdict["stop_reason"]))
@@ -647,13 +803,13 @@ def _summary():
     print("sample big workload: {} items / vocab {} / distinct {} / pairs {} "
           "(each rep gets a FRESH parent-chosen seed)".format(
               N_BIG, VOCAB_SIZE, len(set(train)), want["pairs"]))
-    print("held-out:     {} items / distinct {} / pairs {}".format(
+    print("held-out:     {} items / distinct {} / pairs {:.0f}".format(
         N_HELD, len(set(HELD_OUT)), HELD_OUT_WANT["pairs"]))
     print("artifact:     {} (the only agent-edited file)".format(ARTIFACT))
     print("gate:         the PARENT's own run(held_out) == reference comparison "
           "(target/tests.py is an extra child-side check)")
-    print("seeds:        chosen with secrets.randbits AFTER the child's import "
-          "handshake, sent over its stdin")
+    print("timing:       the PARENT's own wall clock per rep (one fresh "
+          "secrets seed per rep, sent over the child's stdin)")
     start = time.perf_counter()
     reference(train)
     print("reference() on the sample workload: {:.3f}s "
