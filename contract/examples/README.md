@@ -29,10 +29,16 @@ ex4 is the one example that replays **offline from its recorded transcript** —
 network, from the tracked baseline:
 
 ```bash
-cp -r contract/examples/ex4-llm-repo-speedup /tmp/ex4 && cd /tmp/ex4
-git init -q && git add -A && git commit -qm "contract: baseline"
+mkdir -p "$TMPDIR/ex4"
+git archive HEAD contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
+cd "$TMPDIR/ex4" && git init -q && git add -A && git commit -qm "contract: baseline"
 python3 agent_driver.py --from-baseline --replay transcript.jsonl
 ```
+
+A **live** ex4 run (not the replay) must start from an empty ledger — delete the
+vendored `results.tsv` first (`rm -f results.tsv`); the driver refuses to append to
+the record. The driver also refuses to run unless the example directory is the git
+root, because it commits and hard-resets.
 
 `--from-baseline` copies the tracked `train_baseline.py` over the FINAL-kept
 `train.py` and commits it, so the driver's patch anchors (written against the
@@ -59,9 +65,9 @@ into an inline `RUNS` array — it does not read the TSVs at load time — so
 equal the vendored ledgers and fails on any drift. ex4 is not charted: its ledger
 carries a driver header and T2-timing crash rows the dashboard's two-column
 series does not model; its replay is checked in `tests/unit/test_examples_ex4.py`
-(AC-EXA-011..018).
+(AC-EXA-011..030).
 
-## Calibration lessons (validated across all three runs)
+## Calibration lessons (validated across all four runs)
 
 - **The loop catches driver bugs for free**: an anchor bug that patches the
   wrong site yields an identical metric → mechanical discard. A candidate that
@@ -89,6 +95,16 @@ series does not model; its replay is checked in `tests/unit/test_examples_ex4.py
   returned nothing. The driver records `finish_reason: length` and an
   unusable-response crash rather than inventing a candidate; give a reasoning
   model a generous cap and record `finish_reason` so a truncated round is visible.
+- **A verdict the candidate can print or write is not a verdict.** ex4's first
+  evaluator parsed `gate` / `median_seconds` / `stop_reason` from the child's
+  stdout, which the candidate shares, so a file that printed a fake `gate: ok` and
+  exited 0 without running a test was scored `0.000001 s` and kept. Moving the
+  verdict into a parent-created file was not enough — the candidate is imported
+  inside the child that writes it and can read the path off `sys.argv` — so the gate
+  is now the PARENT's own comparison of the raw `run()` outputs the child reports,
+  on a held-out workload plus benchmark workloads whose seeds the parent draws with
+  `secrets` after the child's import handshake
+  (`docs/11-worked-example-pipelines.md`, Run 2026-10-17).
 
 Each example's README records its git history verbatim from the worked run; those
 commits live in the (gitignored) scratch clones and are **not** in this repo, so a

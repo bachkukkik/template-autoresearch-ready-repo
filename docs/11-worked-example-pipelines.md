@@ -221,23 +221,30 @@ the repo root:
 
 ```bash
 python3 -m pytest -q tests/unit/test_examples_ex4.py
-# 8 passed in 5.61s
+# 16 passed in 8.37s
 
-cp -r contract/examples/ex4-llm-repo-speedup /tmp/ex4 && cd /tmp/ex4
-git init -q && git add -A && git commit -qm "contract: baseline"
+mkdir -p "$TMPDIR/ex4"
+git archive HEAD contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
+cd "$TMPDIR/ex4" && git init -q && git add -A && git commit -qm "contract: baseline"
 python3 agent_driver.py --from-baseline --replay transcript.jsonl
 # replay: 5 recorded round(s) from transcript.jsonl (no network)
-# --from-baseline: target/solution.py <- solution_baseline.py (HEAD 8894f51)
-# commit   median_seconds  gate    stop_reason  status   tokens  description
-# a633e61  inf             ok      budget       timeout  0       baseline (quadratic scan + per-value rescan; over budget by construction)
-# 300e834  0.001800        ok      done         keep     4311    Replace quadratic scans with a single Counter pass, O(n) first-repeat via seen-set, and heapq.nsmall
-# 300e834  (unusable response, round 2)
-# 300e834  0.002137        ok      done         discard  6904    Key-free nsmallest over pre-decorated (-count, value) tuples, fused pairs/groups loop with single ha
-# 300e834  (unusable response, round 4)
-# 300e834  (unusable response, round 5)
+# --from-baseline: target/solution.py <- solution_baseline.py (HEAD 8c0cb0e)
+# commit	median_seconds	gate	stop_reason	status	tokens	description
+# 8c0cb0e            inf  gate=ok     budget      timeout tok  baseline (quadratic scan + per-value rescan; over budget by construction)
+# WARNING: round 1 prompt sha256 differs from the recorded one (a67b7924e21f != 0227ff922293); prompts embed timing -- the recorded response is re-applied verbatim
+# fcdc763       0.001695  gate=ok     done           keep tok  Replace quadratic scans with a single Counter pass, O(n) first-repeat via seen-set, and heapq.nsmall
+# WARNING: round 2 prompt sha256 differs from the recorded one (96a37d73be39 != 32097634dc05); prompts embed timing -- the recorded response is re-applied verbatim
+# fcdc763 unusable response (round 2)
+# WARNING: round 3 prompt sha256 differs from the recorded one (ac0e1dafa99f != f6babd06036e); prompts embed timing -- the recorded response is re-applied verbatim
+# fcdc763       0.001865  gate=ok     done        discard tok  Key-free nsmallest over pre-decorated (-count, value) tuples, fused pairs/groups loop with single ha
+# WARNING: round 4 prompt sha256 differs from the recorded one (a2064d196960 != 14ac2ce224d1); prompts embed timing -- the recorded response is re-applied verbatim
+# fcdc763 unusable response (round 4)
+# WARNING: round 5 prompt sha256 differs from the recorded one (5cfd36554b72 != bde3dbaed926); prompts embed timing -- the recorded response is re-applied verbatim
+# fcdc763 unusable response (round 5)
+#
 # rows: 6  keep=1 discard=1 timeout=1 crash=3
-# best median: 0.001800s (budget 5s)
-# HEAD: 300e834 | candidate: round 1
+# best median: 0.001695s (budget 5s)
+# HEAD: fcdc763 | candidate: round 1
 ```
 
 The replay reproduces the vendored ledger's **deterministic columns** — `gate`,
@@ -251,7 +258,144 @@ incumbent and was discarded; **rounds 2, 4 and 5 returned empty content**
 (`finish_reason: length`) — the model spent the entire token cap on hidden
 reasoning before emitting a fenced block — and are recorded as unusable-response
 crashes rather than smoothed away. Total cost: 53,563 tokens over 468.8 s of model
-wall time.
+wall time. The replay also prints one `WARNING: round N prompt sha256 differs`
+line per round: a prompt embeds the ledger and run-log tails, the log carries
+`total_seconds`, so its sha256 can never be stable across runs — the warning is
+soft and the recorded response is re-applied verbatim. The round-3 `discard` can
+flip to a `keep` when the two linear candidates land inside the timing noise
+(≈0.0017 s vs ≈0.0019 s); only the deterministic columns are claimed.
+
+### Run 2026-10-17 — hardening after review
+
+A spec review and a quality/security review of the ex4 harness found defects in
+the **evaluator and driver only** — never in the recorded artifact — so they were
+fixed without a model call. `results.tsv` and `transcript.jsonl` are untouched:
+they remain the record of the 2026-10-17 live run, produced by the evaluator as it
+stood then, and `target/solution.py` remains that run's kept artifact.
+
+| Defect (pre-hardening) | Fix |
+|---|---|
+| **The verdict could be forged.** `run_evaluator` parsed `gate` / `median_seconds` / `stop_reason` from the child's stdout, and `_line_value` took the FIRST match — but the candidate shares that stdout. | the child writes its verdict as JSON to a file in a parent-created temp dir (atomic rename); the parent reads **only** that file, requires exit 0 for `gate: ok`, and treats a missing or contradictory verdict as a crash. stdout is a human log. |
+| **A budget kill could be scored from stale lines.** The killed run's verdict was re-assembled by appending lines to the child's stdout and re-parsing it. | on timeout the parent sets the verdict itself: `median_seconds: inf`, `stop_reason: budget`, gate from the verdict file if the child got that far, else `n/a`. |
+| **The kill only reached the direct child**, so a candidate's grandchildren survived as orphans. | `Popen(start_new_session=True)` and, on timeout, `os.killpg(SIGKILL)` followed by `communicate()` to reap. |
+| **The child inherited the caller's API key.** | a minimal env — `PATH`, `PYTHONPATH`, `PYTHONHASHSEED`, `SYSTEMROOT` and a private `HOME` — plus `PYTHONDONTWRITEBYTECODE`; no `OPENAI_*` and no other secrets. |
+| **The metric could be gamed by memoization.** `BENCH_REPS` timed the same `big` list three times. | each rep gets its own seeded workload of the same size (`SEED_BIG + rep`), median over reps. |
+| **The driver could run inside the template checkout.** `git rev-parse --show-toplevel` resolved to the template root, so `git reset --hard` would revert the user's work and leave `candidate: round N` commits. | the driver refuses unless `git rev-parse --show-prefix` is empty (the example directory *is* the repo root), before any git write. |
+| **The comment about the reset was false.** It claimed a hard reset would delete the untracked `results.tsv` / `transcript.jsonl`; a reset reverts *tracked* files, and both are gitignored runtime state in a scratch repo. | comment corrected; a LIVE run deletes the vendored `results.tsv` first (README + this doc), and the driver refuses a non-empty ledger for a live run. |
+| **A bare `git commit` committed the whole index.** | `git commit --no-verify -q --allow-empty -m … -- target/solution.py` — path-limited. |
+| **The baseline row's own reset undid `--from-baseline`.** Live round 1 in a fresh clone started from the FINAL artifact and `--replay` printed `note: round 1 artifact_sent != current artifact`. | the baseline is the incumbent by definition: it is never reset, even when it times out. |
+
+The forgery was not hypothetical. Against the pre-hardening `prepare.py`
+(`e2fe985`) a candidate whose whole body is `print` lines plus `sys.exit(0)`:
+
+```bash
+# prepare.py from e2fe985, candidate: three fake verdict lines, then sys.exit(0)
+python3 prepare.py --run exit_zero.py
+# gate: ok
+# median_seconds: 0.000001
+# stop_reason: done
+# ... exit=0
+```
+
+…was scored `0.000001 s`, gate `ok`, and kept — no test had run. The hardened
+evaluator gives that candidate no verdict file, hence gate `n/a`, `stop_reason:
+error`, status `crash` (AC-EXA-019, which also covers the print-only forgery).
+
+Under the hardened evaluator the same transcript still reproduces the ledger's
+deterministic columns in a fresh scratch copy (the run quoted in § *Run
+2026-10-17* above): `gate`, `stop_reason`, `tokens` and `description` equal the
+vendored ledger row for row, the baseline still dies at the 5 s budget
+(`timeout`), and the kept round-1 artifact still passes the gate inside the
+budget (the check at the end of AC-EXA-018 runs `prepare.py --run
+target/solution.py` on the replay's own HEAD).
+
+New tests, all offline: `tests/unit/test_examples_ex4.py` — AC-EXA-019 (forged
+verdict is not kept), AC-EXA-020 (a gate-passing run killed at the budget is a
+`timeout`, never a keep), AC-EXA-021 (the process-group kill leaves no orphan
+grandchild), AC-EXA-022 (no `OPENAI_API_KEY` in the child's environment),
+AC-EXA-023 (the driver refuses a parent repo and leaves its HEAD and uncommitted
+file untouched), AC-EXA-024 (a live run refuses a non-empty ledger), AC-EXA-025
+(the benchmark seeds are fresh and parent-chosen), AC-EXA-026 (the README's ledger
+table is byte-copied from `results.tsv`).
+
+### Run 2026-10-17 — hardening after review, second pass
+
+The first hardening above was itself incomplete, and the parent reproduced the
+hole on the hardened evaluator: it **moved the verdict into a file instead of
+removing the trust boundary**. The candidate is imported *inside* the child that
+writes `verdict.json` and can read the path straight off `sys.argv`, so any
+number it wrote there was still believed. Two candidates both scored `keep` with
+median `1e-06`:
+
+- **A2** — no `run()` at all: the file's whole body wrote
+  `{"gate": "ok", "median": 1e-06, "stop_reason": "done"}` to the verdict path
+  and called `os._exit(0)`;
+- **A3** — the correct solution plus an `atexit` hook that overwrote the verdict
+  file with median `1e-06`.
+
+The fix removes the assumption rather than guarding the file: **within one
+process there is no trust boundary, so the child is no longer asked to tell the
+truth about itself.** It reports only the raw OUTPUTS of `run()` — one JSON
+record per input — and the PARENT recomputes `reference(...)` and compares.
+
+| Defect (first hardening) | Fix (second hardening) |
+|---|---|
+| **The verdict file was forgeable.** The candidate shares the child process and can rewrite the file the parent trusts (A2 wrote it with no `run()`; A3 overwrote it from `atexit`). | the child asserts no gate, no keep and no median: it reports the raw `run()` outputs; the parent recomputes `reference(...)` and compares. A missing/malformed output or any mismatch is a failed gate or a crash. |
+| **`gate: ok` was a child-reported field.** It required exit 0, but a candidate controls its own exit code. | the parent-owned comparison *is* the gate. `target/tests.py` stays as a cheaper child-side first check (its failures still fail the candidate, but its passing is not trusted). |
+| **The timed workloads had known seeds** (`SEED_BIG + rep`), so their answers could be precomputed at import. | the parent draws `BENCH_REPS` seeds with `secrets.randbits` and sends them over the child's stdin **after** the child reports it has imported the candidate; the child builds each workload with `prepare.generate_data`, and the parent verifies each bench output against `reference` on the seed it issued. |
+| **A budget kill could lose the gate.** | the held-out outputs are reported BEFORE the timed reps, so the baseline's row still reads `gate: ok` / `stop_reason: budget` / `status: timeout`. |
+| **The speed number is reported by the child and could be understated** by patching the clock. | accepted and documented: correctness is parent-verified, timing is not. The parent rejects only what its own measured bench-phase wall clock cannot have produced (`median * BENCH_REPS` above it, or `median <= 0`). |
+
+Reproduced against `run_evaluator` + `status_for(verdict, 0.001811)` (the
+vendored kept run's median), the honest artifact, and the baseline — all with
+`tests/unit/test_examples_ex4.py`'s A2/A3/A append candidates:
+
+```bash
+python3 - <<'PY'
+import importlib.util, sys
+EX4 = "contract/examples/ex4-llm-repo-speedup"
+spec = importlib.util.spec_from_file_location("p", EX4 + "/prepare.py")
+prep = importlib.util.module_from_spec(spec); sys.dont_write_bytecode = True
+spec.loader.exec_module(prep)
+A2 = ('import sys, json, os\n'
+      "p = sys.argv[sys.argv.index('--results')+1]\n"
+      "json.dump({'gate':'ok','median':1e-06,'stop_reason':'done'}, open(p,'w'))\n"
+      "os._exit(0)\n")
+CORRECT = open(EX4 + "/target/solution.py").read()
+A3 = CORRECT + ("\nimport atexit, json, sys\n"
+                "def f():\n"
+                " json.dump({'gate':'ok','median':1e-06,'stop_reason':'done'},"
+                " open(sys.argv[sys.argv.index('--results')+1],'w'))\n"
+                "atexit.register(f)\n")
+for name, src in (("A2", A2), ("A3", A3)):
+    open("/tmp/%s.py" % name, "w").write(src)
+    v, _ = prep.run_evaluator("/tmp/%s.py" % name)
+    print(name, "gate=%s stop=%s median=%s status=%s 1e-06? %s" % (
+        v["gate"], v["stop_reason"], prep.format_median(v["median"]),
+        prep.status_for(v, 0.001811), v["median"] == 1e-06))
+PY
+# A2 gate=n/a stop=error median=inf status=crash 1e-06? False
+# A3 gate=n/a stop=error median=inf status=crash 1e-06? False
+
+(cd contract/examples/ex4-llm-repo-speedup && python3 prepare.py --run \
+  target/solution.py | tail -3)
+# gate: ok
+# stop_reason: done
+# time_budget: 5
+```
+
+The honest `target/solution.py` still evaluates to `gate: ok` / `done` (a keep
+against the `inf` incumbent); the baseline is still `gate: ok` /
+`stop_reason: budget` / `status: timeout`; and the offline replay in a fresh
+scratch copy still reproduces the vendored ledger's deterministic columns
+(`gate`, `stop_reason`, `tokens`, `description`) row for row, with no
+`round 1 artifact_sent != current artifact` note.
+
+New tests, all offline: AC-EXA-027 (a results-file forgery with no `run()` is not
+kept), AC-EXA-028 (an `atexit` verdict overwrite is never the recorded median),
+AC-EXA-029 (wrong outputs fail the gate however the child writes), AC-EXA-030
+(fresh parent-chosen seeds defeat load-time precompute). AC-EXA-025 was rewritten
+for the fresh-seed design.
 
 ## What Works
 
@@ -288,6 +432,15 @@ wall time.
 - **The budget binds.** ex4's quadratic baseline is killed at `TIME_BUDGET` (its
   uncapped 36.05 s is 7.2× the 5 s ceiling), so the first ledger row is a real budget
   stop — a ceiling on a runaway candidate, not decoration.
+- **A result the candidate cannot report is a result.** ex4's evaluator trusts
+  nothing the child says about itself: the child reports only the raw `run()`
+  outputs, and the parent recomputes `reference(...)` and compares — on a held-out
+  workload plus benchmark workloads whose seeds the parent draws with `secrets`
+  after the child's import handshake. A candidate that writes a verdict file (with
+  no `run()` at all, or from an `atexit` hook) has no verified output and is a
+  crash, and a workload precomputed at import is empty. The child also runs in its
+  own process group with a scrubbed environment, so a budget kill takes its
+  grandchildren down and no API key is reachable.
 
 ## What Fails
 
@@ -315,6 +468,19 @@ wall time.
   on a different reasoning model failed outright (a 2048-token cap fully consumed by
   reasoning, plus a provider stall) and was discarded as a driver-config problem, not
   read as a run result.
+- **A verdict parsed from the child's stdout is forgeable.** ex4's first evaluator
+  read `gate` / `median_seconds` / `stop_reason` from the stdout it shared with the
+  candidate and took the first match, so an artifact that printed a fake verdict and
+  called `sys.exit(0)` was scored 0.000001 s and **kept with no test run**; a budget
+  kill also re-parsed that same stream to assemble its verdict, and the kill reached
+  only the direct child.
+- **A file the candidate can write is no safer than a line it can print.** ex4's
+  second evaluator moved the verdict into a parent-created JSON file — but the
+  candidate is imported inside the same process that writes it and can read the
+  path straight off `sys.argv`, so a file with no `run()` at all (A2) and the
+  correct file plus an `atexit` overwrite (A3) were both scored `keep` with median
+  `1e-06`. A gate a process reports about itself is only as strong as the process
+  boundary around it, and inside one process there is none.
 
 ## Resolution
 
@@ -341,6 +507,15 @@ wall time.
   round then lands as an honest unusable-response crash (ex4 rounds 2/4/5) instead of a
   silent empty candidate, and a too-tight cap is diagnosed as configuration before it is
   read as a model outcome.
+- Judge out of band: never parse the shared stdout, have a timeout SET the verdict
+  (median `inf`, `stop_reason: budget`) instead of re-assembling one from what the
+  candidate printed, and kill the child's whole process group with a scrubbed
+  environment — a verdict is only as trustworthy as the process boundary around it.
+- Don't let the child grade itself: a gate a process reports about itself is only as
+  strong as the process boundary around it, and inside one process there is none — so
+  the child asserts no verdict (it reports only the raw `run()` outputs), the parent
+  recomputes `reference(...)` and compares them, and the benchmark seeds are drawn by
+  the parent with `secrets` after the child's import handshake and sent over its stdin.
 
 ## Verdict
 
@@ -348,7 +523,12 @@ wall time.
 shapes, three scripted and one driven by a live LLM agent (ex4, whose `--replay`
 reproduces the deterministic ledger columns offline), each reproducible from its
 tracked baseline, with the frozen-evaluator guard and the exact-output gate proven
-falsifiable against a live redefinition and a labeled ~10×-faster attack. The
-loop-mechanics failures this doc records are the naive loop's — plus ex4's three
+falsifiable against a live redefinition and a labeled ~10×-faster attack. The ex4
+harness was hardened twice afterwards — first a verdict file with an exit-code
+cross-check, then, after the parent reproduced a verdict-file forgery the first pass
+still allowed, a parent-side comparison of the child's raw `run()` outputs on
+parent-chosen fresh seeds — alongside the process-group budget kill, the environment
+scrub and the in-repo guard, all without touching the recorded run. The loop-mechanics
+failures this doc records are the naive loop's — plus ex4's three
 token-cap-truncated rounds, kept in the ledger as crashes — and each carries the
 calibration rule that fixes it; no example's own run is left red.

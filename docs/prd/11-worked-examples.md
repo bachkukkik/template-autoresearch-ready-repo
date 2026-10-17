@@ -114,8 +114,26 @@ its own commit hashes and its own (jittering) timing column.
   (empty content, `finish_reason: length`, recorded as crash) — and the ledger
   states that plainly rather than smoothing it away. Provenance is a LIVE LLM
   run (a model id and a date are recorded); no ex4 file claims the
-  scripted-reference-run provenance ex1–ex3 carry. _Verify:_
-  `tests/unit/test_examples_ex4.py` (AC-EXA-011..018).
+  scripted-reference-run provenance ex1–ex3 carry.
+  **Hardened 2026-10-17 (two review passes), without touching the record:** the
+  parent decides the gate — the child asserts no verdict and reports only the raw
+  `run()` outputs, and the parent recomputes `reference(...)` and compares them on
+  a held-out workload plus benchmark workloads whose seeds it draws with
+  `secrets.randbits` AFTER the child signals it has imported the candidate (then
+  sends them over the child's stdin), so a workload precomputed at import, or a
+  verdict file a candidate writes (with no `run()` at all, or from an `atexit`
+  hook), buys nothing; the held-out outputs are reported before the timed reps, so
+  a budget kill still sets the verdict itself (`median_seconds: inf` /
+  `stop_reason: budget`, gate `ok` when the held-out outputs matched); the child
+  runs in its own process group with a scrubbed environment (no `OPENAI_*` key), so
+  a budget kill leaves no orphan grandchild; the driver refuses a non-root repo and
+  a non-empty ledger for a live run, and commits only `target/solution.py`; and the
+  baseline row is never reset, so round 1 starts from the tracked baseline.
+  **Residual risk, documented:** the speed number is measured inside the candidate's
+  process — correctness is parent-verified, timing is not — so a live loop belongs
+  in a disposable sandbox. The vendored ledger was produced by the pre-hardening
+  evaluator and still replays to the same deterministic columns under the hardened
+  one. _Verify:_ `tests/unit/test_examples_ex4.py` (AC-EXA-011..030).
 
 ## Test Mapping
 
@@ -139,6 +157,18 @@ its own commit hashes and its own (jittering) timing column.
 | no ex4 file names a secret or a machine path | `tests/unit/test_examples_ex4.py` | AC-EXA-016 |
 | ex4 program.md frames TIME_BUDGET as a ceiling | `tests/unit/test_examples_ex4.py` | AC-EXA-017 |
 | ex4 offline replay reproduces the deterministic columns row for row | `tests/unit/test_examples_ex4.py` | AC-EXA-018 |
+| ex4: a candidate's printed/exit-0 fake verdict is not kept (gate failed, no output verified) | `tests/unit/test_examples_ex4.py` | AC-EXA-019 |
+| ex4: a gate-passing run killed at TIME_BUDGET is `budget`/`timeout`, never a keep | `tests/unit/test_examples_ex4.py` | AC-EXA-020 |
+| ex4: the budget kill takes the child's process group (no orphan grandchild) | `tests/unit/test_examples_ex4.py` | AC-EXA-021 |
+| ex4: the evaluated child inherits no `OPENAI_API_KEY`; HOME is a private temp dir | `tests/unit/test_examples_ex4.py` | AC-EXA-022 |
+| ex4: the driver refuses a parent repo, leaving its HEAD and uncommitted file untouched | `tests/unit/test_examples_ex4.py` | AC-EXA-023 |
+| ex4: a live run refuses a non-empty ledger (the vendored ledger is the record) | `tests/unit/test_examples_ex4.py` | AC-EXA-024 |
+| ex4: the benchmark seeds are fresh and parent-chosen (secrets, after the handshake) | `tests/unit/test_examples_ex4.py` | AC-EXA-025 |
+| ex4: the README's ledger table cells equal `results.tsv` byte for byte | `tests/unit/test_examples_ex4.py` | AC-EXA-026 |
+| ex4: a results-file forgery with no `run()` is not kept (gate n/a, crash) | `tests/unit/test_examples_ex4.py` | AC-EXA-027 |
+| ex4: an `atexit` verdict overwrite is never the recorded median (real or crash) | `tests/unit/test_examples_ex4.py` | AC-EXA-028 |
+| ex4: wrong outputs fail the gate however the child writes (forged output included) | `tests/unit/test_examples_ex4.py` | AC-EXA-029 |
+| ex4: fresh parent-chosen seeds defeat load-time precompute (wrong bench output caught) | `tests/unit/test_examples_ex4.py` | AC-EXA-030 |
 | ex3 replay completes the baseline row + a description prefix; final artifact passes the gate | `tests/integration/test_examples_replay.py` | AC-EXA-201 |
 | final kept ex3 train.py passes the exact-output gate inside budget | `tests/integration/test_examples_replay.py` | AC-EXA-202 |
 

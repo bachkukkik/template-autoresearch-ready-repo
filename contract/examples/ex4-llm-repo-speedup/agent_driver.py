@@ -12,22 +12,30 @@ RECORDED responses in order with no network at all.
 Harness-neutral: any OpenAI-compatible chat-completions endpoint works. Three
 environment variables, NAMES only (never a value in a tracked file):
 
-    OPENAI_BASE_URL   e.g. http://127.0.0.1:4000/v1   (default: api.openai.com)
+    OPENAI_BASE_URL   e.g. http://127.0.0.1:4000/v1  # your OpenAI-compatible endpoint
     OPENAI_API_KEY    the bearer token
     OPENAI_MODEL      the model id, e.g. deepseek/deepseek-v4-pro
 
 The evaluator owns the decision. This driver only (a) posts the prompt, (b)
 writes the returned file, (c) calls ``prepare.run_evaluator`` and
 ``prepare.status_for`` -- the keep/discard/timeout vocabulary is computed by
-frozen evaluator code from the run log, never self-awarded by the model.
+frozen evaluator code from its OWN comparison of the child's reported ``run()``
+outputs, never self-awarded by the model, never read from the candidate's stdout
+and never taken from a verdict the candidate could write.
 
-Modes (all run in a scratch git repo -- the driver commits and hard-resets):
+Modes (all run in a scratch git repo -- the driver commits and hard-resets, so
+it REFUSES to run unless the git ROOT is this directory):
 
     python3 agent_driver.py --from-baseline --rounds 8            # LIVE
     python3 agent_driver.py --from-baseline --replay transcript.jsonl
 
-Stdlib only. No third-party HTTP client, no ``shell=True``, every network call
-carries an explicit ``timeout``.
+Live mode executes **model-written Python unsandboxed, with your privileges**:
+run it in a disposable container/VM with no credentials beyond the endpoint key
+(which the evaluated child does not inherit -- ``prepare.child_env`` scrubs it)
+and no host mounts. See README.md § Live mode.
+
+Stdlib only. No third-party HTTP client, no ``shell=True``, every network and
+subprocess call carries an explicit ``timeout``.
 """
 import argparse
 import hashlib
@@ -54,6 +62,7 @@ MAX_TOKENS = 12000         # bound on one response: a reasoning model spends a
                            # tight cap truncates to empty content.
 LEDGER_TAIL_LINES = 12
 LOG_TAIL_LINES = 14
+GIT_TIMEOUT = 120          # seconds per git/subprocess call: never wedge
 
 sys.path.insert(0, HERE)
 import prepare                                                    # noqa: E402
@@ -73,20 +82,80 @@ SYSTEM_PROMPT = (
 
 
 # ------------------------------------------------------------------ shell ----
-def sh(*args, check=False):
-    """Run a command (no shell). Returns the CompletedProcess."""
-    proc = subprocess.run(args, cwd=HERE, capture_output=True, text=True)
+def sh(*args, check=False, timeout=GIT_TIMEOUT):
+    """Run a command (no shell). Returns the CompletedProcess.
+
+    Every call carries an explicit ``timeout``: a hung git command must fail the
+    run with a message, never wedge the driver.
+    """
+    try:
+        proc = subprocess.run(args, cwd=HERE, capture_output=True, text=True,
+                              timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise SystemExit("command timed out after {}s: {}".format(
+            timeout, " ".join(args)))
     if check and proc.returncode != 0:
         raise SystemExit("command failed: {}\n{}".format(" ".join(args), proc.stderr))
     return proc
 
 
-def git(*args, check=False):
-    return sh("git", *args, check=check)
+def git(*args, check=False, timeout=GIT_TIMEOUT):
+    return sh("git", *args, check=check, timeout=timeout)
 
 
 def head_commit():
     return git("rev-parse", "--short", "HEAD").stdout.strip()
+
+
+def git_prefix():
+    """``git rev-parse --show-prefix`` from HERE: '' at a repo root, None if no repo."""
+    proc = git("rev-parse", "--show-prefix")
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.strip()
+
+
+def require_scratch_repo():
+    """Refuse to run unless HERE is the ROOT of its own git repository.
+
+    The driver commits and ``git reset --hard``s. Inside the template checkout
+    HERE is a subdirectory, so ``git rev-parse --show-toplevel`` resolves to the
+    template root: a reset there would revert the user's tracked (and
+    uncommitted) work and litter their clone with ``candidate: round N``
+    commits. The check runs before the first git write.
+    """
+    prefix = git_prefix()
+    if prefix == "":
+        return
+    where = ("not inside a git repository" if prefix is None
+             else "a subdirectory of one (prefix {!r})".format(prefix))
+    raise SystemExit(
+        "refusing to run: {} is {} -- this driver commits and hard-resets, so "
+        "the example directory must be the git ROOT.\n"
+        "Use a disposable scratch copy:\n"
+        "  mkdir -p \"${{TMPDIR:-/tmp}}/ex4\"\n"
+        "  git archive HEAD contract/examples/ex4-llm-repo-speedup | "
+        "tar -x -C \"${{TMPDIR:-/tmp}}/ex4\" --strip-components=3\n"
+        "  cd \"${{TMPDIR:-/tmp}}/ex4\" && git init -q && git add -A && "
+        "git commit -qm 'contract: baseline'\n"
+        "  rm -f results.tsv          # a LIVE run starts from an empty ledger\n"
+        "  python3 agent_driver.py --from-baseline --rounds 8".format(HERE, where))
+
+
+def require_empty_ledger():
+    """A LIVE run starts from an empty ledger: the vendored one is the record."""
+    try:
+        text = read(LEDGER)
+    except OSError:
+        return
+    rows = [line for line in text.splitlines()[1:] if line.strip()]
+    if rows:
+        raise SystemExit(
+            "refusing a LIVE run: {} already has {} row(s) below the header. "
+            "The vendored ledger is the worked run's record, not a starting "
+            "point -- delete it in the scratch copy (`rm -f {}`) before a live "
+            "run; `--replay` regenerates its own.".format(
+                LEDGER, len(rows), LEDGER))
 
 
 def read(path):
@@ -209,24 +278,33 @@ def log_tail_text():
         return "(no run yet)"
 
 
-def evaluate_and_record(state, tokens, description):
+def evaluate_and_record(state, tokens, description, reset=True):
     """Run the FROZEN evaluator on the committed artifact and record one row.
 
     ``state["incumbent"]`` is the best valid median so far (``inf`` until the
-    first keep). The status comes from ``prepare.status_for`` -- evaluator-owned
-    code -- and every non-keep is reset hard.
+    first keep). The verdict comes from ``prepare.run_evaluator`` -- frozen
+    evaluator code comparing the child's reported ``run()`` outputs itself -- and
+    the status from ``prepare.status_for``; neither is ever self-awarded by the
+    model.
+
+    A non-keep is reset hard, unless ``reset`` is False: the baseline row is the
+    incumbent by definition, so a reset there would undo ``--from-baseline`` and
+    make round 1 start from the FINAL kept artifact instead of the baseline the
+    run actually began with.
     """
     verdict, log = prepare.run_evaluator(ARTIFACT)
-    verdict["median"] = verdict["median"]        # parsed by the evaluator
     status = prepare.status_for(verdict, state["incumbent"])
     write(RUN_LOG, log)
+    # The commit column is the commit this row evaluates: for a non-keep that is
+    # the candidate commit discarded by the reset below (it is in no branch's
+    # history afterwards, only in this row).
     row = [head_commit(), prepare.format_median(verdict["median"]),
            verdict["gate"], verdict["stop_reason"], status,
            str(tokens), description]
     ledger_append(row)
     if status == "keep":
         state["incumbent"] = verdict["median"]
-    else:
+    elif reset:
         # discard, timeout and crash all restore the last kept state: a
         # candidate that is not a keep stays neither in the tree nor in history
         # (the row survives in the ledger).
@@ -240,23 +318,32 @@ def evaluate_and_record(state, tokens, description):
 def commit_artifact(message):
     """Commit ONLY the artifact, then leave one commit per round.
 
-    The index is scoped to ``target/solution.py`` on purpose: staging the
-    runtime state (results.tsv, transcript.jsonl) and then hard-resetting a
-    discarded round would delete those untracked records from the tree.
-    ``--allow-empty`` keeps the invariant one round == one commit, so a
-    ``git reset --hard HEAD~1`` is always safe.
+    The commit is path-limited (``-- target/solution.py``) on purpose: a bare
+    ``git commit`` commits the whole index, i.e. anything else the caller had
+    staged. Runtime state is not committed at all -- ``.gitignore`` keeps
+    ``results.tsv`` / ``transcript.jsonl`` / ``run.log`` untracked, so a
+    ``git reset --hard`` in the driver's own scratch repo leaves those records
+    alone (it would only touch them if they were staged, which is exactly what
+    the path limit prevents). ``--allow-empty`` keeps the invariant one round ==
+    one commit, so ``git reset --hard HEAD~1`` is always safe.
     """
     git("add", "--", ARTIFACT, check=True)
-    git("commit", "-q", "--allow-empty", "-m", message, check=True)
+    git("commit", "--no-verify", "-q", "--allow-empty", "-m", message,
+        "--", ARTIFACT, check=True)
     return head_commit()
 
 
 def baseline_row(state, description=BASELINE_DESC):
-    """The first ledger row: the reconstructed baseline, evaluated as shipped."""
-    return evaluate_and_record(state, tokens=0, description=description)
+    """The first ledger row: the reconstructed baseline, evaluated as shipped.
+
+    Never reset -- the baseline IS the incumbent the run started from, even when
+    it is a budget stop.
+    """
+    return evaluate_and_record(state, tokens=0, description=description,
+                               reset=False)
 
 
-def start(state):
+def start():
     """--from-baseline: restore the tracked baseline artifact and commit it."""
     text = read(BASELINE)
     write(ARTIFACT, text)
@@ -266,8 +353,14 @@ def start(state):
     print(HEADER)
 
 
-def round_from_record(state, record):
-    """Apply one recorded/returned response: write -> commit -> evaluate."""
+def round_from_record(record):
+    """Apply one recorded/returned response: write -> commit -> evaluate.
+
+    Returns the new artifact text, or None when the response carried no fenced
+    block (already recorded as an unusable-response crash). The prompt a round
+    was built from is not rebuilt here: ``--replay`` warns separately when the
+    recorded ``messages_sha256`` differs, then re-applies the response verbatim.
+    """
     code = extract_code(record["response"])
     tokens = int((record.get("usage") or {}).get("total_tokens") or 0)
     if record.get("artifact_sent") is not None:
@@ -279,28 +372,30 @@ def round_from_record(state, record):
     if code is None:
         commit_artifact("candidate: unusable response (round {})".format(record["round"]))
         write(RUN_LOG, "# no artifact written: response carried no fenced code block\n")
+        # The commit column is the discarded candidate commit (reset below).
         row = [head_commit(), prepare.format_median(float("inf")), "n/a", "error",
                "crash", str(tokens), "unusable response (no fenced code block)"]
         ledger_append(row)
         git("reset", "--hard", "-q", "HEAD~1")
         print("{} unusable response (round {})".format(head_commit(), record["round"]))
-        return row, code
+        return None
     write(ARTIFACT, code)
     commit_artifact("candidate: round {}".format(record["round"]))
-    return None, code
+    return code
 
 
 def finish(state, record, code):
+    """Evaluate a round whose artifact was written (a crash row is already done)."""
+    if code is None:
+        return
     tokens = int((record.get("usage") or {}).get("total_tokens") or 0)
-    if code is None:                       # already recorded as a crash
-        return tokens, None
-    row = evaluate_and_record(state, tokens,
-                              describe(record["response"], record["round"]))
-    return tokens, row
+    evaluate_and_record(state, tokens,
+                        describe(record["response"], record["round"]))
 
 
 # ------------------------------------------------------------------ modes ----
 def live(args):
+    require_empty_ledger()
     base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
     api_key = os.environ.get("OPENAI_API_KEY", "")
     model = args.model or os.environ.get("OPENAI_MODEL", "")
@@ -309,7 +404,7 @@ def live(args):
                          "(and usually OPENAI_BASE_URL) in the environment")
     print("live model: {}".format(model))
     state = {"incumbent": float("inf")}
-    start(state)
+    start()
     baseline_row(state)
 
     with open(os.path.join(HERE, TRANSCRIPT), "w", encoding="utf-8") as fh:
@@ -340,9 +435,15 @@ def live(args):
                   "finish={})".format(number, wall, len(response),
                                       usage.get("total_tokens", "?"),
                                       finish_reason))
-            _, code = round_from_record(state, record)
+            code = round_from_record(record)
             finish(state, record, code)
     summary(state)
+
+
+def prompt_sha256():
+    """sha256 of the prompt this replay would send now (soft comparison only)."""
+    messages = build_messages(read(ARTIFACT), ledger_tail_text(), log_tail_text())
+    return sha256(json.dumps(messages))
 
 
 def replay(args):
@@ -351,10 +452,20 @@ def replay(args):
     print("replay: {} recorded round(s) from {} (no network)".format(
         len(records), args.replay))
     state = {"incumbent": float("inf")}
-    start(state)
+    start()
     baseline_row(state)
     for record in records:
-        _, code = round_from_record(state, record)
+        expected = record.get("messages_sha256")
+        current = prompt_sha256()
+        if expected and current != expected:
+            # Soft, never fatal: a prompt embeds the ledger tail and the run-log
+            # tail, and the log carries timing, so the sha cannot be stable
+            # across runs. The response is re-applied verbatim regardless.
+            print("WARNING: round {} prompt sha256 differs from the recorded "
+                  "one ({} != {}); prompts embed timing -- the recorded "
+                  "response is re-applied verbatim".format(
+                      record.get("round"), current[:12], expected[:12]))
+        code = round_from_record(record)
         finish(state, record, code)
     summary(state)
     return 0
@@ -396,6 +507,7 @@ def main(argv):
         raise SystemExit("refusing to run without --from-baseline: the driver "
                          "commits and hard-resets, so start from the tracked "
                          "baseline in a scratch clone")
+    require_scratch_repo()
     if args.replay:
         return replay(args)
     live(args)

@@ -26,9 +26,11 @@ returned is recorded in `transcript.jsonl`, so the run replays offline.
 | `transcript.jsonl` | every recorded model exchange (the replay's input) | runtime state |
 
 `target/solution.py` must implement `run(items: list[str]) -> dict` (five keys;
-see `target/README.md`). The gate is `target/tests.py` **plus** an exact-output
-comparison against `prepare.reference(...)` on a held-out workload the code never
-saw, and `prepare.py` screens the source for references to the frozen oracle.
+see `target/README.md`). The gate is decided by the **parent**: the child reports
+the raw `run()` outputs on a held-out workload the code never saw and on the
+timed workloads, and the parent recomputes `prepare.reference(...)` and compares.
+`target/tests.py` still runs in the child as a cheaper first check, and
+`prepare.py` screens the source for imports of the frozen evaluator.
 
 ## The live run (2026-10-17)
 
@@ -39,11 +41,16 @@ The run was driven by `agent_driver.py` (exit 0); the vendored `results.tsv` and
 | commit | median s | gate | stop_reason | status | tokens | description |
 |---|---|---|---|---|---|---|
 | 591f5e4 | inf | ok | budget | timeout | 0 | baseline (quadratic scan + per-value rescan; over budget by construction) |
-| 7affeed | 0.001811 | ok | done | keep | 4311 | Replace quadratic scans with a single Counter pass, O(n) first-repeat via seen-set, and heapq.nsmallest |
+| 7affeed | 0.001811 | ok | done | keep | 4311 | Replace quadratic scans with a single Counter pass, O(n) first-repeat via seen-set, and heapq.nsmall |
 | 9b37924 | inf | n/a | error | crash | 14087 | unusable response (no fenced code block) |
-| e97294a | 0.002029 | ok | done | discard | 6904 | Key-free nsmallest over pre-decorated (-count, value) tuples, fused pairs/groups loop with single pass |
+| e97294a | 0.002029 | ok | done | discard | 6904 | Key-free nsmallest over pre-decorated (-count, value) tuples, fused pairs/groups loop with single ha |
 | 1233256 | inf | n/a | error | crash | 14152 | unusable response (no fenced code block) |
 | e046af9 | inf | n/a | error | crash | 14109 | unusable response (no fenced code block) |
+
+Every `description` cell is a **byte-copy of the ledger**, and the driver truncates
+a description at 100 characters — so row 2 ends mid-word (`heapq.nsmall`) and row
+4 ends mid-word (`single ha`). A crash row's `commit` is the candidate commit that
+was discarded by the reset; it is in no branch's history, only in that row.
 
 **The budget binds.** The shipped baseline is quadratic; measured uncapped it
 runs **36.05 s**, i.e. **7.2×** `TIME_BUDGET`, so its ledger row is a budget stop
@@ -61,32 +68,103 @@ smoothed away. Total model cost: **53,563 tokens** over **468.8 s** of wall time
 
 ## Reproducing the ledger offline
 
-`agent_driver.py` commits and hard-resets, so copy the example into a scratch git
-repo first. `--from-baseline` restores the tracked baseline; `--replay` re-applies
-the recorded responses **with no network at all**:
+`agent_driver.py` commits and hard-resets, so it **refuses to run unless the
+example directory is the git root** — inside the template checkout it would reset
+the template. Work in a disposable copy (from the repo root):
 
 ```bash
-cp -r contract/examples/ex4-llm-repo-speedup /tmp/ex4 && cd /tmp/ex4
-git init -q && git add -A && git commit -qm "contract: baseline"
+mkdir -p "$TMPDIR/ex4"
+git archive HEAD contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
+cd "$TMPDIR/ex4" && git init -q && git add -A && git commit -qm "contract: baseline"
 python3 agent_driver.py --from-baseline --replay transcript.jsonl
 ```
 
-The replay reproduces the ledger's **deterministic columns** row for row — `gate`,
+`--from-baseline` restores the tracked `solution_baseline.py`; `--replay`
+re-applies the recorded responses **with no network at all**. The replay
+reproduces the ledger's **deterministic columns** row for row — `gate`,
 `stop_reason`, `tokens` and `description`. It does **not** reproduce
 `median_seconds` (a T2 statistical field that jitters) or the `status` column that
 turns on it, except the budget-bound baseline row (`timeout`), whose kill at the
-budget is deterministic. Test: `tests/unit/test_examples_ex4.py` (AC-EXA-018).
+budget is deterministic. The round-3 discard can flip to a `keep` when the two
+candidates land inside the timing noise (≈0.0017 s vs ≈0.0019 s); the deterministic
+columns do not move, which is why `status` is not compared. Test:
+`tests/unit/test_examples_ex4.py` (AC-EXA-018).
 
 ## Live mode
 
 ```bash
-OPENAI_BASE_URL=http://127.0.0.1:4000/v1 OPENAI_API_KEY=... \
-OPENAI_MODEL=opencode-go/kimi-k3 \
-python3 agent_driver.py --from-baseline --rounds 8
+OPENAI_BASE_URL=http://127.0.0.1:4000/v1  # your OpenAI-compatible endpoint
+OPENAI_API_KEY=... OPENAI_MODEL=opencode-go/kimi-k3 \
+  python3 agent_driver.py --from-baseline --rounds 8
 ```
 
 Three environment variables, **names only** (never a value in a tracked file):
-the base URL, the key and the model id. A reasoning model needs a large
-`--max-tokens` — too tight a cap is swallowed by the hidden chain of thought and
-truncates to empty content, exactly as in rounds 2, 4 and 5 above; record
-`finish_reason` so a truncated round is visible rather than silent.
+the base URL, the key and the model id. A live run starts from an **empty**
+ledger: delete the vendored `results.tsv` in the scratch copy first, or the
+driver refuses (it will not append to the record).
+
+**Safety.** Live mode executes **model-written Python unsandboxed, with your
+privileges**. Run it in a disposable container/VM with no credentials beyond the
+endpoint key and no host mounts. The evaluated child does not inherit that key
+either: `prepare.py` passes it a minimal environment (PATH / PYTHONPATH /
+PYTHONHASHSEED plus a private HOME), so a candidate that prints
+`os.environ["OPENAI_API_KEY"]` sees nothing.
+
+A reasoning model needs a large `--max-tokens` — too tight a cap is swallowed by
+the hidden chain of thought and truncates to empty content, exactly as in rounds
+2, 4 and 5 above; record `finish_reason` so a truncated round is visible rather
+than silent.
+
+## The harness cannot be talked into a keep (hardening, 2026-10-17)
+
+The vendored ledger above was produced by the **pre-hardening** evaluator (it
+read `gate` / `median_seconds` / `stop_reason` from the child's stdout, which the
+candidate shares). It was hardened afterwards without re-running the live model;
+`docs/11-worked-example-pipelines.md` records the audit and the replay evidence.
+
+**The first hardening moved the verdict into a file — and the file was still
+forgeable.** The candidate is imported *inside* the child that writes
+`verdict.json`, and it can read the path straight off `sys.argv`, so within one
+process there is no trust boundary. Two candidates both scored `keep` with median
+`1e-06`: (A2) a file with no `run()` at all that wrote
+`{"gate": "ok", "median": 1e-06, "stop_reason": "done"}` and called `os._exit(0)`;
+(A3) the correct solution plus an `atexit` hook that overwrote the verdict file.
+Any number a process reports about itself can be forged.
+
+**So the parent decides the gate now.** The child asserts nothing. It reports, as
+one JSON record per line in a path the parent creates, the raw outputs of
+`run()` for the held-out workload and for each benchmark workload, and the parent
+recomputes `reference(...)` itself and compares. Consequences:
+
+- **The verdict is parent-owned.** No `gate`, `keep` or `median` travels from the
+  child as a trusted field: the recorded median is the parent's own
+  `statistics.median` of the reported per-rep seconds, and a record the candidate
+  writes (a fake `gate: ok`, a `1e-06`) is either ignored (an unrecognised stage)
+  or, if it is an `output`, is compared against `reference` like any other — where
+  a wrong one only adds a mismatch. A2 and A3 therefore have no verified output
+  and are a crash, never a keep.
+- **The benchmark inputs are fresh and parent-chosen.** The parent draws
+  `BENCH_REPS` seeds with `secrets.randbits` and sends them over the child's
+  stdin only **after** the child reports (in the results channel) that it has
+  imported the candidate, so the seeds do not exist while the artifact's module
+  body runs. The child builds each timed workload from its seed with
+  `prepare.generate_data`. A workload precomputed at import, or a cache reused
+  across reps, is therefore empty, and the parent verifies each bench output
+  against `reference` on the seed it issued.
+- **The held-out outputs are reported before the timed reps**, so a run the
+  budget kills mid-benchmark still carries a verifiable result: the baseline's
+  row stays `gate: ok` / `stop_reason: budget` / `status: timeout`.
+- **The child runs in its own process group with a scrubbed environment**, and a
+  budget kill takes the whole group (no orphan grandchildren).
+- The driver refuses a non-root repo (it would `git reset --hard` the template),
+  refuses a non-empty ledger for a live run, and commits only the artifact; the
+  baseline row is the incumbent, so it is never reset — round 1 starts from
+  `solution_baseline.py`, which is what the transcript recorded.
+
+**Residual risk, stated plainly.** Correctness is parent-verified and cannot be
+forged. The *speed* number is still a `time.perf_counter` delta measured **inside
+the candidate's process** and reported by the child, so a candidate that patches
+the clock could understate it; the parent only rejects what the wall clock it
+measured cannot have produced (`median * BENCH_REPS` above the bench phase, or a
+non-positive median). Run live loops only in a disposable sandbox — the same T2
+stance the policy file takes on timing.
