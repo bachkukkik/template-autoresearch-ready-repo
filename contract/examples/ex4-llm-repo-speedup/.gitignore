@@ -1,0 +1,7 @@
+# runtime state of a run -- the vendored copies in this repo are
+# the record; a scratch clone regenerates its own
+results.tsv
+transcript.jsonl
+run.log
+__pycache__/
+target/__pycache__/

@@ -1,0 +1,7 @@
+commit	median_seconds	gate	stop_reason	status	tokens	description
+591f5e4	inf	ok	budget	timeout	0	baseline (quadratic scan + per-value rescan; over budget by construction)
+7affeed	0.001811	ok	done	keep	4311	Replace quadratic scans with a single Counter pass, O(n) first-repeat via seen-set, and heapq.nsmall
+9b37924	inf	n/a	error	crash	14087	unusable response (no fenced code block)
+e97294a	0.002029	ok	done	discard	6904	Key-free nsmallest over pre-decorated (-count, value) tuples, fused pairs/groups loop with single ha
+1233256	inf	n/a	error	crash	14152	unusable response (no fenced code block)
+e046af9	inf	n/a	error	crash	14109	unusable response (no fenced code block)

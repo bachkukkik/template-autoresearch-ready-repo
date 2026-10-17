@@ -2,11 +2,13 @@
 
 ## What
 
-Three complete instantiations of the autoresearch contract, one per objective
+Four complete instantiations of the autoresearch contract, one per objective
 shape, living under `contract/examples/`: `ex1-music-abc` (minimize a language-model
-loss), `ex2-iris-knn` (maximize a classifier accuracy), and `ex3-hotpath-speedup`
-(minimize wall-clock time under an exact-output gate). A single self-contained
-`dashboard.html` visualizes all three progression ledgers.
+loss), `ex2-iris-knn` (maximize a classifier accuracy), `ex3-hotpath-speedup`
+(minimize wall-clock time under an exact-output gate), and `ex4-llm-repo-speedup`
+(the same wall-time-under-a-gate objective driven by a **live LLM agent** editing
+a small software repo). A single self-contained `dashboard.html` visualizes the
+ex1–ex3 progression ledgers.
 
 ## Why
 
@@ -26,13 +28,14 @@ loss), `ex2-iris-knn` (maximize a classifier accuracy), and `ex3-hotpath-speedup
 
 ## How
 
-### The three instantiations
+### The instantiations
 
 | # | Directory | Objective (direction) | Baseline → Best | Candidates (K/D/C) | Proves |
 |---|---|---|---|---|---|
 | 1 | `contract/examples/ex1-music-abc` | `val_bpb` ↓ (ABC sheet-music LM, procedural stand-in corpus per the transcript-corpus topic) | 3.765056 → **2.178535** (−42.1%) | 6 (4/2/0) | a text domain; the frozen evaluator; keep/discard/reset |
 | 2 | `contract/examples/ex2-iris-knn` | `accuracy` **↑** (real seaborn-mirror iris, embedded byte-identical) | 0.933333 → **1.000000** | 7 (3/4/0) | direction inversion; the frozen-evaluator object-identity guard |
 | 3 | `contract/examples/ex3-hotpath-speedup` | median seconds ↓ + exact-output gate (non-ML, 2,000,000-token workload) | 2.310 s → **0.275 s** (8.41×) | 11 (9/1/1) | an anti-Goodhart gate rejects a ≈10×-faster wrong answer |
+| 4 | `contract/examples/ex4-llm-repo-speedup` | median seconds ↓ + exact-output gate (small repo, one edited file, **live LLM**) | inf (baseline 36.05 s = 7.2× budget) → **0.001811 s** | 5 (1/1/3) | the LIVE loop end to end: a model proposes real code edits; the suite + held-out gate score them; the budget binds |
 
 ### Anatomy of a faithful instance
 
@@ -51,6 +54,9 @@ kept state, commits it, runs the objective, parses the metric from the run log, 
 either keeps (a strict improvement) or `git reset --hard HEAD~1`. On a discard the next
 patch set chains from the last kept file, which is exactly the karpathy loop.
 
+ex4 keeps this shape with a model in the mutation slot — `agent_driver.py` writing
+`target/solution.py` — and is described below.
+
 ### Ledger shape
 
 | Example | Ledger columns | Rows | keep / discard / crash |
@@ -58,6 +64,7 @@ patch set chains from the last kept file, which is exactly the karpathy loop.
 | ex1-music-abc | `commit val_bpb seconds status description` (no header line) | 6 | 4 / 2 / 0 |
 | ex2-iris-knn | `commit accuracy seconds status description` | 7 | 3 / 4 / 0 |
 | ex3-hotpath-speedup | `commit median_seconds gate status description` | 11 | 9 / 1 / 1 |
+| ex4-llm-repo-speedup | `commit median_seconds gate stop_reason status tokens description` | 6 | 1 / 1 / 3 (+ 1 baseline `timeout`) |
 
 `results.tsv` is **runtime state, vendored here ONCE as the record of the worked
 run.** It is not appended to in place: re-running `loop_driver.py` in a scratch clone
@@ -96,6 +103,31 @@ keep / discard / crash / best. It **hand-transcribes** the vendored ledger value
 its inline `RUNS` array — it does not read the `results.tsv` files at load time —
 so `tests/unit/test_examples_replay.py` (AC-EXA-003) asserts the inline numbers equal
 the vendored ledgers and fails on any drift.
+
+### ex4 — the live LLM instantiation
+
+ex4 keeps the three roles but puts a **live model** in the mutation slot. The
+frozen side is `prepare.py` (workloads, metric, `TIME_BUDGET`) plus
+`target/tests.py` (the stdlib correctness suite); the human policy is
+`program.md`; the one agent-edited artifact is `target/solution.py` — a small
+software repo's hot path (`run(items) -> dict`, five keys). `agent_driver.py` is
+the loop: each round it builds a prompt from `program.md` + the current artifact
++ the ledger tail + the last run-log tail, asks an OpenAI-compatible
+chat-completions endpoint for the **complete** new file in one fenced block,
+commits it, runs the frozen evaluator under the budget, and keeps or
+hard-resets. Three environment variables, **NAMES only** (never a value in a
+tracked file): the base URL, the key and the model id.
+
+`transcript.jsonl` records every exchange — the messages' sha256, the artifact
+sent, the raw response, `finish_reason`, the token usage and the wall time — and
+that record is what makes the run reproducible: `--replay transcript.jsonl`
+re-applies the recorded responses in order **with no network at all**.
+
+The gate is the same anti-Goodhart shape as ex3 (`target/tests.py` plus an
+exact-output comparison against `prepare.reference(...)` on a held-out workload,
+with a source screen that rejects any candidate naming the frozen oracle), and
+the budget is a hard 5 s ceiling. The shipped baseline is quadratic, so its row
+is a budget stop by construction.
 
 ## Verification
 
@@ -180,6 +212,47 @@ ledger, and that the final kept `train.py` — the vendored artifact when a flip
 the cascade, the replay's own HEAD otherwise — still passes the exact-output gate. It
 never compares the `median_seconds`, `status` or `gate` columns.
 
+### Run 2026-10-17 — ex4, the live LLM run
+
+The one example whose candidates were proposed by a live model
+(`opencode-go/kimi-k3`, `--max-tokens 12000`), 5 rounds at `TIME_BUDGET = 5` s.
+`transcript.jsonl` holds every exchange, so the run replays offline. Commands from
+the repo root:
+
+```bash
+python3 -m pytest -q tests/unit/test_examples_ex4.py
+# 8 passed in 5.61s
+
+cp -r contract/examples/ex4-llm-repo-speedup /tmp/ex4 && cd /tmp/ex4
+git init -q && git add -A && git commit -qm "contract: baseline"
+python3 agent_driver.py --from-baseline --replay transcript.jsonl
+# replay: 5 recorded round(s) from transcript.jsonl (no network)
+# --from-baseline: target/solution.py <- solution_baseline.py (HEAD 8894f51)
+# commit   median_seconds  gate    stop_reason  status   tokens  description
+# a633e61  inf             ok      budget       timeout  0       baseline (quadratic scan + per-value rescan; over budget by construction)
+# 300e834  0.001800        ok      done         keep     4311    Replace quadratic scans with a single Counter pass, O(n) first-repeat via seen-set, and heapq.nsmall
+# 300e834  (unusable response, round 2)
+# 300e834  0.002137        ok      done         discard  6904    Key-free nsmallest over pre-decorated (-count, value) tuples, fused pairs/groups loop with single ha
+# 300e834  (unusable response, round 4)
+# 300e834  (unusable response, round 5)
+# rows: 6  keep=1 discard=1 timeout=1 crash=3
+# best median: 0.001800s (budget 5s)
+# HEAD: 300e834 | candidate: round 1
+```
+
+The replay reproduces the vendored ledger's **deterministic columns** — `gate`,
+`stop_reason`, `tokens`, `description` — row for row; commit hashes and
+`median_seconds` differ, as with every example. The budget binds: the baseline
+runs **36.05 s** uncapped = **7.2×** the 5 s ceiling, so its row is a budget stop
+(`stop_reason: budget` / `status: timeout` / `median_seconds: inf`). The recorded
+run is **1 keep / 1 discard / 3 unusable**: round 1's single-`Counter` rewrite was
+kept (0.001811 s); round 3's second linear candidate (0.002029 s) did not beat the
+incumbent and was discarded; **rounds 2, 4 and 5 returned empty content**
+(`finish_reason: length`) — the model spent the entire token cap on hidden
+reasoning before emitting a fenced block — and are recorded as unusable-response
+crashes rather than smoothed away. Total cost: 53,563 tokens over 468.8 s of model
+wall time.
+
 ## What Works
 
 - **One contract, three objective shapes.** ex1 (lower-is-better `val_bpb`), ex2
@@ -208,6 +281,13 @@ never compares the `median_seconds`, `status` or `gate` columns.
 - **Every documented run is reproducible from the tracked copy.** `python3 train.py` on
   each example prints the ledger's best metric — 2.178535 / 1.000000 / gate_ok True —
   from the shipped `train.py`.
+- **A live model is a real mutation operator and the run still replays.** ex4's
+  candidates came from a live model (`opencode-go/kimi-k3`), yet
+  `--replay transcript.jsonl` reproduced the ledger's deterministic columns offline
+  from the tracked baseline, so the three roles hold with a model in the loop.
+- **The budget binds.** ex4's quadratic baseline is killed at `TIME_BUDGET` (its
+  uncapped 36.05 s is 7.2× the 5 s ceiling), so the first ledger row is a real budget
+  stop — a ceiling on a runaway candidate, not decoration.
 
 ## What Fails
 
@@ -229,6 +309,12 @@ never compares the `median_seconds`, `status` or `gate` columns.
 - **Timing columns are T2 and jitter between runs.** A wall-clock delta within ~10% is
   not signal, so a re-run of `results.tsv` never reproduces its `seconds` column exactly
   (ex3's fresh run measured 0.291 s against the vendored 0.275 s).
+- **A reasoning model's hidden chain of thought can swallow the token cap.** ex4's
+  rounds 2, 4 and 5 returned empty content (`finish_reason: length`) because the whole
+  `--max-tokens` budget went into reasoning before any fenced block; an earlier attempt
+  on a different reasoning model failed outright (a 2048-token cap fully consumed by
+  reasoning, plus a provider stall) and was discarded as a driver-config problem, not
+  read as a run result.
 
 ## Resolution
 
@@ -251,12 +337,18 @@ never compares the `median_seconds`, `status` or `gate` columns.
 - Never treat a sub-10% wall-clock delta as signal, and vendor `results.tsv` once: new
   measurements go to a scratch clone, and only the endpoints (not the timing column) are
   compared across runs.
+- Give a reasoning model a large `--max-tokens` and record `finish_reason`: a truncated
+  round then lands as an honest unusable-response crash (ex4 rounds 2/4/5) instead of a
+  silent empty candidate, and a too-tight cap is diagnosed as configuration before it is
+  read as a model outcome.
 
 ## Verdict
 
-**works** — three faithful contract instantiations run end to end on three objective
-shapes, each reproducible from its tracked `train.py` (2.178535 / 1.000000 / gate_ok
-True), with the frozen-evaluator guard and the exact-output gate proven falsifiable
-against a live redefinition and a labeled ~10×-faster attack. The loop-mechanics
-failures this doc records are the naive loop's, and each carries the calibration rule
-that fixes it; no example's own run is left red.
+**works** — four faithful contract instantiations run end to end on four objective
+shapes, three scripted and one driven by a live LLM agent (ex4, whose `--replay`
+reproduces the deterministic ledger columns offline), each reproducible from its
+tracked baseline, with the frozen-evaluator guard and the exact-output gate proven
+falsifiable against a live redefinition and a labeled ~10×-faster attack. The
+loop-mechanics failures this doc records are the naive loop's — plus ex4's three
+token-cap-truncated rounds, kept in the ledger as crashes — and each carries the
+calibration rule that fixes it; no example's own run is left red.

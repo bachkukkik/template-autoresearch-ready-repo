@@ -1,6 +1,6 @@
 # PRD 11 — Worked Examples: Honest Provenance and Reproducible Ledgers
 
-> Intent: the three worked examples under `contract/examples/` must be **honest
+> Intent: the worked examples under `contract/examples/` must be **honest
 > about how they were produced** and **reproducible from tracked state** — a
 > reader who copies an example into a scratch clone and runs its driver must get
 > the vendored ledger back (ex1/ex2 row for row; ex3 on its deterministic
@@ -42,6 +42,11 @@ run it did not ship**:
    final-state `train.py` docstring/comments described its baseline; `TIME_BUDGET`
    was presented as if the run used it (it never does — the baseline finishes in
    well under a second); the dashboard hand-transcribes numbers without any check.
+
+A fourth example, `ex4-llm-repo-speedup`, is the one **LIVE** run: a real model
+proposed the candidates and `transcript.jsonl` records every exchange, so its
+provenance is the opposite of ex1–ex3's scripted-reference-run provenance and it
+is verified in its own test module rather than with the other three (SC7).
 
 **Users:** a reader or agent who trusts an example as evidence for the contract.
 **Constraint:** the fix must be *minimal and honest* — reconstruct the baseline as
@@ -92,6 +97,25 @@ its own commit hashes and its own (jittering) timing column.
   Every example's `program.md` frames `TIME_BUDGET` as a bound on a runaway
   candidate, never as a target the run is expected to fill. _Verify:_
   `tests/unit/test_examples_replay.py` (AC-EXA-010).
+- **SC7 ✅ implemented 2026-10-17** — **ex4 is the live-LLM instance, and its run
+  replays offline.** `contract/examples/ex4-llm-repo-speedup/` instantiates the
+  contract with a live model in the mutation slot: `agent_driver.py` (an
+  OpenAI-compatible loop keyed on env-var NAMES only, `--from-baseline` /
+  `--replay`) prompts the model for the complete `target/solution.py`, applies
+  it, commits, runs the FROZEN evaluator and keeps or resets. `transcript.jsonl`
+  records every exchange with its `finish_reason`, so `--replay` re-applies the
+  recorded responses **with no network** and reproduces the ledger's
+  deterministic columns (`gate`, `stop_reason`, `tokens`, `description`) row for
+  row — never `median_seconds`, nor the discard row's timing-turning `status`.
+  The budget binds: the shipped quadratic baseline runs **36.05 s = 7.2×** the
+  `TIME_BUDGET = 5` s ceiling, so its ledger row is a budget stop
+  (`stop_reason: budget` / `status: timeout`). The recorded 2026-10-17 run
+  (model `opencode-go/kimi-k3`) is 5 rounds — **1 keep / 1 discard / 3 unusable**
+  (empty content, `finish_reason: length`, recorded as crash) — and the ledger
+  states that plainly rather than smoothing it away. Provenance is a LIVE LLM
+  run (a model id and a date are recorded); no ex4 file claims the
+  scripted-reference-run provenance ex1–ex3 carry. _Verify:_
+  `tests/unit/test_examples_ex4.py` (AC-EXA-011..018).
 
 ## Test Mapping
 
@@ -107,6 +131,14 @@ its own commit hashes and its own (jittering) timing column.
 | seed note discloses evaluator-input tuning / Goodhart | `tests/unit/test_examples_replay.py` | AC-EXA-008 |
 | each example ships train_baseline.py + `--from-baseline` | `tests/unit/test_examples_replay.py` | AC-EXA-009 |
 | every program.md frames TIME_BUDGET as a ceiling | `tests/unit/test_examples_replay.py` | AC-EXA-010 |
+| ex4 ships the three-role split (frozen evaluator + frozen suite, one agent artifact, driver, ledger, transcript) | `tests/unit/test_examples_ex4.py` | AC-EXA-011 |
+| every results.tsv first line == its driver's HEADER (ex4) | `tests/unit/test_examples_ex4.py` | AC-EXA-012 |
+| the budget binds: ex4's baseline row is a budget stop | `tests/unit/test_examples_ex4.py` | AC-EXA-013 |
+| ex4 transcript rounds == ledger LLM rows; an empty response is a recorded crash | `tests/unit/test_examples_ex4.py` | AC-EXA-014 |
+| ex4 provenance is a live LLM run (model + date; no scripted-reference claim) | `tests/unit/test_examples_ex4.py` | AC-EXA-015 |
+| no ex4 file names a secret or a machine path | `tests/unit/test_examples_ex4.py` | AC-EXA-016 |
+| ex4 program.md frames TIME_BUDGET as a ceiling | `tests/unit/test_examples_ex4.py` | AC-EXA-017 |
+| ex4 offline replay reproduces the deterministic columns row for row | `tests/unit/test_examples_ex4.py` | AC-EXA-018 |
 | ex3 replay completes the baseline row + a description prefix; final artifact passes the gate | `tests/integration/test_examples_replay.py` | AC-EXA-201 |
 | final kept ex3 train.py passes the exact-output gate inside budget | `tests/integration/test_examples_replay.py` | AC-EXA-202 |
 

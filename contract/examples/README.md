@@ -1,16 +1,19 @@
-# Worked examples — three instantiations of the contract
+# Worked examples — four instantiations of the contract
 
-Three complete autoresearch runs (2026-09-26), each proving the template on a
-different axis. Every directory is a faithful contract instance: `program.md`
-(human policy) / `prepare.py` (FROZEN evaluator) / `train.py` (the only
-agent-edited file) / `results.tsv` (keep/discard ledger) / `loop_driver.py`
-(the driver that replayed the run) / `train_baseline.py` (the reconstructed
-baseline the run started from).
+Four complete autoresearch runs, each proving the template on a different axis:
+three scripted runs (2026-09-26) and **one live LLM run** (2026-10-17). Every
+directory is a faithful contract instance: `program.md` (human policy) /
+`prepare.py` (FROZEN evaluator) / the one agent-edited file (`train.py`, or
+`target/solution.py` in ex4) / `results.tsv` (keep/discard ledger) / the driver
+that ran the loop (`loop_driver.py`, or `agent_driver.py` in ex4) / the
+reconstructed baseline the run started from (`train_baseline.py`, or
+`solution_baseline.py` in ex4).
 
-**A run is a scripted reference run.** `loop_driver.py` replays a **fixed
+**ex1–ex3 are scripted reference runs.** Their `loop_driver.py` replays a **fixed
 candidate list** deterministically; it is a reference implementation of the loop,
-not a model-driven search. A live agent would generate candidates itself from the
-run log.
+not a model-driven search. **ex4 is the one LIVE run**: `agent_driver.py` asks a
+real OpenAI-compatible model for each candidate and records every exchange in
+`transcript.jsonl`, so the run is reproducible offline.
 
 **`results.tsv` is runtime state, vendored here ONCE as the record of the worked
 run** — do not continue appending to it. To reproduce it, copy the example into a
@@ -22,6 +25,15 @@ git init -q && git add -A && git commit -qm "contract: baseline"
 python3 loop_driver.py --from-baseline
 ```
 
+ex4 is the one example that replays **offline from its recorded transcript** — no
+network, from the tracked baseline:
+
+```bash
+cp -r contract/examples/ex4-llm-repo-speedup /tmp/ex4 && cd /tmp/ex4
+git init -q && git add -A && git commit -qm "contract: baseline"
+python3 agent_driver.py --from-baseline --replay transcript.jsonl
+```
+
 `--from-baseline` copies the tracked `train_baseline.py` over the FINAL-kept
 `train.py` and commits it, so the driver's patch anchors (written against the
 baseline) apply. A re-run reproduces the **metric / status / description**
@@ -30,19 +42,24 @@ does **not** reproduce the `seconds`/`median_seconds` column — timing is a T2
 statistical field and jitters between runs — nor the commit hashes (a fresh
 `git init`), and ex3's keep/discard statuses are timing-sensitive. Tests:
 `tests/unit/test_examples_replay.py` (ex1/ex2), 
-`tests/integration/test_examples_replay.py` (ex3).
+`tests/integration/test_examples_replay.py` (ex3),
+`tests/unit/test_examples_ex4.py` (ex4).
 
 | # | Example | Direction | Baseline → Best | Candidates (K/D/C) | Proves |
 |---|---|---|---|---|---|
 | 1 | [ex1-music-abc](ex1-music-abc/) — ABC sheet-music LM (procedural stand-in corpus, per the transcript-corpus topic) | val_bpb ↓ | 3.765056 → **2.178535** (−42.1%) | 6 (4/2/0) | text domain; frozen evaluator; keep/discard/reset |
 | 2 | [ex2-iris-knn](ex2-iris-knn/) — iris kNN (real seaborn-mirror iris, embedded byte-identical) | accuracy **↑** | 0.933333 → **1.000000** | 7 (3/4/0) | direction inversion; object-identity anti-redefine guard fires |
 | 3 | [ex3-hotpath-speedup](ex3-hotpath-speedup/) — non-ML hot path, 2M-token workload | median s ↓ **+ exact-output gate** | 2.310 s → **0.275 s** (8.41×) | 11 (9/1/1) | anti-Goodhart gate rejects a 10×-faster wrong answer (`attack:` row) |
+| 4 | [ex4-llm-repo-speedup](ex4-llm-repo-speedup/) — small repo, one agent-edited file, **LIVE LLM agent** (`opencode-go/kimi-k3`) | median s ↓ **+ exact-output gate** | inf (baseline 36.05 s = 7.2× over budget) → **0.001811 s** | 5 (1/1/3) | the live loop: a model proposes real code edits; the budget binds (baseline killed at `TIME_BUDGET`); 3 rounds returned empty content and are recorded as crashes |
 
-Progression dashboard (all three runs, one self-contained file):
+Progression dashboard (ex1–ex3, one self-contained file):
 [`dashboard.html`](dashboard.html). It **hand-transcribes** the ledger values
 into an inline `RUNS` array — it does not read the TSVs at load time — so
 `tests/unit/test_examples_replay.py` (AC-EXA-003) asserts the inline numbers
-equal the vendored ledgers and fails on any drift.
+equal the vendored ledgers and fails on any drift. ex4 is not charted: its ledger
+carries a driver header and T2-timing crash rows the dashboard's two-column
+series does not model; its replay is checked in `tests/unit/test_examples_ex4.py`
+(AC-EXA-011..018).
 
 ## Calibration lessons (validated across all three runs)
 
@@ -67,6 +84,11 @@ equal the vendored ledgers and fails on any drift.
   incumbent×(1+ε) AND code shrinks.
 - **Timing fields are T2**: never treat a wall-clock delta within ~10% as
   signal.
+- **A token-capped reasoning model can return empty content.** ex4's rounds 2, 4
+  and 5 spent the entire `--max-tokens` budget on a hidden chain of thought and
+  returned nothing. The driver records `finish_reason: length` and an
+  unusable-response crash rather than inventing a candidate; give a reasoning
+  model a generous cap and record `finish_reason` so a truncated round is visible.
 
 Each example's README records its git history verbatim from the worked run; those
 commits live in the (gitignored) scratch clones and are **not** in this repo, so a
