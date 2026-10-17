@@ -46,10 +46,11 @@ tokenizing/grouping strategy, short-circuits, helper layout.
   unrecognised record is ignored, and a wrong output is a failed gate.
 - Read the caller's environment. The evaluated child runs with a scrubbed
   environment (no API keys), and a budget kill takes its whole process group.
-- Pretend to be fast. The benchmark seeds are chosen by the parent with
-  `secrets` and handed over only after the child reports it has imported the
-  candidate, so a workload precomputed at import, or an answer cached across
-  reps, is worthless.
+- Pretend to be fast. The parent draws a fresh `secrets` seed for each timed
+  rep and hands it over only after the child reports it has imported the
+  candidate and is waiting, so a workload precomputed at import, or an answer
+  cached across reps, is worthless; the parent also times each rep with its own
+  clock, so a patched clock inside the candidate changes nothing.
 - Install packages. Stdlib only.
 - Modify any other file.
 
@@ -115,13 +116,15 @@ NEVER STOP mid-run: do not ask the human whether to continue.
   answer buys nothing and a workload precomputed at import time is empty; the
   parent's own held-out comparison blocks dataset-specific shortcuts; and the
   source screen blocks reaching into the oracle.
-- **The speed number is still measured inside the candidate's process.** The
-  correctness signal is parent-verified and cannot be forged, but `run()`'s
-  timing is a `time.perf_counter` delta the child reports, so a hostile candidate
-  that patches the clock could understate it. The parent rejects only what the
-  wall clock it measured cannot have produced (a `median * BENCH_REPS` above the
-  bench phase, or a non-positive median). Treat a live loop's timing as a T2
-  field and run it only in a disposable sandbox.
+- **Correctness and timing are both parent-side.** The parent verifies every
+  reported output against its own `reference(...)` and measures each rep with its
+  own `perf_counter` -- from writing the seed to reading the child's output record
+  for it -- so neither a forged verdict nor a patched clock can buy a keep. The
+  recorded median is the parent's own per-rep wall time (including the child's
+  workload generation and the IPC). What remains is the artifact itself: it is
+  arbitrary Python run **unsandboxed, with your privileges**, so run a live loop
+  only in a disposable sandbox/VM with no host mounts and no credentials, and
+  treat its timing as a T2 field.
 - Timing is a **T2 statistical field**: a wall-clock delta within ~10% is not
   signal. The replay compares the gate / stop_reason / description columns, never
   `median_seconds`.

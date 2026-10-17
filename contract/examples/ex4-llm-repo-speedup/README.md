@@ -52,6 +52,12 @@ a description at 100 characters — so row 2 ends mid-word (`heapq.nsmall`) and 
 4 ends mid-word (`single ha`). A crash row's `commit` is the candidate commit that
 was discarded by the reset; it is in no branch's history, only in that row.
 
+The `median s` values are that earlier evaluator's **child-side** timing of
+`run()`; the current evaluator times each rep in the parent, so a fresh run
+measures `0.0107–0.0117 s` and these numbers are **not comparable** with it —
+keep/discard is decided against the incumbent measured by the same evaluator in the
+same run.
+
 **The budget binds.** The shipped baseline is quadratic; measured uncapped it
 runs **36.05 s**, i.e. **7.2×** `TIME_BUDGET`, so its ledger row is a budget stop
 (`stop_reason: budget`, `status: timeout`, `median_seconds: inf`) — not
@@ -137,20 +143,23 @@ one JSON record per line in a path the parent creates, the raw outputs of
 recomputes `reference(...)` itself and compares. Consequences:
 
 - **The verdict is parent-owned.** No `gate`, `keep` or `median` travels from the
-  child as a trusted field: the recorded median is the parent's own
-  `statistics.median` of the reported per-rep seconds, and a record the candidate
-  writes (a fake `gate: ok`, a `1e-06`) is either ignored (an unrecognised stage)
-  or, if it is an `output`, is compared against `reference` like any other — where
-  a wrong one only adds a mismatch. A2 and A3 therefore have no verified output
-  and are a crash, never a keep.
-- **The benchmark inputs are fresh and parent-chosen.** The parent draws
-  `BENCH_REPS` seeds with `secrets.randbits` and sends them over the child's
-  stdin only **after** the child reports (in the results channel) that it has
-  imported the candidate, so the seeds do not exist while the artifact's module
-  body runs. The child builds each timed workload from its seed with
-  `prepare.generate_data`. A workload precomputed at import, or a cache reused
-  across reps, is therefore empty, and the parent verifies each bench output
-  against `reference` on the seed it issued.
+  child as a trusted field: the parent verifies every reported `run()` output
+  against its own `reference(...)`, and a record the candidate writes (a fake
+  `gate: ok`, a `1e-06`) is either ignored (an unrecognised stage) or, if it is an
+  `output`, is compared like any other — where a wrong one only adds a mismatch.
+  A2 and A3 therefore have no verified output and are a crash, never a keep.
+- **The timing is parent-owned too, one rep at a time.** For each rep the parent
+  draws a fresh `secrets.randbits` seed, computes `reference(generate_data(...))`
+  for it **before** it sends anything, writes only that seed to the child's stdin,
+  times the round trip with its own `perf_counter` until the child's output record
+  for that seed arrives, and verifies the output against the reference it
+  computed. The recorded median is the median of the **parent's** per-rep seconds;
+  the metric is parent wall time per rep, including the child's workload
+  generation and the IPC (a constant overhead, identical for every candidate).
+  Because the seed for rep *k* does not exist until the parent sends it, a
+  workload precomputed at import is impossible, and a patched clock inside the
+  candidate changes nothing — the child's own `seconds` is not in the protocol at
+  all.
 - **The held-out outputs are reported before the timed reps**, so a run the
   budget kills mid-benchmark still carries a verifiable result: the baseline's
   row stays `gate: ok` / `stop_reason: budget` / `status: timeout`.
@@ -161,10 +170,20 @@ recomputes `reference(...)` itself and compares. Consequences:
   baseline row is the incumbent, so it is never reset — round 1 starts from
   `solution_baseline.py`, which is what the transcript recorded.
 
-**Residual risk, stated plainly.** Correctness is parent-verified and cannot be
-forged. The *speed* number is still a `time.perf_counter` delta measured **inside
-the candidate's process** and reported by the child, so a candidate that patches
-the clock could understate it; the parent only rejects what the wall clock it
-measured cannot have produced (`median * BENCH_REPS` above the bench phase, or a
-non-positive median). Run live loops only in a disposable sandbox — the same T2
-stance the policy file takes on timing.
+**Residual risk, stated plainly.** Correctness and timing are both parent-side
+and cannot be forged. What remains is the artifact itself: it is arbitrary Python
+run **unsandboxed, with your privileges**, so it can read files, spawn processes
+and consume the machine — run a live loop only in a disposable sandbox/VM with no
+host mounts and no credentials beyond the endpoint key (which the evaluated child
+does not inherit either). Timing is still a T2 field — a wall-clock delta within
+~10% is not signal — so the ledger's keep/discard decisions must not be read as
+precise.
+
+**A best-effort screen, not a security boundary.** The source screen rejects a
+candidate that names `prepare`, but a two-token bypass defeats it
+(`importlib.import_module('pre'+'pare')`), and copying a correct implementation is
+not a gate forgery anyway — the output is genuinely correct. The screen is an
+accidental-oracle tripwire; the real defence is the parent-side comparison (a
+wrong output is a failed gate whatever the source said), and the reason a live
+loop belongs in a sandbox is that the artifact runs unsandboxed, not that the
+screen can be trusted.

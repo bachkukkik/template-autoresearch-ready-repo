@@ -221,7 +221,7 @@ the repo root:
 
 ```bash
 python3 -m pytest -q tests/unit/test_examples_ex4.py
-# 16 passed in 8.37s
+# 23 passed in 9.60s
 
 mkdir -p "$TMPDIR/ex4"
 git archive HEAD contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
@@ -378,10 +378,12 @@ PY
 # A3 gate=n/a stop=error median=inf status=crash 1e-06? False
 
 (cd contract/examples/ex4-llm-repo-speedup && python3 prepare.py --run \
-  target/solution.py | tail -3)
+  target/solution.py | tail -5)
+# median_seconds: 0.010834
 # gate: ok
 # stop_reason: done
 # time_budget: 5
+# total_seconds: 0.181
 ```
 
 The honest `target/solution.py` still evaluates to `gate: ok` / `done` (a keep
@@ -396,6 +398,71 @@ kept), AC-EXA-028 (an `atexit` verdict overwrite is never the recorded median),
 AC-EXA-029 (wrong outputs fail the gate however the child writes), AC-EXA-030
 (fresh parent-chosen seeds defeat load-time precompute). AC-EXA-025 was rewritten
 for the fresh-seed design.
+
+### Run 2026-10-17 — third pass: parent-side timing
+
+A re-review of the second pass found it still trusted the child for the **timing**.
+Two attacks scored absurdly well against it:
+
+- an **active load-time precompute** — forge the `imported`/`ready` handshakes,
+  read the seed stream off the child's stdin and compute every rep's answer before
+  the bench even starts — was scored `keep` at **0.000006 s**;
+- a candidate that appended `bench` records claiming `seconds: 1e-9` (with the
+  correct output) was recorded at a median of **0.0**.
+
+Both are the same defect: the recorded number was one the candidate could choose.
+The fix moves the clock to the parent. For each timed rep the parent draws one
+fresh `secrets.randbits` seed, computes `reference(generate_data(seed))` for it
+**before** it sends anything, writes only that seed to the child's stdin after the
+child reports it is ready, and times the round trip with its own `perf_counter`
+until the child's output record for that seed arrives. The protocol carries no
+`seconds` field any more, so a forged one is ignored, and the recorded median is
+the median of the **parent's** per-rep seconds.
+
+**The metric changed, so the vendored medians are not comparable.** A parent-rep
+now includes the child's `generate_data` workload build and the IPC — a constant
+overhead — so an honest run measures **0.0107–0.0117 s** (the parent measured
+0.010678 / 0.011116 / 0.011657 s on `target/solution.py`), not the **0.0018 s** the
+vendored ledger records. The vendored `0.001811 s` keep and `0.002029 s` discard
+were produced by the **pre-hardening** evaluator, which timed `run()` inside the
+child; they are that run's record and stay as they are. Keep/discard is decided
+against the incumbent **measured by the same evaluator in the same run**, so the
+shift cancels — only the within-run comparison is read as signal.
+
+Attack table, all re-run against `66b6f7c` (parent-side gate and timing):
+
+| Attack | Result |
+|---|---|
+| print a fake verdict, `sys.exit(0)` | crash |
+| forge the results channel with no `run()` | crash |
+| return wrong-but-fast outputs | gate failed |
+| active precompute that steals the stdin seeds (AC-EXA-030) | gate failed |
+| `atexit`-append fake `bench` records, `seconds: 1e-9` (AC-EXA-031) | ignored; real median ≈0.0107 s |
+| patch the clock inside the candidate | no effect; median ≈0.0109 s, gate ok |
+| spawn a grandchild, then a clean `os._exit(0)` (AC-EXA-032) | killed — no orphan |
+| flood the results channel with 50 MB (AC-EXA-033) | crash; parent max RSS 33 MB |
+| `--run rel_sol.py` from another directory | works |
+| `importlib.import_module('pre'+'pare')` oracle copy | passes with a real median |
+
+The last row is the honest limit: the FORBIDDEN screen is a **best-effort
+tripwire, not a security boundary** — a two-token bypass defeats it, and a copied
+*correct* implementation is not a gate forgery (a genuinely correct output passing
+the gate is the right answer). The real defence is the parent-side comparison: a
+wrong output fails the gate whatever the source named. Under the new evaluator the
+replay still reproduces the vendored ledger's deterministic columns row for row
+(`gate`, `stop_reason`, `tokens`, `description`, plus `status` for the
+baseline/crash rows and the first keep); its own medians are 0.010638 s (keep) and
+0.010853 s (discard).
+
+The parent also caps the results channel (8 MiB / 1000 records) and reads it with a
+tracked offset rather than re-reading the whole file every poll; past the cap the
+run is a crash, never a slow win. `--run` accepts a relative path from any
+directory.
+
+New tests, all offline: AC-EXA-030 (the ACTIVE precompute attack is not a fast
+keep), AC-EXA-031 (an `atexit`-forged `seconds: 1e-9` is never the recorded
+median), AC-EXA-032 (no orphan after a clean exit), AC-EXA-033 (a channel flood is
+a crash).
 
 ## What Works
 
@@ -481,6 +548,14 @@ for the fresh-seed design.
   correct file plus an `atexit` overwrite (A3) were both scored `keep` with median
   `1e-06`. A gate a process reports about itself is only as strong as the process
   boundary around it, and inside one process there is none.
+- **The screen is a tripwire, not a boundary, and the artifact runs unsandboxed.**
+  ex4's correctness and timing are parent-side, but the candidate is imported and
+  run as arbitrary Python with the caller's privileges, so it can read files, spawn
+  processes and consume the machine; and the source screen that rejects a candidate
+  naming `prepare` is defeated by a two-token bypass
+  (`importlib.import_module('pre'+'pare')`) — a copied *correct* implementation
+  passes with a real median, because correct output is the right answer, not a
+  forgery.
 
 ## Resolution
 
@@ -516,6 +591,11 @@ for the fresh-seed design.
   the child asserts no verdict (it reports only the raw `run()` outputs), the parent
   recomputes `reference(...)` and compares them, and the benchmark seeds are drawn by
   the parent with `secrets` after the child's import handshake and sent over its stdin.
+- Run a live loop only in a disposable sandbox/VM with no host mounts and no
+  credentials beyond the endpoint key (the evaluated child does not inherit it
+  either), and treat the source screen as an accidental-oracle tripwire rather than
+  a security boundary: the defence is the parent-side output comparison, which fails
+  a wrong output whatever the source said.
 
 ## Verdict
 
@@ -524,11 +604,13 @@ shapes, three scripted and one driven by a live LLM agent (ex4, whose `--replay`
 reproduces the deterministic ledger columns offline), each reproducible from its
 tracked baseline, with the frozen-evaluator guard and the exact-output gate proven
 falsifiable against a live redefinition and a labeled ~10×-faster attack. The ex4
-harness was hardened twice afterwards — first a verdict file with an exit-code
-cross-check, then, after the parent reproduced a verdict-file forgery the first pass
+harness was hardened three times afterwards — a verdict file with an exit-code
+cross-check; then, after the parent reproduced a verdict-file forgery the first pass
 still allowed, a parent-side comparison of the child's raw `run()` outputs on
-parent-chosen fresh seeds — alongside the process-group budget kill, the environment
-scrub and the in-repo guard, all without touching the recorded run. The loop-mechanics
+parent-chosen fresh seeds; then, after a re-review showed the child still owned the
+clock, parent-side per-rep timing on a fresh parent-chosen seed per rep — alongside
+the process-group budget kill, the environment scrub and the in-repo guard, all
+without touching the recorded run. The loop-mechanics
 failures this doc records are the naive loop's — plus ex4's three
 token-cap-truncated rounds, kept in the ledger as crashes — and each carries the
 calibration rule that fixes it; no example's own run is left red.

@@ -115,25 +115,34 @@ its own commit hashes and its own (jittering) timing column.
   states that plainly rather than smoothing it away. Provenance is a LIVE LLM
   run (a model id and a date are recorded); no ex4 file claims the
   scripted-reference-run provenance ex1–ex3 carry.
-  **Hardened 2026-10-17 (two review passes), without touching the record:** the
+  **Hardened 2026-10-17 (three review passes), without touching the record:** the
   parent decides the gate — the child asserts no verdict and reports only the raw
   `run()` outputs, and the parent recomputes `reference(...)` and compares them on
   a held-out workload plus benchmark workloads whose seeds it draws with
-  `secrets.randbits` AFTER the child signals it has imported the candidate (then
-  sends them over the child's stdin), so a workload precomputed at import, or a
-  verdict file a candidate writes (with no `run()` at all, or from an `atexit`
-  hook), buys nothing; the held-out outputs are reported before the timed reps, so
-  a budget kill still sets the verdict itself (`median_seconds: inf` /
-  `stop_reason: budget`, gate `ok` when the held-out outputs matched); the child
-  runs in its own process group with a scrubbed environment (no `OPENAI_*` key), so
-  a budget kill leaves no orphan grandchild; the driver refuses a non-root repo and
-  a non-empty ledger for a live run, and commits only `target/solution.py`; and the
-  baseline row is never reset, so round 1 starts from the tracked baseline.
-  **Residual risk, documented:** the speed number is measured inside the candidate's
-  process — correctness is parent-verified, timing is not — so a live loop belongs
-  in a disposable sandbox. The vendored ledger was produced by the pre-hardening
-  evaluator and still replays to the same deterministic columns under the hardened
-  one. _Verify:_ `tests/unit/test_examples_ex4.py` (AC-EXA-011..030).
+  `secrets.randbits`, so a workload precomputed at import, or a verdict file a
+  candidate writes (with no `run()` at all, or from an `atexit` hook), buys
+  nothing. The parent also **owns the timing**: one fresh seed per rep, written to
+  the child's stdin only after the child signals it is ready, the round trip timed
+  with the parent's own `perf_counter` against a reference the parent computed
+  **before** sending the seed — the child's `seconds` is not in the protocol — so
+  an active load-time precompute or a patched clock cannot make a rep look faster,
+  and the recorded median is the parent's own per-rep wall time (child workload
+  generation and IPC included). The results channel is read with a tracked offset
+  and capped (8 MiB / 1000 records); past the cap the run is a crash. The held-out
+  outputs are reported before the timed reps, so a budget kill still sets the
+  verdict itself (`median_seconds: inf` / `stop_reason: budget`, gate `ok` when the
+  held-out outputs matched). The child runs in its own process group with a
+  scrubbed environment (no `OPENAI_*` key), and the whole group is killed on
+  **every** exit path — a clean `os._exit(0)` included — so no orphan outlives the
+  run. The driver refuses a non-root repo and a non-empty ledger for a live run and
+  commits only `target/solution.py`; the baseline row is never reset, so round 1
+  starts from the tracked baseline. **Residual risk, documented:** correctness and
+  timing are both parent-side; what remains is that the artifact runs
+  **unsandboxed with the caller's privileges**, so a live loop belongs in a
+  disposable sandbox. The source screen is a best-effort accidental-oracle
+  tripwire, not a security boundary. The vendored ledger was produced by the
+  pre-hardening evaluator and still replays to the same deterministic columns under
+  the hardened one. _Verify:_ `tests/unit/test_examples_ex4.py` (AC-EXA-011..033).
 
 ## Test Mapping
 
@@ -163,12 +172,15 @@ its own commit hashes and its own (jittering) timing column.
 | ex4: the evaluated child inherits no `OPENAI_API_KEY`; HOME is a private temp dir | `tests/unit/test_examples_ex4.py` | AC-EXA-022 |
 | ex4: the driver refuses a parent repo, leaving its HEAD and uncommitted file untouched | `tests/unit/test_examples_ex4.py` | AC-EXA-023 |
 | ex4: a live run refuses a non-empty ledger (the vendored ledger is the record) | `tests/unit/test_examples_ex4.py` | AC-EXA-024 |
-| ex4: the benchmark seeds are fresh and parent-chosen (secrets, after the handshake) | `tests/unit/test_examples_ex4.py` | AC-EXA-025 |
+| ex4: the benchmark seeds are fresh and parent-chosen (one `secrets` seed per rep, after the handshake) | `tests/unit/test_examples_ex4.py` | AC-EXA-025 |
 | ex4: the README's ledger table cells equal `results.tsv` byte for byte | `tests/unit/test_examples_ex4.py` | AC-EXA-026 |
 | ex4: a results-file forgery with no `run()` is not kept (gate n/a, crash) | `tests/unit/test_examples_ex4.py` | AC-EXA-027 |
 | ex4: an `atexit` verdict overwrite is never the recorded median (real or crash) | `tests/unit/test_examples_ex4.py` | AC-EXA-028 |
 | ex4: wrong outputs fail the gate however the child writes (forged output included) | `tests/unit/test_examples_ex4.py` | AC-EXA-029 |
-| ex4: fresh parent-chosen seeds defeat load-time precompute (wrong bench output caught) | `tests/unit/test_examples_ex4.py` | AC-EXA-030 |
+| ex4: forging the import/ready handshakes and stealing the stdin seed stream never buys a fast keep (active load-time precompute) | `tests/unit/test_examples_ex4.py` | AC-EXA-030 |
+| ex4: an `atexit`-forged `seconds: 1e-9` bench record is ignored; the median is the parent's own measurement | `tests/unit/test_examples_ex4.py` | AC-EXA-031 |
+| ex4: a grandchild spawned at import is killed even after a clean `os._exit(0)` — no orphan outlives the run | `tests/unit/test_examples_ex4.py` | AC-EXA-032 |
+| ex4: a results-channel flood past the record cap is a crash, never a slow win | `tests/unit/test_examples_ex4.py` | AC-EXA-033 |
 | ex3 replay completes the baseline row + a description prefix; final artifact passes the gate | `tests/integration/test_examples_replay.py` | AC-EXA-201 |
 | final kept ex3 train.py passes the exact-output gate inside budget | `tests/integration/test_examples_replay.py` | AC-EXA-202 |
 

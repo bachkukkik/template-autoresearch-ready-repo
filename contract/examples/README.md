@@ -65,7 +65,7 @@ into an inline `RUNS` array — it does not read the TSVs at load time — so
 equal the vendored ledgers and fails on any drift. ex4 is not charted: its ledger
 carries a driver header and T2-timing crash rows the dashboard's two-column
 series does not model; its replay is checked in `tests/unit/test_examples_ex4.py`
-(AC-EXA-011..030).
+(AC-EXA-011..033).
 
 ## Calibration lessons (validated across all four runs)
 
@@ -103,8 +103,14 @@ series does not model; its replay is checked in `tests/unit/test_examples_ex4.py
   inside the child that writes it and can read the path off `sys.argv` — so the gate
   is now the PARENT's own comparison of the raw `run()` outputs the child reports,
   on a held-out workload plus benchmark workloads whose seeds the parent draws with
-  `secrets` after the child's import handshake
-  (`docs/11-worked-example-pipelines.md`, Run 2026-10-17).
+  `secrets` after the child's import handshake, and the recorded metric is the
+  parent's own per-rep wall time (workload build and IPC included). The vendored
+  ex4 medians (`0.001811 s` / `0.002029 s`) come from the earlier child-side timer,
+  so they are not comparable with a run under this evaluator; keep/discard is
+  decided against the incumbent measured by the same evaluator in the same run. The
+  source screen is a best-effort tripwire, not a security boundary — the
+  parent-side comparison is the gate (`docs/11-worked-example-pipelines.md`, Run
+  2026-10-17).
 
 Each example's README records its git history verbatim from the worked run; those
 commits live in the (gitignored) scratch clones and are **not** in this repo, so a
