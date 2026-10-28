@@ -106,11 +106,20 @@ evidence that the bypasses existed.
 - `python3 -m pytest tests/unit -q` → **334 passed**
 - `python3 -m pytest tests/unit/test_engine_*.py tests/integration/test_engine_loop.py -q`
   → 113 passed (engine subset)
-- Four live ex5 runs (old guard — see superseded run) reached, before the
-  re-run: claude 0.621→0.166 s (3.7×, 6 keeps), opencode 0.612→0.141 s
-  (4 keeps), hermes 0.613→0.188 s (5 keeps), dsh 0.611→0.147 s (2 keeps so
-  far). Final hardened-run results to be appended after the re-run on the
-  hardened guard.
+- `bash tests/run.sh` → `RESULT: PASSED`; `bash scripts/local-ci.sh` → all five
+  gates pass; PR #36 remote CI → 9/9 green (incl. Docker E2E).
+- **Hardened-guard live run (claude)**: baseline 0.617 s → 3 keeps to 0.304 s
+  (+50.8 %), ledger valid, final guard ok — then Claude Code hit its weekly
+  usage limit; the engine recorded each refusal as `agent_error` (the ledger's
+  `log_tail` carries the provider message verbatim) and stopped cleanly on
+  `max_crashes`. The hardened isolation does not slow real optimization down,
+  and a harness outage is a bounded, evidenced stop — not a corrupted run.
+- **Pre-hardening live runs** (superseded run below — kept as the
+  improvement evidence; each independently confirmed post-hoc): claude
+  0.621→0.166 s (3.7×; 4.07× post-hoc), opencode 0.612→0.136 s (4.5×; 4.47×),
+  hermes 0.613→0.188 s (3.3×; 2.63×), dsh 0.611→0.135 s (4.5×; 4.06×) —
+  every final artifact output-identical on unseen seeds (24,000 comparisons
+  each), full public surface intact.
 
 ## What Works
 
@@ -129,9 +138,12 @@ evidence that the bypasses existed.
 
 ## What Fails
 
-- **The re-run on the hardened guard was still in flight when this doc was
-  written.** The per-harness hardened numbers land as an addendum; the
-  pre-hardening run is the triage evidence, clearly marked.
+- **Only one harness has a hardened-guard live run.** Claude Code hit its
+  weekly usage limit mid-run, so the opencode/hermes/dsh hardened re-runs are
+  still pending; their pre-hardening results (independently confirmed) stand.
+  The attack tests (AC-EXA-046..050) run the hardened guard against every
+  known bypass on every host, so the guard's correctness does not depend on
+  the number of live runs.
 - **Harness quality varies.** Claude Code and opencode found the bit-parallel
   Myers algorithm on their own; DeepSeek reached it in 2 iterations; Hermes
   improved steadily without it in 5. The loop does not equalise model capability.
