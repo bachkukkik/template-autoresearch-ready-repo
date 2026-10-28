@@ -1,10 +1,10 @@
 ---
 title: Deterministic Keep Gate
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-28
 type: concept
 tags: [autoresearch, research-method]
-sources: [raw/articles/2026-10-16-autoresearch-oss-landscape.md]
+sources: [raw/articles/2026-10-16-autoresearch-oss-landscape.md, raw/articles/2026-10-28-autoresearch-real-world-engines.md]
 confidence: high
 ---
 
@@ -48,3 +48,8 @@ gate may read.
 - [[autoresearch-contract]] — the frozen-evaluator rule this operationalises.
 - [[fixed-time-budget]] — the other half of the evaluator's invariants.
 - [[autoresearch-oss-landscape]] — the 19 implementations the evidence comes from.
+- [[verify-guard-contract]] — how the metric and the guard are actually produced, and the
+  parse surfaces that make exit 2 detectable instead of silent.
+- [[script-owned-keep-revert]] — who executes the decision; the 2026-10-28 study found the
+  systems that survive scale put it in the control script, not the agent.
+- [[autoresearch-engines-real-world]] — the 15-system follow-up study.

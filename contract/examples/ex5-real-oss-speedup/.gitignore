@@ -1,0 +1,5 @@
+# The guard and the bench import modules out of this tree, so a run leaves
+# byte-code behind. The engine reads `git status` to decide whether an iteration
+# changed anything; without this, a clean run looks like a dirty tree.
+__pycache__/
+*.pyc

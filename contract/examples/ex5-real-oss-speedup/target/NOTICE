@@ -1,0 +1,9 @@
+target/distance.py and oracle/reference_distance.py are the same verbatim copy of
+NLTK's nltk/metrics/distance.py.
+
+  Origin : NLTK 3.9.1
+  URL    : https://github.com/nltk/nltk/blob/3.9.1/nltk/metrics/distance.py
+  Commit : aca78cb2add4084f76b9eac921d8a73927d7a086
+  sha256 : e35e62a30a00f48a85fb76ee9263d7f87b2ec0cd2aa30469ebaa55312c4316bf
+  License: Apache License 2.0 (full text: LICENSE-UPSTREAM, NLTK's LICENSE.txt)
+  Changes: none.
