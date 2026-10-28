@@ -1,10 +1,10 @@
 ---
 title: Harness Portability
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-28
 type: concept
 tags: [agentic, architecture]
-sources: [raw/articles/2026-10-16-autoresearch-oss-landscape.md, raw/articles/2026-09-26-autoresearch-methodology-registration.md]
+sources: [raw/articles/2026-10-16-autoresearch-oss-landscape.md, raw/articles/2026-09-26-autoresearch-methodology-registration.md, raw/articles/2026-10-28-autoresearch-real-world-engines.md]
 confidence: high
 ---
 
@@ -59,3 +59,9 @@ the skill's `SKILL.md` — a missing mechanism never waives a gate.
 - [[document-funnel-doctrine]] — the harness adapter and the `/goal`-vs-phase-table rule.
 - [[autoresearch-contract]] — the loop the harness runs.
 - [[autoresearch-oss-landscape]] — the portability evidence.
+- [[headless-harness-invocation]] — the other half of the seam: the exact argv per harness
+  (`claude -p`, `opencode run`, `codex exec`, `dsh --profile headless`), including the two
+  prompt-transport families and the session-resume flags.
+- [[autoresearch-engines-real-world]] — the 2026-10-28 study; its portability finding is that
+  a single-harness loop with vendor flags in its spine (evo, GEPA, pi) is a rewrite to port,
+  while CORAL's `agent/builtin/` four-adapter shape is the reference seam.

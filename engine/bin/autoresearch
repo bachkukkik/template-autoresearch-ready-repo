@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# autoresearch — run the engine without touching the caller's PYTHONPATH.
+# The engine is stdlib-only, so any python3 >= 3.11 will do.
+#
+# `-P` keeps the working directory off sys.path: `python3 -m` would otherwise
+# import a repo-local autoresearch.py (or autoresearch/ package) instead of the
+# engine whenever the wrapper is run from inside a project.
+set -euo pipefail
+
+ENGINE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="$ENGINE_DIR${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -P -m autoresearch "$@"
