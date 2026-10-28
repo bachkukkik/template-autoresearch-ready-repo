@@ -41,6 +41,7 @@ REQUIRED_DIRS = [
     "ops",                  # vendored artifacts for an externally operated subject
     "scripts",              # operator/verification scripts (e.g. verify-clone.sh)
     "service",              # MCP + REST research service
+    "engine",               # the generic autoresearch engine (PRD-17)
     "tests",                # the three tiers
 ]
 

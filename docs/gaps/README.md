@@ -93,7 +93,7 @@ Rules:
 
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
-| — | *no open gaps* | — | — | — |
+| 17 | [The loop described by the docs cannot be pointed at real code](17-loop-cannot-target-real-code.md) | prd ↔ code | open | 2026-10-28 | closed by PRD-17: the `engine/` package + ex5 (NLTK 3.9.1 under a four-stage isolated guard); verified in [docs/17](../17-autoresearch-engine.md) |
 
 Resolved gaps leave this directory but stay in the repo, their path structure preserved
 under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a tombstone there instead of

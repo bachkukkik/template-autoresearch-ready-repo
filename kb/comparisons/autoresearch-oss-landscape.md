@@ -1,10 +1,10 @@
 ---
 title: Autoresearch OSS Landscape (19 implementations compared)
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-28
 type: comparison
 tags: [autoresearch, research-method]
-sources: [raw/articles/2026-10-16-autoresearch-oss-landscape.md]
+sources: [raw/articles/2026-10-16-autoresearch-oss-landscape.md, raw/articles/2026-10-28-autoresearch-real-world-engines.md]
 confidence: medium
 ---
 
@@ -42,3 +42,15 @@ for why the integrity cluster exists at all.
 
 - [[deterministic-keep-gate]] · [[harness-portability]] · [[autoresearch-contract]] ·
   [[evaluator-legitimacy]]
+
+## Later study (2026-10-28)
+
+A second, narrower pass asked which implementations *measurably improved real code* — 15
+records, pinned commits, with the numbers and the harness argv. It confirms this page's
+verdict and sharpens four of its rows: the keep gate is script-owned in the systems that
+survive scale ([[script-owned-keep-revert]]), the measurement contract is a tagged block or a
+JSON object rather than a stdout regex ([[verify-guard-contract]]), the stop policy is a
+composite and bounded by default ([[loop-stop-conditions]]), and the noise floor this page
+lists as "add a minimum-delta rule" is absent in ten of the fifteen. See
+[[autoresearch-engines-real-world]].
+
