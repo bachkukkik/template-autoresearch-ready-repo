@@ -228,7 +228,7 @@ jobs:
       # two lists cannot drift. Keep it a single line of the form
       # `DOCTRINE_ROOTS: "root1 root2 …"` — the test matches it with a regex and
       # tests/requirements.txt carries no YAML parser.
-      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md SECURITY.md CLAUDE.md GEMINI.md LICENSE .env.example .gitignore .gitattributes docker-compose.yml .agents .claude .credentials .github contract data docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries ops scratchpads scripts service tests"
+      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md SECURITY.md CLAUDE.md GEMINI.md LICENSE .env.example .gitignore .gitattributes docker-compose.yml .agents .claude .credentials .github contract data docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries ops scratchpads scripts service tests engine"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
