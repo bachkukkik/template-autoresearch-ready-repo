@@ -69,7 +69,7 @@ than its declaration list:
   `sys.path` insert in `tests/unit/test_engine_*.py`.
 - Documentation: current-state path claims in `README.md`, `docs/README.md`,
   `docs/03`, `docs/06`, `docs/07`, `docs/10`, `docs/11`, `docs/12`, the PRD bodies and
-  `PRD.md`'s 2.2.0 changelog row were rewritten. Historical evidence (verbatim command
+  `PRD.md`'s 2.3.0 changelog row were rewritten. Historical evidence (verbatim command
   output, commit quotes such as `80b78b2 contract/examples: …`, the gap evidence table
   at `afcab6c`, dated changelog rows) was left byte-identical.
 
@@ -156,7 +156,7 @@ $ git check-ignore -v service/data/jobs.db
   the docs/07 codegraph output line and the `at afcab6c` gap evidence table still print
   the old paths; a repo-wide grep reports them and a reader can mistake them for live
   claims.
-- **A changelog link is read as a catalog row.** Writing the 2.2.0 PRD row as
+- **A changelog link is read as a catalog row.** Writing the 2.3.0 PRD row as
   `[docs/18](docs/18-root-layout-refactor.md)` made `AC-DOC-005`
   (`test_prd_quick_reference_rows`) treat the changelog line as a Quick Reference row
   and fail: `row points at 'docs/18-root-layout-refactor.md', which is not a catalogued
