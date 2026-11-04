@@ -3,7 +3,7 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-10-28 | Total pages: 44
+> Last updated: 2026-11-04 | Total pages: 45
 
 ## Concepts
 
@@ -49,6 +49,7 @@
 | FAROS | [entities/faros.md](entities/faros.md) | medium |
 | FastMCP | [entities/fastmcp.md](entities/fastmcp.md) | high |
 | Karpathy Autoresearch | [entities/karpathy-autoresearch.md](entities/karpathy-autoresearch.md) | high |
+| PR-Agent | [entities/pr-agent.md](entities/pr-agent.md) | high |
 | Template Agentic Ready Repo | [entities/template-agentic-ready-repo.md](entities/template-agentic-ready-repo.md) | high |
 
 ## Comparisons

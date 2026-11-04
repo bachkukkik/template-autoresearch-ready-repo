@@ -1,0 +1,73 @@
+# PR Agent — opt-in AI code review (PRD 18: docs/prd/18-pr-agent-adoption.md)
+#
+# DORMANT UNTIL THE ADOPTER OPTS IN. Two switches must both exist before this
+# workflow does anything:
+#   1. repository VARIABLE `PR_AGENT_ENABLED` set to the string `true`
+#   2. repository SECRET `OPENAI_API_KEY` holding a usable OpenAI-compatible key
+# Until then the job's `if:` evaluates false and no minute or token is spent.
+#
+# Why a VARIABLE and not a secret for the switch: a job-level `if:` cannot read
+# `secrets.*` reliably (the context is not available during job gating), while
+# `vars.*` is. The switch is not sensitive, so the variable is the honest home.
+#
+# Why no checkout step: PR-Agent reads the PR (diff, metadata, comments) through
+# the GitHub API, so the job never needs the tree — and not checking out keeps a
+# fork PR's untrusted code off the runner entirely.
+#
+# Fork safety: this workflow uses the `pull_request` trigger (never the target
+# variant), so a fork PR gets a read-only token and NO repository secrets — the
+# key is simply absent there and the reviewer does not run on forks. That is the
+# intended behaviour.
+#
+# Tuning (extra instructions, language, score threshold) lives per-repo in
+# `.pr_agent.toml` at the repo root. Docs: https://docs.pr-agent.ai
+name: PR Agent
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  # zizmor: ignore[dangerous-triggers] — issue_comment is the only trigger that can
+  # carry an on-demand `/review` command, so it is required by the spec (PRD 18 SC1).
+  # The usual issue_comment hazard — a write token over attacker-controlled code —
+  # does not apply here: nothing is checked out, the action is SHA-pinned, the token
+  # is scoped to this repo's issues/PRs, and bot senders are filtered below.
+  issue_comment:
+    types: [created]
+
+# Deny-all default token scope (AC-QC-001). The job below elevates to exactly the
+# three scopes PR-Agent needs; nothing else is granted anywhere in this file.
+permissions: {}
+
+# One run per PR/issue. A busy PR fires many pull_request and comment events; the
+# group collapses them onto a single in-flight run, and `cancel-in-progress: false`
+# keeps review comments from being half-posted when the next event lands.
+concurrency:
+  group: pr-agent-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  pr_agent_job:
+    name: PR Agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The opt-in gate (PRD 18 SC1). Both halves are required: the variable is the
+    # explicit adoption switch, and the sender check stops a bot's own comment
+    # (e.g. this reviewer's) from re-triggering the run in a loop.
+    if: vars.PR_AGENT_ENABLED == 'true' && github.event.sender.type != 'Bot'
+    permissions:
+      contents: read        # read the diff and file contents via the API
+      issues: write         # issue_comment triggers: reply on the PR thread
+      pull-requests: write  # post /review, /describe, /improve comments
+    steps:
+      # Single step: the action is Docker-based and self-contained.
+      - name: Run PR-Agent
+        uses: The-PR-Agent/pr-agent@efdde4afe14aa401a3889012c7f3e9ef3081a430 # v0.49.0
+        env:
+          # Conventional OpenAI names on the surface so any adopter (or agent)
+          # recognizes the surface without PR-Agent-specific knowledge; the
+          # mapping onto PR-Agent's own env lives only in this file (PRD 18 SC2).
+          OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_BASE: ${{ vars.OPENAI_BASE_URL }}
+          # Unset variable falls back to PR-Agent's own default model.
+          CONFIG__MODEL: ${{ vars.OPENAI_DEFAULT_MODEL || 'gpt-6.1-sol' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
