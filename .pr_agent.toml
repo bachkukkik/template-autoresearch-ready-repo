@@ -15,6 +15,19 @@
 # Language for review comments and descriptions. Empty = PR-Agent default (en).
 # response_language = "en"
 
+# Token budget for the custom gateway model (CONFIG__MODEL is set by the
+# workflow to a model PR-Agent's built-in MAX_TOKENS table does not know).
+# PR-Agent errors out without this: "Model ... is not defined in MAX_TOKENS ...
+# or set a positive value for it in config.custom_model_max_tokens".
+# 32000 = PR-Agent's own default for known models; matches the gateway's
+# LiteLLM default context window for zai/glm-5.3-flash.
+custom_model_max_tokens = 32000
+
+# Stop PR-Agent's built-in fallback models from being tried: the defaults
+# (e.g. gpt-6-luna) do not exist on a custom OpenAI-compatible gateway, and
+# each failed fallback is a wasted round trip.
+fallback_models = ""
+
 [pr_reviewer]
 # Repo-specific review guidance appended to PR-Agent's built-in review prompt.
 # Use it for conventions a generic reviewer cannot know, e.g.:

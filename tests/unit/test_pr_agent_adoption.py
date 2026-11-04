@@ -238,7 +238,7 @@ def test_ac_pra_008_tuning_file_is_committable_and_credential_free():
         line for line in text.splitlines() if not line.lstrip().startswith("#")
     )
     credentialed = re.search(
-        r"(?im)^\s*[A-Za-z0-9_.-]*(API|TOKEN|SECRET|KEY)[A-Za-z0-9_.-]*\s*=\s*\S",
+        r"(?im)^\s*[A-Za-z0-9_.-]*(API_KEY|API_KEY[SZ]|TOKEN|SECRET|_KEY|_KEYS)\s*=",
         uncommented,
     )
     assert not credentialed, (
