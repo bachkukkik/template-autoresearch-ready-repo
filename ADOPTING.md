@@ -24,7 +24,7 @@ bash scripts/verify-clone.sh             # step 2 — read-only, one PASS/FAIL l
 | Need | Why | Required |
 |---|---|---|
 | `git`, with `git config core.symlinks true` | every harness entry point is a symlink to `AGENTS.md` (step 1) | yes |
-| `python3.12` | `tests/run.sh`, `contract/`, `service/`, `ops/sync.sh`'s tests | yes |
+| `python3.12` | `tests/run.sh`, `autoresearch/contract/`, `service/` | yes |
 | Docker + Compose | the `e2e` tier and `docker compose up -d` | for the container tier |
 | `bats` | `tests/e2e/` runs under bats (the tier skips loudly without it) | optional |
 | [`nektos/act`](https://github.com/nektos/act) | the pre-PR local-CI command in `AGENTS.md` §6 | optional |
@@ -73,8 +73,8 @@ Prove the autoresearch loop works before reading anything else — no Docker, no
 service, no harness wiring. From the repo root:
 
 ```bash
-python3 contract/prepare.py    # -> prepare.py OK — TIME_BUDGET=300s, vocab_size=31
-python3 contract/train.py      # -> the summary block: val_bpb: 3.795531, stop_reason: converged
+python3 autoresearch/contract/prepare.py    # -> prepare.py OK — TIME_BUDGET=300s, vocab_size=31
+python3 autoresearch/contract/train.py      # -> the summary block: val_bpb: 3.795531, stop_reason: converged
 ```
 
 `prepare.py` is the frozen evaluator (the corpus lives inside it — no external
@@ -82,8 +82,8 @@ cache to download); `train.py` is the one agent-edited artifact and prints the
 summary block ending in `val_bpb` / `stop_reason`. To record a run in the ledger,
 pass `--results results.tsv` — `results.tsv` is gitignored (untracked, per
 upstream) and its columns are `commit` / `val_bpb` / `memory_gb` / `status` /
-`description`, with the note at the top of `contract/program.md` describing each.
-Prefer a throwaway copy? `cp -r contract /tmp/loop && cd /tmp/loop && python3
+`description`, with the note at the top of `autoresearch/contract/program.md` describing each.
+Prefer a throwaway copy? `cp -r autoresearch/contract /tmp/loop && cd /tmp/loop && python3
 prepare.py && python3 train.py` runs the same loop outside the repo.
 
 ## Step 2.6 — start the example service (optional)
@@ -97,7 +97,7 @@ AUTH_DISABLED=1 uv run --no-sync uvicorn src.main:app --port 8000   # dev only
 
 Or the container path: `docker compose up -d --build` from the repo root, then
 `curl localhost:8000/health` → `{"status":"ok"}`. The service is optional —
-`contract/` (the loop above) is the template's core; delete `service/`,
+`autoresearch/contract/` (the loop above) is the template's core; delete `service/`,
 `docker-compose.yml` and the `e2e` tier together if you do not ship one
 (Step 3).
 
@@ -112,9 +112,8 @@ The most useful table in this file. Nothing here is a rule — for every rule, r
 | `kb/raw/` + `kb/` | **REPLACE** | ingest your own sources into `kb/raw/`, then run the `llm-wiki` synthesis over `./kb/`; a layer-2 page is never hand-written |
 | `PRD.md` + `docs/prd/` | **REPLACE** | this template's intent, not yours — rewrite the master PRD and start your topic PRDs at `01` |
 | `docs/NN-slug.md` + `docs/README.md` | **REPLACE** | the empirical layer records what *this* project verified; start your own `NN` set at `01`, keep the catalog format |
-| `contract/` (the autoresearch loop) | **REPLACE** | the loop's objective and its immutable evaluator are this template's; keep the `program.md` / `train.py` / `prepare.py` shape, swap the subject |
+| `autoresearch/contract/` (the autoresearch loop) | **REPLACE** | the loop's objective and its immutable evaluator are this template's; keep the `program.md` / `train.py` / `prepare.py` shape, swap the subject |
 | `service/` (the example harness) | **REPLACE-OR-DELETE** | the example service is not your product — keep it only if your project ships a service; if not, delete `service/`, `docker-compose.yml` and the `e2e` tier together |
-| `ops/` | **DELETE if you have no externally-operated subject** | vendored config earns its place only when a process *outside* the repo reads it (`ops/README.md`, *How to adopt this*) |
 | `tests/` | **KEEP the shape, REPLACE the tests** | three tiers, each with a runner *and* a CI job, is the contract; the `AC-*` tests are this repo's |
 | `.github/workflows/` | **KEEP** | `ci.yml` is the gate; `sources-readonly.yml` enforces the add-only rule for `kb/raw/` |
 | `ADOPTING.md` | **REPLACE or REUSE** | it is a root entry doc, not a stray document; re-point it at your project or drop it once your own README carries onboarding |

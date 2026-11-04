@@ -7,7 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 
 # Product/doctrine files allowed at repo root (funnel rule 1). program.md is
-# not a root file anymore — the autoresearch contract lives in contract/.
+# not a root file anymore — the autoresearch contract lives in autoresearch/contract/.
 ROOT_MD_ALLOWLIST = {"AGENTS.md", "README.md", "ADOPTING.md", "PRD.md", "SECURITY.md"}
 
 HARNESS_ENTRY_POINTS = [
@@ -35,13 +35,10 @@ REQUIRED_DIRS = [
     ".agents",              # harness adapter (skills/plugins the symlinks point at)
     ".claude",              # harness symlink dir
     ".credentials",         # documented credential home (README + *.example only)
-    "data",                 # service runtime state root — gitignored except .gitkeep
     ".github",              # CI itself
-    "contract",             # autoresearch contract (program.md/train.py/prepare.py)
-    "ops",                  # vendored artifacts for an externally operated subject
+    "autoresearch",         # the loop: contract/ (program.md/train.py/prepare.py) + engine/
     "scripts",              # operator/verification scripts (e.g. verify-clone.sh)
     "service",              # MCP + REST research service
-    "engine",               # the generic autoresearch engine (PRD-17)
     "tests",                # the three tiers
 ]
 

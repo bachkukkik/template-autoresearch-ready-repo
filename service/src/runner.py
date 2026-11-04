@@ -1,11 +1,12 @@
 """Bounded subprocess runner for the autoresearch loop (PRD-05, SC5; PRD-06, SC1/SC2).
 
-Executes THE canonical autoresearch contract at `contract/` — `prepare.py`
-(immutable data prep) followed by `train.py` (the agent-edited artifact) — as
-two sequential `python3` subprocesses under a single time budget. No vendored
-copy: the runner consumes `contract/` directly (host dev: `repo/contract`;
-container: `/app/contract` via the compose read-only bind mount), or a custom
-workload dir via `RESEARCH_WORKLOAD_DIR`. The metric is parsed from the LAST
+Executes THE canonical autoresearch contract at `autoresearch/contract/` —
+`prepare.py` (immutable data prep) followed by `train.py` (the agent-edited
+artifact) — as two sequential `python3` subprocesses under a single time
+budget. No vendored copy: the runner consumes `autoresearch/contract/`
+directly (host dev: `repo/autoresearch/contract`; container: `/app/contract`
+via the compose read-only bind mount), or a custom workload dir via
+`RESEARCH_WORKLOAD_DIR`. The metric is parsed from the LAST
 matching stdout line of train.py — either `RESULT val_bpb=...` (legacy vendor
 format) or `val_bpb: ...` (the canonical contract summary block).
 
@@ -28,7 +29,7 @@ import time
 from pathlib import Path
 
 RESULT_RE = re.compile(r"RESULT\s+val_bpb=([-+0-9.eE]+)")
-# Canonical contract summary block (contract/train.py): `val_bpb: 3.795531`.
+# Canonical contract summary block (autoresearch/contract/train.py): `val_bpb: 3.795531`.
 SUMMARY_RE = re.compile(r"val_bpb:\s*([-+0-9.eE]+)")
 
 
@@ -37,7 +38,7 @@ def resolve_workload_dir() -> Path:
 
     Priority:
       1. $RESEARCH_WORKLOAD_DIR — explicit env override (custom workload).
-      2. <repo-root>/contract    — host dev layout (repo/contract).
+      2. <repo-root>/autoresearch/contract — host dev layout.
       3. <service-root>/contract — container layout (/app/contract via the
          compose read-only bind mount).
     The first candidate that is a directory containing `prepare.py` wins; if
@@ -48,7 +49,10 @@ def resolve_workload_dir() -> Path:
     if env_dir:
         return Path(env_dir)
     here = Path(__file__).resolve()
-    for candidate in (here.parents[2] / "contract", here.parents[1] / "contract"):
+    for candidate in (
+        here.parents[2] / "autoresearch" / "contract",
+        here.parents[1] / "contract",
+    ):
         if candidate.is_dir() and (candidate / "prepare.py").is_file():
             return candidate
     return here.parents[1] / "workload"
@@ -66,8 +70,8 @@ def parse_val_bpb(stdout: str) -> float | None:
     (last occurrence wins):
       - `RESULT val_bpb=<float>`       — legacy vendor-stub format (RESULT_RE)
       - `val_bpb: <float>`             — canonical contract summary block
-                                         (SUMMARY_RE; contract/train.py prints
-                                         ``val_bpb:          3.795531``)
+                                         (SUMMARY_RE; autoresearch/contract/train.py
+                                         prints ``val_bpb:          3.795531``)
     If both patterns match the same line, the RESULT line is preferred.
     """
     for line in reversed(stdout.splitlines()):

@@ -29,8 +29,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-EX5 = ROOT / "contract" / "examples" / "ex5-real-oss-speedup"
-ENGINE = ROOT / "engine"
+EX5 = ROOT / "autoresearch" / "contract" / "examples" / "ex5-real-oss-speedup"
+ENGINE = ROOT / "autoresearch" / "engine"
 TARGET = EX5 / "target" / "distance.py"
 REFERENCE = EX5 / "oracle" / "reference_distance.py"
 

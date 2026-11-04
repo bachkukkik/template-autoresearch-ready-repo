@@ -7,7 +7,7 @@ disappears (or grows without bound) is caught without running a loop.
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "engine"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "autoresearch" / "engine"))
 
 from autoresearch import config as config_mod  # noqa: E402
 from autoresearch import prompt as prompt_mod  # noqa: E402

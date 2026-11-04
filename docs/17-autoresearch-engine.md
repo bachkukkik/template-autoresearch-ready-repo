@@ -2,8 +2,8 @@
 
 ## What
 
-`engine/autoresearch/` is a generic autoresearch loop: a stdlib-only Python
-package (run as `python3 -P -m autoresearch` or the `engine/bin/autoresearch`
+`autoresearch/engine/autoresearch/` is a generic autoresearch loop: a stdlib-only Python
+package (run as `python3 -P -m autoresearch` or the `autoresearch/engine/bin/autoresearch`
 wrapper) that can be pointed at **any** git repository. You register a run with
 `init` (a verify command that prints the metric, a guard command that must keep
 passing, the scope the agent may edit, protected files, a noise floor, repeats),
@@ -22,7 +22,7 @@ writing an event; a real run is bounded by `--max-iterations` (default 10),
 `--plateau`, `--max-wall` and consecutive-crash limits, and stops early on
 `--target`.
 
-`contract/examples/ex5-real-oss-speedup/` is the real-world proof: NLTK 3.9.1's
+`autoresearch/contract/examples/ex5-real-oss-speedup/` is the real-world proof: NLTK 3.9.1's
 `nltk/metrics/distance.py` vendored verbatim (Apache-2.0, pinned commit
 `aca78cb`) as the only editable scope, with `bench.py` (the verify: cold
 child-process timing of a fixed seeded workload) and `guard.py` (the guard:
@@ -76,7 +76,7 @@ PYTHONPATH=engine python3 -P -m autoresearch status --repo <repo>
 PYTHONPATH=engine python3 -P -m autoresearch report --repo <repo>
 
 # the worked example, end to end
-bash contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
+bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
 cd "$TMPDIR/ex5"
 PYTHONPATH=<repo>/engine python3 -P -m autoresearch run --repo . --agent claude \
   --max-iterations 8 --plateau 3

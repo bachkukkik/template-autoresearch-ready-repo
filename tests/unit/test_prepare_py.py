@@ -9,7 +9,7 @@ import prepare
 # "nobody edits prepare.py" real: an intentional evaluator change MUST update
 # this constant in the same commit, so a silent edit cannot ride along with a
 # candidate change. Recompute with:
-#   python3 -c "import hashlib;print(hashlib.sha256(open('contract/prepare.py','rb').read()).hexdigest())"
+#   python3 -c "import hashlib;print(hashlib.sha256(open('autoresearch/contract/prepare.py','rb').read()).hexdigest())"
 PREPARE_PY_SHA256 = "744993ebfea0afcfbcdeaae8802d7a9a3af36eca23c17159d91004ed14728ff2"
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
@@ -27,11 +27,11 @@ def test_prepare_py_is_byte_pinned():
     The pin is the enforcement half of SC2: prepare.py's immutability is stated
     here and checked by CI, not left to convention.
     """
-    path = os.path.join(REPO_ROOT, "contract", "prepare.py")
+    path = os.path.join(REPO_ROOT, "autoresearch", "contract", "prepare.py")
     with open(path, "rb") as f:
         digest = hashlib.sha256(f.read()).hexdigest()
     assert digest == PREPARE_PY_SHA256, (
-        "contract/prepare.py changed but the AC-TPL-014 pin did not — if the "
+        "autoresearch/contract/prepare.py changed but the AC-TPL-014 pin did not — if the "
         "evaluator change is intentional, update PREPARE_PY_SHA256 in the same "
         "commit; otherwise revert prepare.py (it is frozen; see program.md)."
     )

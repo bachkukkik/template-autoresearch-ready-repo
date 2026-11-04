@@ -25,7 +25,7 @@ improvement in median seconds.
 Reproduce the vendored ledger in a scratch clone, starting from the tracked
 baseline (results.tsv stays untracked / gitignored):
 
-    cp -r contract/examples/ex3-hotpath-speedup /tmp/ex3 && cd /tmp/ex3
+    cp -r autoresearch/contract/examples/ex3-hotpath-speedup /tmp/ex3 && cd /tmp/ex3
     git init -q && git add -A && git commit -qm "contract: baseline"
     python3 loop_driver.py --from-baseline
 

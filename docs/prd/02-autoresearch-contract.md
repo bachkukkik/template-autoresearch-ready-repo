@@ -35,7 +35,7 @@ selection, results logged to `results.tsv`.
 - **SC2** — The repo ships an immutable `prepare.py` holding constants (`TIME_BUDGET
   = 300`), the decision policy (`DIRECTION`, `NOISE_FLOOR`), the data, tokenizer,
   dataloader, and the ground-truth evaluator `evaluate_bpb`; its immutability is
-  **enforced by a byte pin** — the sha256 of `contract/prepare.py` is asserted in
+  **enforced by a byte pin** — the sha256 of `autoresearch/contract/prepare.py` is asserted in
   the test, so an evaluator edit fails CI unless the pin moves in the same
   commit. _Verify:_ `tests/unit/test_prepare_py.py` (AC-TPL-011..014). ✅ implemented 2026-10-16
 

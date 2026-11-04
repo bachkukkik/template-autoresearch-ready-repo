@@ -13,7 +13,7 @@
 # Reading the output: one PASS/FAIL line per check, indented lines are detail, the last
 # line is the verdict. Read it top to bottom; the first FAIL is the one to fix first.
 #
-# LOUD BY CONSTRUCTION (the same principle as ops/sync.sh, AGENTS.md §6 *Ops artifacts*):
+# LOUD BY CONSTRUCTION (the same principle as the CI guards in AGENTS.md § 6):
 # $checks_run counts the checks this script actually performed, and the success line is
 # reachable ONLY when that count is greater than zero AND nothing failed. A run that
 # performed no checks — a bad parse, a loop that got skipped, someone's early 'exit 0' —
@@ -25,7 +25,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 CI=".github/workflows/ci.yml"
-DOCTRINE_PATHS="AGENTS.md PRD.md README.md ADOPTING.md .agents .github docs kb tests ops scripts"
+DOCTRINE_PATHS="AGENTS.md PRD.md README.md ADOPTING.md .agents .github docs kb tests scripts"
 HARNESS_LINKS="CLAUDE.md GEMINI.md .github/copilot-instructions.md .claude/skills .claude/plugins"
 
 checks_run=0
@@ -211,7 +211,7 @@ fi
 bad=0
 checks_run=$((checks_run + 1))
 if ! command -v python3 >/dev/null 2>&1; then
-  say "python3 is not on PATH — tests/run.sh, contract/ and service/ all need it"
+  say "python3 is not on PATH — tests/run.sh, autoresearch/contract/ and service/ all need it"
   bad=1
 fi
 checks_run=$((checks_run + 1))

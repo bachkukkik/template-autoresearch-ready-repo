@@ -4,7 +4,7 @@
 
 A per-job isolation + corpus-delivery layer on the autoresearch service
 (`service/`): every research job runs the canonical autoresearch contract
-(`contract/`) inside its own workspace, so multiple topics research
+(`autoresearch/contract/`) inside its own workspace, so multiple topics research
 concurrently in one process with distinct inputs and no shared state.
 
 ## Why
@@ -15,8 +15,8 @@ concurrently in one process with distinct inputs and no shared state.
 - The original runner executed the workload in a single shared directory and
   ignored `topic` (gap 06): results were identical regardless of topic and
   concurrent jobs raced on the same `data.txt`.
-- The workload source is now the **canonical contract** (`contract/`, single
-  source of truth; the old vendored `service/workload/` copy is gone) — the
+- The workload source is now the **canonical contract** (`autoresearch/contract/`,
+  single source of truth; the old vendored `service/workload/` copy is gone) — the
   service executes, and copies, the real autoresearch loop.
 
 ## How
@@ -26,8 +26,8 @@ concurrently in one process with distinct inputs and no shared state.
 | Workspace provisioner | `service/src/workspace.py` | `provision_workspace(job_id, topic, spec)` copies the contract (`resolve_workload_dir()`), writes `topic.txt`, `context.json`, `corpus/`; `validate_corpus_files` = fail-fast SC5 |
 | Runner | `service/src/runner.py` | `run_loop(work_dir=...)` executes `prepare.py` → `train.py` inside the workspace; report adds `topic` + `corpus {files, chars}`; parses `val_bpb:` (contract) and `RESULT val_bpb=` (legacy) |
 | Service wiring | `service/src/main.py` | `research_start` validates corpus files (ValueError → 400); `_run_job` provisions + runs in the workspace; scheduler executor sized from `RESEARCH_MAX_CONCURRENT_JOBS` (default 4) |
-| Workload echo | `contract/train.py` | prints `topic=<...>` and `corpus=<N> files, <M> chars` when a workspace context exists; `val_bpb` unchanged (~3.795 bigram baseline) |
-| Env | `.env.example`, compose | `RESEARCH_MAX_CONCURRENT_JOBS`, `RESEARCH_WORKSPACES_DIR` (default `data/workspaces`), `RESEARCH_CORPUS_ROOT` (default `kb/raw`, container `/kb-raw` ro mount), `RESEARCH_WORKLOAD_DIR` override; compose mounts `./kb/raw:/kb-raw:ro` and `./contract:/app/contract:ro` |
+| Workload echo | `autoresearch/contract/train.py` | prints `topic=<...>` and `corpus=<N> files, <M> chars` when a workspace context exists; `val_bpb` unchanged (~3.795 bigram baseline) |
+| Env | `.env.example`, compose | `RESEARCH_MAX_CONCURRENT_JOBS`, `RESEARCH_WORKSPACES_DIR` (default `service/data/workspaces`), `RESEARCH_CORPUS_ROOT` (default `kb/raw`, container `/kb-raw` ro mount), `RESEARCH_WORKLOAD_DIR` override; compose mounts `./kb/raw:/kb-raw:ro` and `./autoresearch/contract:/app/contract:ro` |
 
 Corpus per job (`params.corpus`): `texts` (inline `{title, content}` — always
 available) and/or `files` (paths relative to `RESEARCH_CORPUS_ROOT`, copied
@@ -35,7 +35,7 @@ into the workspace, missing file → 400 at submit).
 
 Workspace layout: `<workspaces_root>/<job_id>/` = `prepare.py`, `train.py`,
 `data.txt` (contract copy), `topic.txt`, `context.json`,
-`corpus/texts/…`, `corpus/files/…`. Retained after terminal jobs; `data/` is
+`corpus/texts/…`, `corpus/files/…`. Retained after terminal jobs; `service/data/` is
 gitignored.
 
 Async decision (PRD-06 SC4): REST/MCP handlers stay **sync `def`** — FastAPI
@@ -85,7 +85,7 @@ see [docs/prd/06](prd/06-multi-topic-concurrent-service.md)).
   contract, expensive for real training workloads (the budget is per-job
   anyway).
 - **Workspaces accumulate:** retained after terminal jobs with no TTL/cleanup
-  job in v1 (`data/` is gitignored; a cleanup sweeper is the documented
+  job in v1 (`service/data/` is gitignored; a cleanup sweeper is the documented
   upgrade).
 - **Corpus files are host-filesystem-dependent:** `params.corpus.files` only
   works when `RESEARCH_CORPUS_ROOT` is mounted (compose mounts `kb/raw`);
@@ -98,7 +98,7 @@ see [docs/prd/06](prd/06-multi-topic-concurrent-service.md)).
 ## Resolution
 
 - **Subprocess cost:** keep the sandbox posture; per-job time budget bounds it.
-- **Workspace growth:** TTL sweeper on `data/workspaces` (documented upgrade
+- **Workspace growth:** TTL sweeper on `service/data/workspaces` (documented upgrade
   path in PRD-06).
 - **Filesystem-dependent corpus:** document `texts` as the portable path;
   `files` requires the corpus root (README + PRD-06).

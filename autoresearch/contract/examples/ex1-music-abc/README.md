@@ -33,7 +33,7 @@ the worked run started from `train_baseline.py` (pure unigram, `alpha=1.0`),
 reconstructed by reverting the kept candidates. From a scratch clone:
 
 ```bash
-cp -r contract/examples/ex1-music-abc /tmp/ex1 && cd /tmp/ex1
+cp -r autoresearch/contract/examples/ex1-music-abc /tmp/ex1 && cd /tmp/ex1
 git init -q && git add -A && git commit -qm "contract: baseline"
 python3 loop_driver.py --from-baseline
 ```

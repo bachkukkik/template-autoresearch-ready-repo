@@ -2,9 +2,9 @@
 import sys
 from pathlib import Path
 
-# engine/ is not installed; the tests put it on sys.path themselves so
+# autoresearch/engine/ is not installed; the tests put it on sys.path themselves so
 # `python3 -m pytest` works from the repo root with no install step.
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "engine"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "autoresearch" / "engine"))
 
 import json
 

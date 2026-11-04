@@ -2,7 +2,7 @@
 
 ## What
 
-The three-file autoresearch contract in `contract/`: `program.md` (the human-edited
+The three-file autoresearch contract in `autoresearch/contract/`: `program.md` (the human-edited
 skill), `prepare.py` (the frozen evaluator — data side, ground-truth metric,
 keep/discard decision, time budget, ledger checker), and `train.py` (the one
 agent-edited artifact), plus the untracked `results.tsv` ledger.
@@ -35,8 +35,8 @@ grounded in `kb/concepts/autoresearch-contract.md` and
   special tokens masked (raises `ValueError` on zero bytes or length mismatch),
   plus `decide(metric, incumbent, epsilon, direction, shrinks)` and
   `check_ledger(path)`. Its bytes are pinned by `tests/unit/test_prepare_py.py`
-  (AC-TPL-014). `python3 contract/prepare.py` prints a dataset summary;
-  `python3 contract/prepare.py --check-ledger results.tsv` validates a ledger
+  (AC-TPL-014). `python3 autoresearch/contract/prepare.py` prints a dataset summary;
+  `python3 autoresearch/contract/prepare.py --check-ledger results.tsv` validates a ledger
   (exit 0 valid / 1 on violations).
 - **`train.py`** — stdlib-only, the only file the agent edits: imports
   `evaluate_bpb` from `prepare` (never redefines it), reads `prepare.TIME_BUDGET`
@@ -56,8 +56,8 @@ grounded in `kb/concepts/autoresearch-contract.md` and
 python3 -m pytest -q tests/unit         # AC-TPL block: 001..005, 011..014,
                                         # 021..023, 024..028, 031, 041..042
 python3 -m pytest -q tests/integration  # service still parses the summary block
-python3 contract/prepare.py             # prepare.py OK — TIME_BUDGET=300s, vocab_size=31
-time python3 contract/train.py          # val_bpb: 3.795531, stop_reason: converged
+python3 autoresearch/contract/prepare.py             # prepare.py OK — TIME_BUDGET=300s, vocab_size=31
+time python3 autoresearch/contract/train.py          # val_bpb: 3.795531, stop_reason: converged
 cd contract && python3 prepare.py --check-ledger "$TMPDIR/r.tsv"; echo $?  # 0
 ```
 
@@ -66,7 +66,7 @@ cd contract && python3 prepare.py --check-ledger "$TMPDIR/r.tsv"; echo $?  # 0
 Executed on this worktree (stdlib `python3`, no numpy/torch), outputs verbatim:
 
 ```
-$ time python3 contract/train.py
+$ time python3 autoresearch/contract/train.py
 ---
 val_bpb:          3.795531
 training_seconds: 0.0
@@ -112,9 +112,9 @@ incumbent) — the evaluator, not the agent, decides. The budget path is real to
   `decide()` against the prior best keep; it reports all violations and exits 1.
 - Measured memory: `memory_gb` is a real host peak RSS (0.016 GB here), not the
   old constant `0.0`.
-- The evaluator is byte-pinned (AC-TPL-014): an edit to `contract/prepare.py`
+- The evaluator is byte-pinned (AC-TPL-014): an edit to `autoresearch/contract/prepare.py`
   fails CI unless the pin moves in the same commit.
-- `python3 contract/prepare.py` and `python3 contract/train.py` run end to end on
+- `python3 autoresearch/contract/prepare.py` and `python3 autoresearch/contract/train.py` run end to end on
   a stock `python3` (stdlib only); `results.tsv` stays out of git; the budget is
   monkeypatchable so CI never waits 300 s.
 

@@ -19,7 +19,7 @@
 **Problem (triage, 2026-10-28).** The template's loop worked as code but failed to
 improve anything real. Root causes, observed in the tree at `afcab6c`:
 
-1. **No engine.** `contract/` hard-wires one toy metric (`val_bpb` on a
+1. **No engine.** `autoresearch/contract/` hard-wires one toy metric (`val_bpb` on a
    stdlib bigram); every worked example re-implements keep/discard in its own
    `loop_driver.py` / `agent_driver.py`. Nothing can be pointed at another repo.
 2. **No harness drives an edit.** The only live example (ex4) posts raw HTTP to a
@@ -51,9 +51,9 @@ any tracked file (record variable NAMES only).
 
 ## Scope
 
-In: `engine/` (package + wrapper + runbook), adapters for `claude`, `opencode`,
+In: `autoresearch/engine/` (package + wrapper + runbook), adapters for `claude`, `opencode`,
 `hermes`, `dsh`, plus `command` and `replay`; a real-OSS worked example
-`contract/examples/ex5-real-oss-speedup/`; live-run evidence for all four harnesses.
+`autoresearch/contract/examples/ex5-real-oss-speedup/`; live-run evidence for all four harnesses.
 Out: multi-agent populations / worktree fan-out (CORAL), LLM-as-judge verifiers, paper
 generation (FAROS/AI-Scientist scope), GPU workloads. The existing karpathy contract and
 ex1–ex4 stay as they are (PRD-02 / PRD-11) — the engine is additive.

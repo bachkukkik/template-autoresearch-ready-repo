@@ -25,21 +25,21 @@ GITHUB_DIR = REPO_ROOT / ".github"
 ALLOWLIST = {}
 
 # AC-QC-009: the pre-merge tier jobs the aggregate gate requires. This repo's set
-# differs from the foundation template's — it also carries `ops-drift` and
-# `zizmor` (kb/concepts/qc-test-tiers.md).
+# differs from the foundation template's — it also carries `zizmor`
+# (kb/concepts/qc-test-tiers.md).
 GATED_JOBS = {
     "unit",
     "integration",
     "e2e",
     "secret-scan",
     "doctrine",
-    "ops-drift",
     "zizmor",
 }
 
-# AC-QC-008: paths CODEOWNERS must claim (PRD 16 SC8). `/contract/prepare.py` is
-# the frozen evaluator — the one file the autoresearch loop must never drift.
-REQUIRED_CODEOWNED = ("/.github/workflows/", "/AGENTS.md", "/contract/prepare.py")
+# AC-QC-008: paths CODEOWNERS must claim (PRD 16 SC8).
+# `/autoresearch/contract/prepare.py` is the frozen evaluator — the one file the
+# autoresearch loop must never drift.
+REQUIRED_CODEOWNED = ("/.github/workflows/", "/AGENTS.md", "/autoresearch/contract/prepare.py")
 
 
 def _workflow_files():
@@ -233,7 +233,7 @@ def test_ac_qc_008_codeowners_owns_itself_and_workflows():
     for required in REQUIRED_CODEOWNED:
         assert required in patterns, (
             f"CODEOWNERS must own `{required}` (AC-QC-008). The frozen evaluator "
-            "`contract/prepare.py` and the doctrine entry `AGENTS.md` are the paths a "
+            "`autoresearch/contract/prepare.py` and the doctrine entry `AGENTS.md` are the paths a "
             "single-maintainer review must route."
         )
 

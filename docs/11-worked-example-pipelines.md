@@ -3,7 +3,7 @@
 ## What
 
 Four complete instantiations of the autoresearch contract, one per objective
-shape, living under `contract/examples/`: `ex1-music-abc` (minimize a language-model
+shape, living under `autoresearch/contract/examples/`: `ex1-music-abc` (minimize a language-model
 loss), `ex2-iris-knn` (maximize a classifier accuracy), `ex3-hotpath-speedup`
 (minimize wall-clock time under an exact-output gate), and `ex4-llm-repo-speedup`
 (the same wall-time-under-a-gate objective driven by a **live LLM agent** editing
@@ -32,10 +32,10 @@ ex1–ex3 progression ledgers.
 
 | # | Directory | Objective (direction) | Baseline → Best | Candidates (K/D/C) | Proves |
 |---|---|---|---|---|---|
-| 1 | `contract/examples/ex1-music-abc` | `val_bpb` ↓ (ABC sheet-music LM, procedural stand-in corpus per the transcript-corpus topic) | 3.765056 → **2.178535** (−42.1%) | 6 (4/2/0) | a text domain; the frozen evaluator; keep/discard/reset |
-| 2 | `contract/examples/ex2-iris-knn` | `accuracy` **↑** (real seaborn-mirror iris, embedded byte-identical) | 0.933333 → **1.000000** | 7 (3/4/0) | direction inversion; the frozen-evaluator object-identity guard |
-| 3 | `contract/examples/ex3-hotpath-speedup` | median seconds ↓ + exact-output gate (non-ML, 2,000,000-token workload) | 2.310 s → **0.275 s** (8.41×) | 11 (9/1/1) | an anti-Goodhart gate rejects a ≈10×-faster wrong answer |
-| 4 | `contract/examples/ex4-llm-repo-speedup` | median seconds ↓ + exact-output gate (small repo, one edited file, **live LLM**) | inf (baseline 36.05 s = 7.2× budget) → **0.001811 s** | 5 (1/1/3) | the LIVE loop end to end: a model proposes real code edits; the suite + held-out gate score them; the budget binds |
+| 1 | `autoresearch/contract/examples/ex1-music-abc` | `val_bpb` ↓ (ABC sheet-music LM, procedural stand-in corpus per the transcript-corpus topic) | 3.765056 → **2.178535** (−42.1%) | 6 (4/2/0) | a text domain; the frozen evaluator; keep/discard/reset |
+| 2 | `autoresearch/contract/examples/ex2-iris-knn` | `accuracy` **↑** (real seaborn-mirror iris, embedded byte-identical) | 0.933333 → **1.000000** | 7 (3/4/0) | direction inversion; the frozen-evaluator object-identity guard |
+| 3 | `autoresearch/contract/examples/ex3-hotpath-speedup` | median seconds ↓ + exact-output gate (non-ML, 2,000,000-token workload) | 2.310 s → **0.275 s** (8.41×) | 11 (9/1/1) | an anti-Goodhart gate rejects a ≈10×-faster wrong answer |
+| 4 | `autoresearch/contract/examples/ex4-llm-repo-speedup` | median seconds ↓ + exact-output gate (small repo, one edited file, **live LLM**) | inf (baseline 36.05 s = 7.2× budget) → **0.001811 s** | 5 (1/1/3) | the LIVE loop end to end: a model proposes real code edits; the suite + held-out gate score them; the budget binds |
 
 ### Anatomy of a faithful instance
 
@@ -97,7 +97,7 @@ the gate.
 
 ### Dashboard
 
-`contract/examples/dashboard.html` is one self-contained file (inline `RUNS` data, no
+`autoresearch/contract/examples/dashboard.html` is one self-contained file (inline `RUNS` data, no
 JavaScript dependencies) rendering the progression of all three ledgers, coloring
 keep / discard / crash / best. It **hand-transcribes** the vendored ledger values into
 its inline `RUNS` array — it does not read the `results.tsv` files at load time —
@@ -134,32 +134,32 @@ is a budget stop by construction.
 Run from the repo root, 2026-09-26.
 
 ```bash
-ls contract/examples/
+ls autoresearch/contract/examples/
 # README.md  dashboard.html  ex1-music-abc  ex2-iris-knn  ex3-hotpath-speedup
 
-ls contract/examples/ex1-music-abc/
+ls autoresearch/contract/examples/ex1-music-abc/
 # README.md  loop_driver.py  prepare.py  program.md  results.tsv  train.py
 
-wc -l contract/examples/ex*/results.tsv
-#   6 contract/examples/ex1-music-abc/results.tsv
-#   8 contract/examples/ex2-iris-knn/results.tsv
-#  12 contract/examples/ex3-hotpath-speedup/results.tsv
+wc -l autoresearch/contract/examples/ex*/results.tsv
+#   6 autoresearch/contract/examples/ex1-music-abc/results.tsv
+#   8 autoresearch/contract/examples/ex2-iris-knn/results.tsv
+#  12 autoresearch/contract/examples/ex3-hotpath-speedup/results.tsv
 #  26 total
 
-(cd contract/examples/ex1-music-abc && python3 train.py 2>/dev/null | grep val_bpb)
+(cd autoresearch/contract/examples/ex1-music-abc && python3 train.py 2>/dev/null | grep val_bpb)
 # val_bpb:          2.178535
 
-(cd contract/examples/ex2-iris-knn && python3 train.py 2>/dev/null | grep '^accuracy:')
+(cd autoresearch/contract/examples/ex2-iris-knn && python3 train.py 2>/dev/null | grep '^accuracy:')
 # accuracy:         1.000000
 
-(cd contract/examples/ex3-hotpath-speedup && python3 train.py 2>/dev/null | grep -E 'median_seconds|gate_ok')
+(cd autoresearch/contract/examples/ex3-hotpath-speedup && python3 train.py 2>/dev/null | grep -E 'median_seconds|gate_ok')
 # median_seconds: 0.291148   # representative run; timing jitters (~0.29 ±0.01)
 # gate_ok: True
 
-(cd contract/examples/ex2-iris-knn && python3 -c "import loop_driver; loop_driver.assert_frozen_evaluator()")
+(cd autoresearch/contract/examples/ex2-iris-knn && python3 -c "import loop_driver; loop_driver.assert_frozen_evaluator()")
 # contract ok: train.evaluate_accuracy is prepare.evaluate_accuracy (train=105 test=45 seed=23)
 
-grep -c "dot" contract/examples/dashboard.html
+grep -c "dot" autoresearch/contract/examples/dashboard.html
 # 7        (inline data + legend rendering present; 7,697 bytes)
 ```
 
@@ -182,13 +182,13 @@ python3 -m pytest -q tests/unit/test_examples_replay.py
 python3 -m pytest -q tests/integration/test_examples_replay.py
 # 2 passed in 88.44s (0:01:28)
 
-(cd contract/examples/ex1-music-abc && python3 train.py 2>/dev/null | grep val_bpb)
+(cd autoresearch/contract/examples/ex1-music-abc && python3 train.py 2>/dev/null | grep val_bpb)
 # val_bpb:          2.178535
 
-(cd contract/examples/ex2-iris-knn && python3 train.py 2>/dev/null | grep '^accuracy:')
+(cd autoresearch/contract/examples/ex2-iris-knn && python3 train.py 2>/dev/null | grep '^accuracy:')
 # accuracy:         1.000000
 
-(cd contract/examples/ex3-hotpath-speedup && python3 train.py 2>/dev/null | grep -E 'median_seconds|gate_ok')
+(cd autoresearch/contract/examples/ex3-hotpath-speedup && python3 train.py 2>/dev/null | grep -E 'median_seconds|gate_ok')
 # median_seconds: 0.296541   # representative run; timing jitters (~0.29 ±0.01)
 # gate_ok: True
 ```
@@ -224,7 +224,7 @@ python3 -m pytest -q tests/unit/test_examples_ex4.py
 # 23 passed in 9.60s
 
 mkdir -p "$TMPDIR/ex4"
-git archive HEAD contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
+git archive HEAD autoresearch/contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
 cd "$TMPDIR/ex4" && git init -q && git add -A && git commit -qm "contract: baseline"
 python3 agent_driver.py --from-baseline --replay transcript.jsonl
 # replay: 5 recorded round(s) from transcript.jsonl (no network)
@@ -353,7 +353,7 @@ vendored kept run's median), the honest artifact, and the baseline — all with
 ```bash
 python3 - <<'PY'
 import importlib.util, sys
-EX4 = "contract/examples/ex4-llm-repo-speedup"
+EX4 = "autoresearch/contract/examples/ex4-llm-repo-speedup"
 spec = importlib.util.spec_from_file_location("p", EX4 + "/prepare.py")
 prep = importlib.util.module_from_spec(spec); sys.dont_write_bytecode = True
 spec.loader.exec_module(prep)
@@ -377,7 +377,7 @@ PY
 # A2 gate=n/a stop=error median=inf status=crash 1e-06? False
 # A3 gate=n/a stop=error median=inf status=crash 1e-06? False
 
-(cd contract/examples/ex4-llm-repo-speedup && python3 prepare.py --run \
+(cd autoresearch/contract/examples/ex4-llm-repo-speedup && python3 prepare.py --run \
   target/solution.py | tail -5)
 # median_seconds: 0.010834
 # gate: ok

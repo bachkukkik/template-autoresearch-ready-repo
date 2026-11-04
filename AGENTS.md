@@ -62,7 +62,6 @@ anything else           GitHub issue, or a comment on an existing issue
 | 6 | Reality | `docs/NN-slug.md`, `docs/README.md` | Empirical observation (eight sections) | append per run | **`coding-agents-docs-guideline` only** |
 | 7 | Everything else | GitHub issues | Anything fitting no stage above | issue thread | `gh` CLI |
 | — | Amendment | a tracked doctrine file | a branch + PR; never `scratchpads/` | tracked edit | any editor + `gh` |
-| — | Ops | `ops/` | Vendored config for a subject outside this repo | live = a **deploy target** | the sync tool — § 6 |
 
 ### Funnel rules
 
@@ -86,7 +85,6 @@ anything else           GitHub issue, or a comment on an existing issue
 | An external doc / spec / transcript about the project | `kb/raw/` |
 | A stable fact about how this project works | `kb/raw/` → `llm-wiki ./kb/` |
 | A component runbook (run/use/update a service) | that component's `README.md` |
-| A config artifact for a subject outside this repo | `ops/` + a README beside it (canonical; live = a **deploy target**) |
 | A doctrine amendment | a branch + PR — **never** `scratchpads/`; discuss → an issue |
 | A thing we want to build | `docs/prd/` |
 | "The PRD says X but the code does Y" | `docs/gaps/` |
@@ -185,7 +183,7 @@ lastly do full redeployment cycle from pull to serve — the production stack.
 | # | Phase | Do | Done when |
 |---|-------|----|-----------|
 | `sub1` | Docs/tests gap sync | Diff `kb/` ↔ `docs/prd/` ↔ codebase ↔ `tests/`; record divergences in `docs/gaps/`, update, and drop obsolescences | No SC without a test; no doc claiming behaviour the code lacks; every `docs/gaps/` file has a Resolution |
-| `sub2` | Local CI | Run the workflows locally with [`nektos/act`](https://github.com/nektos/act) — `-j unit`, `-j integration`, `-j secret-scan`, `-j doctrine`, `-j ops-drift`; E2E runs directly, not under act (see §6) | those five jobs green + `bash tests/run.sh --with-e2e` green |
+| `sub2` | Local CI | Run the workflows locally with [`nektos/act`](https://github.com/nektos/act) — `-j unit`, `-j integration`, `-j secret-scan`, `-j doctrine`; E2E runs directly, not under act (see §6) | those four jobs green + `bash tests/run.sh --with-e2e` green |
 | `sub3` | PR + CI monitor | Open the PR with full context in the body; watch remote CI to completion | Remote CI green |
 | `sub4` | Merge + redeploy | Squash-merge green PRs, `git checkout main && git pull`, run the full redeploy cycle | Service healthy from a clean pull |
 | `sub4`/`sub5` (UAT) | UAT variant | As the UAT blocks above | UAT, then production, healthy from a clean pull |
@@ -217,15 +215,11 @@ Every `docs/prd/` PRD: SC bullets with inline `_Verify:` annotations (test file 
 
 ### 6. CI/CD Pipeline — Local-First, Then Remote
 
-**No PR opens on a known-red local CI run.** The pre-PR command is `act push -j` each of `unit`, `integration`, `secret-scan`, `doctrine`, `ops-drift` — one `-j` per invocation; multi-`-j` silently drops all but the last (act 0.2.89, verified 2026-10-16). **Never run `act push` unqualified, or `-j e2e`, on a host that also serves this compose project**: the E2E job's `docker compose up -d --build` **replaces the running containers**; run E2E off the deployment.
+**No PR opens on a known-red local CI run.** The pre-PR command is `act push -j` each of `unit`, `integration`, `secret-scan`, `doctrine` — one `-j` per invocation; multi-`-j` silently drops all but the last (act 0.2.89, verified 2026-10-16). **Never run `act push` unqualified, or `-j e2e`, on a host that also serves this compose project**: the E2E job's `docker compose up -d --build` **replaces the running containers**; run E2E off the deployment.
 
 ### 7. Output-Medium Escalation
 
 For explanatory output, climb to the richest useful rung: prose → controlled English (ASD-STE100-style) → diagram → HTML page → explainer video — all code/text, verified by render → parse, never by looking (works for a non-visual engine). Large custom artifacts are **discardable**: build them in `scratchpads/` and never cite them (funnel rule 6). Skills: `simple-english`, `diagrams`, `render-verify`, `explainer-video`. → `docs/prd/13-output-medium-doctrine.md`; `kb/concepts/output-medium-escalation.md`
-
-### Ops artifacts — repo canonical, live location a deploy target
-
-`--check` = read-only drift report; `--apply` = gated live write → `ops/README.md`
 
 ## Repository Structure
 

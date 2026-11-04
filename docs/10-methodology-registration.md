@@ -11,8 +11,9 @@ classes inside one loop — rather than the ML training loop that carries it.
 
 ## Why
 
-- The template's contract (`contract/`) and the vendored skill state the loop,
-  but nothing in `kb/` grounded *why* the three-role split is the invariant or
+- The template's contract (`autoresearch/contract/`) and the vendored skill
+  state the loop, but nothing in `kb/` grounded *why* the three-role split is
+  the invariant or
   what an instantiation is allowed to change.
 - The pattern's portability is a claim until the instance's `contract/` is
   shown byte-identical to this template's — the registration records that proof
@@ -142,8 +143,8 @@ a sha drift or an orphaned page fails the PR rather than being read past.
   pointer held repo-relative so it resolves from any clone.
 - The provenance correction is recorded: `entities/karpathy-autoresearch.md`
   now states the Goodhart / "always sample generated output" caveat is NOT
-  upstream but added by this template lineage's own `contract/`, grounded in
-  the 2026-09-26 sha verification of the upstream files.
+  upstream but added by this template lineage's own `autoresearch/contract/`,
+  grounded in the 2026-09-26 sha verification of the upstream files.
 
 ## What Fails
 

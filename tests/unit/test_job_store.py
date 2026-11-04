@@ -5,10 +5,14 @@ service restart, with idempotent dispatch via an explicit idempotency_key.
 """
 import os
 import threading
+from pathlib import Path
 
 import pytest
 
+from src import jobs
 from src.jobs import JobStore
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_create_job_roundtrip(tmp_path):
@@ -204,13 +208,18 @@ def test_db_path_from_env_var(tmp_path, monkeypatch):
         store.close()
 
 
-def test_db_path_fallback_creates_data_dir(tmp_path, monkeypatch):
-    """db_path falls back to ./data/jobs.db and creates the parent directory."""
+def test_db_path_fallback_is_service_data(tmp_path, monkeypatch):
+    """db_path falls back to service/data/jobs.db (service root, not cwd)."""
     monkeypatch.delenv("RESEARCH_JOBS_DB", raising=False)
-    monkeypatch.chdir(tmp_path)
+    assert jobs.DEFAULT_DB_PATH == str(REPO_ROOT / "service" / "data" / "jobs.db")
+
+    # The parent-directory creation is exercised against a temp path so the test
+    # never writes into the tracked tree.
+    monkeypatch.setattr(jobs, "DEFAULT_DB_PATH", str(tmp_path / "data" / "jobs.db"))
+    monkeypatch.chdir(tmp_path)  # cwd must not decide the fallback
     store = JobStore()
     try:
-        assert store.db_path == os.path.join("data", "jobs.db")
+        assert store.db_path == str(tmp_path / "data" / "jobs.db")
         assert os.path.isdir(tmp_path / "data")
         assert os.path.isfile(tmp_path / "data" / "jobs.db")
     finally:

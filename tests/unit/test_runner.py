@@ -7,13 +7,13 @@ from src.runner import ResearchRunner, parse_val_bpb
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "workloads"
 # The runner's default workload IS the canonical contract (single source of truth).
-REFERENCE = REPO_ROOT / "contract"
+REFERENCE = REPO_ROOT / "autoresearch" / "contract"
 
 COMMAND = "python3 prepare.py && python3 train.py"
 
 
 def test_default_workload_completes_with_metric():
-    """AC-MCP-021: the canonical contract/ runs in seconds; parses val_bpb."""
+    """AC-MCP-021: the canonical `autoresearch/contract/` runs in seconds; parses val_bpb."""
     t0 = time.time()
     result = ResearchRunner().run_loop()
     wall = time.time() - t0
