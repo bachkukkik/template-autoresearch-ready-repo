@@ -134,7 +134,7 @@ def require_scratch_repo():
         "the example directory must be the git ROOT.\n"
         "Use a disposable scratch copy:\n"
         "  mkdir -p \"${{TMPDIR:-/tmp}}/ex4\"\n"
-        "  git archive HEAD contract/examples/ex4-llm-repo-speedup | "
+        "  git archive HEAD autoresearch/contract/examples/ex4-llm-repo-speedup | "
         "tar -x -C \"${{TMPDIR:-/tmp}}/ex4\" --strip-components=3\n"
         "  cd \"${{TMPDIR:-/tmp}}/ex4\" && git init -q && git add -A && "
         "git commit -qm 'contract: baseline'\n"

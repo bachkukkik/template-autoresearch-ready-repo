@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ENGINE = ROOT / "engine"
+ENGINE = ROOT / "autoresearch" / "engine"
 STATE = ".autoresearch"
 
 SCORE_PY = '''"""The measurement: one number, in the engine's preferred shape."""

@@ -5,9 +5,8 @@
 The document funnel + knowledge-base governance layer: every piece of writing has
 exactly one home (scratchpads → kb/raw → kb → PRD → gaps → docs/NN → issues), the
 `kb/` layout follows the llm-wiki spec, and CI (`doctrine`, `sources-readonly`,
-`secret-scan`, `ops-drift`) enforces the rules structurally — `ops-drift` runs the ops
-home's read-only `--check` so a vendored artifact cannot drift from the live side
-unnoticed.
+`secret-scan`) enforces the rules structurally — for example `sources-readonly`
+keeps `kb/raw/` add-only.
 
 ## Why
 
@@ -58,9 +57,9 @@ six-test command._
 - All 7 AC-FUN tests pass against the current tree, and the two CI jobs
   (`doctrine`, `secret-scan`) pass under act.
 - Root `.md` allowlist is explicit: `AGENTS.md`, `README.md`, `PRD.md`
-  (+ LICENSE if present) — the autoresearch contract lives in `contract/`, so
-  `program.md` is no longer a root file; a stray `NOTES.md` at root now fails CI
-  at the pytest tier, not just by instruction.
+  (+ LICENSE if present) — the autoresearch contract lives in
+  `autoresearch/contract/`, so `program.md` is no longer a root file; a stray
+  `NOTES.md` at root now fails CI at the pytest tier, not just by instruction.
 - Harness entry points (`CLAUDE.md`, `.github/copilot-instructions.md`,
   `.claude/skills`, `.claude/plugins`) are asserted symlinks with resolvable
   targets — a plain-copy fork or dangling link is caught.

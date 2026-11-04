@@ -52,10 +52,10 @@ a CI job, not prose (the 80/20 codification rule).
   advisory) and holds no live secret. _Verify:_ `tests/unit/test_quality_controls.py`
   (AC-QC-007). ✅ implemented 2026-10-16
 - **SC8** — `.github/CODEOWNERS` owns itself, `.github/workflows/`, `AGENTS.md` and
-  `contract/prepare.py` (the frozen evaluator), and says in-file that it is advisory.
+  `autoresearch/contract/prepare.py` (the frozen evaluator), and says in-file that it is advisory.
   _Verify:_ `tests/unit/test_quality_controls.py` (AC-QC-008). ✅ implemented 2026-10-16
 - **SC9** — An aggregate `qc-gate` job (`if: always()`) fails unless every pre-merge tier
-  job (`unit`, `integration`, `e2e`, `secret-scan`, `doctrine`, `ops-drift`, `zizmor`)
+  job (`unit`, `integration`, `e2e`, `secret-scan`, `doctrine`, `zizmor`)
   succeeded — *skipped* counts as failure. _Verify:_ `tests/unit/test_quality_controls.py`
   (AC-QC-009) + the `qc-gate` CI job. ✅ implemented 2026-10-16
 - **SC10** — A `zizmor` job runs workflow static analysis and its findings fail CI.

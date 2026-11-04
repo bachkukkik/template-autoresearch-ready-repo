@@ -48,7 +48,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-EX3 = ROOT / "contract" / "examples" / "ex3-hotpath-speedup"
+EX3 = ROOT / "autoresearch" / "contract" / "examples" / "ex3-hotpath-speedup"
 REPLAY_TIMEOUT = 480
 
 

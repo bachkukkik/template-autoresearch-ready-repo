@@ -111,7 +111,9 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 ├── CLAUDE.md              # symlink → AGENTS.md
 ├── GEMINI.md              # symlink → AGENTS.md (Gemini CLI's default context file)
 ├── .gitattributes         # Merge drivers + line-ending policy (graphify; see AGENTS.md)
-├── contract/              # Autoresearch contract — program.md / prepare.py / train.py
+├── autoresearch/           # Autoresearch loop — CANONICAL
+│   ├── contract/          # the contract: program.md / prepare.py / train.py + examples/
+│   └── engine/            # generic harness-pluggable loop engine (PRD-17)
 ├── .agents/               # Repo-scoped agent assets — CANONICAL
 │   └── skills/            # Skills pinned here: root-cause, llm-wiki, coding-agents-docs-guideline
 ├── .claude/               # skills, plugins → symlinks into ../.agents/
@@ -122,10 +124,10 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 ├── .gitignore             # Standard ignores for agentic repos
 ├── .credentials/          # Key files the runtime reads from disk — gitignored
 │                          #   `.credentials/example.json.example` ships in a fresh clone
-├── data/                  # Service runtime state — gitignored except .gitkeep
-│                          #   (jobs.db + per-job workspaces/ are created at runtime)
 ├── docker-compose.yml     # Service orchestration
 ├── service/               # Python microservice (example harness)
+│   └── data/              # Service runtime state — gitignored except .gitkeep
+│                          #   (jobs.db + per-job workspaces/ are created at runtime)
 ├── kb/                    # Knowledge base — llm-wiki layout, populated
 │   ├── SCHEMA.md          # KB domain + conventions + tag taxonomy
 │   ├── index.md           # Page catalog (llm-wiki-maintained)
@@ -137,7 +139,6 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 │   ├── queries/           # Filed query results
 │   └── _archive/          # Superseded material (never deleted)
 ├── docs/                  # Three doc layers — intent, gaps, verified reality
-├── ops/                   # Vendored config for a subject operated outside this repo — CANONICAL
 ├── scripts/               # Repo helpers: verify-clone.sh, gen-env.py, audit-ste.py, local-ci.sh
 ├── tests/                 # Three-tier test suite — each tier has a runner AND a CI job
 ├── scratchpads/           # Agent scratch space (gitignored)

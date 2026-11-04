@@ -27,7 +27,7 @@ vote); the worked run started from `train_baseline.py` (`K=1`, same distance and
 features), reconstructed by reverting the kept candidates. From a scratch clone:
 
 ```bash
-cp -r contract/examples/ex2-iris-knn /tmp/ex2 && cd /tmp/ex2
+cp -r autoresearch/contract/examples/ex2-iris-knn /tmp/ex2 && cd /tmp/ex2
 git init -q && git add -A && git commit -qm "contract: baseline"
 python3 loop_driver.py --from-baseline
 ```

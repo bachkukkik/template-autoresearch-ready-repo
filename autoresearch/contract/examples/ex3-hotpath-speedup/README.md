@@ -62,7 +62,7 @@ reconstruction of which every kept candidate in `loop_driver.py` is a patch
 against. From a scratch clone:
 
 ```bash
-cp -r contract/examples/ex3-hotpath-speedup /tmp/ex3 && cd /tmp/ex3
+cp -r autoresearch/contract/examples/ex3-hotpath-speedup /tmp/ex3 && cd /tmp/ex3
 git init -q && git add -A && git commit -qm "contract: baseline"
 python3 loop_driver.py --from-baseline
 ```

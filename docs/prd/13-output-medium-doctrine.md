@@ -93,7 +93,7 @@ are the doctrine's own presence/consistency guards.
   guards.
 - [ASSUMPTION] The cap margin after adding the order stays positive and above the
   500-char floor by compressing two non-load-bearing sections, each of whose dropped
-  facts has a published home (`README.md` § Skills, `ops/README.md`).
+  facts has a published home (`README.md` § Skills, `README.md` § Repository Structure).
 
 ## Confidence
 

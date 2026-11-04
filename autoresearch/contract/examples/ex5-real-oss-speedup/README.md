@@ -93,7 +93,7 @@ is judged, with a 2 % noise floor and a median over repeats.
 
 ```bash
 # 1. a disposable repo: copy + git init + one baseline commit + engine init
-bash contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
+bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
 cd "$TMPDIR/ex5"
 
 # 2. prove the wiring without spending a token
@@ -130,7 +130,7 @@ weaker one wired into the loop.
 | Replay | `run --repo . --agent replay --replay record.jsonl` (needs a run made with `--record record.jsonl`) |
 
 All of them are prefixed with `PYTHONPATH=<repo>/engine python3 -m autoresearch`,
-or use `engine/bin/autoresearch` from inside the template repo.
+or use `autoresearch/engine/bin/autoresearch` from inside the template repo.
 
 ### A no-op sanity run
 
@@ -252,7 +252,7 @@ merely reproduces them is not in this repo.
 ## Reproduce the numbers
 
 ```bash
-cd contract/examples/ex5-real-oss-speedup
+cd autoresearch/contract/examples/ex5-real-oss-speedup
 python3 guard.py                          # policy/upstream/differential/surface -> guard: ok
 python3 bench.py                          # ~1.9 s, prints METRIC seconds=~0.61
 EX5_TEST_MODE=1 EX5_BENCH_SCALE=0.05 python3 bench.py   # same shape, ~0.1 s (unit tests)

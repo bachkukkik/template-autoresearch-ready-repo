@@ -23,7 +23,7 @@ before running anything — `prepare.py` is frozen, the agent never redefines it
 Reproduce the vendored ledger in a scratch clone, starting from the tracked
 baseline (results.tsv stays untracked / gitignored):
 
-    cp -r contract/examples/ex2-iris-knn /tmp/ex2 && cd /tmp/ex2
+    cp -r autoresearch/contract/examples/ex2-iris-knn /tmp/ex2 && cd /tmp/ex2
     git init -q && git add -A && git commit -qm "contract: baseline"
     python3 loop_driver.py --from-baseline
 

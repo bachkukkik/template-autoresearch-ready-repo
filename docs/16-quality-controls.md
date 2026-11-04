@@ -45,7 +45,7 @@ hermetic: file reads and the stdlib only. It carries AC-QC-001..012.
 | AC-QC-005 | `.github/pull_request_template.md` exists with an AI-disclosure checkbox |
 | AC-QC-006 | `.github/dependabot.yml` covers `github-actions`, `pip` and `docker` |
 | AC-QC-007 | `SECURITY.md` exists at the root and states how to report |
-| AC-QC-008 | `CODEOWNERS` owns itself, `.github/workflows/`, `AGENTS.md` and `contract/prepare.py` |
+| AC-QC-008 | `CODEOWNERS` owns itself, `.github/workflows/`, `AGENTS.md` and `autoresearch/contract/prepare.py` |
 | AC-QC-009 | the `qc-gate` job has `if: always()` and needs every tier job |
 | AC-QC-010 | the `zizmor` job runs at `--min-severity low`, not SARIF-only |
 | AC-QC-012 | AC-QC-001..004 are re-checked as a codification meta-assertion |
@@ -64,7 +64,7 @@ only. Each checkout pins SHA `11d5960a…` (`# v4`) and sets
 `ci.yml` gained two jobs. The `zizmor` job installs zizmor with `pipx` and runs
 `zizmor --min-severity low .github/workflows/`. The `qc-gate` job carries
 `if: always()` and `needs: [unit, integration, e2e, secret-scan, doctrine,
-ops-drift, zizmor]`. It fails unless every result is `success`.
+zizmor]`. It fails unless every result is `success`.
 
 ### The governance files
 
@@ -72,7 +72,7 @@ ops-drift, zizmor]`. It fails unless every result is `success`.
 tracked root file, so it joins the `doctrine` job's `DOCTRINE_ROOTS` list and
 the `ROOT_MD_ALLOWLIST` in `tests/unit/test_funnel_structure.py` (funnel rule
 11). `.github/CODEOWNERS` owns itself, `.github/workflows/`, `AGENTS.md` and
-`contract/prepare.py` — the frozen evaluator. It says in-file that it is
+`autoresearch/contract/prepare.py` — the frozen evaluator. It says in-file that it is
 advisory. `.github/dependabot.yml` covers the `github-actions`, `pip` and
 `docker` ecosystems.
 

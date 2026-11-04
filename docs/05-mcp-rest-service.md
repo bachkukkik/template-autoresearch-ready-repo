@@ -22,7 +22,7 @@ job store, bearer auth, and a uv-managed container.
 |-----------|------|-------|
 | FastAPI app + FastMCP mount | `service/src/main.py` | `TOOL_FLAG`, `ROUTE_TO_OPERATION`, `_BearerGuard` on `/mcp`, APScheduler in lifespan |
 | Job store | `service/src/jobs.py` | SQLite WAL, idempotency keys, transitions `queued→running→completed\|failed\|cancelled\|timeout` |
-| Runner | `service/src/runner.py` | executes the canonical contract at `contract/` directly (prepare.py then train.py), explicit args, timeout; parses `val_bpb` from the summary line (`val_bpb: 3.795531`) or legacy `RESULT val_bpb=`; workload dir resolved via `RESEARCH_WORKLOAD_DIR` → `repo/contract` (dev) → `/app/contract` (compose ro mount) |
+| Runner | `service/src/runner.py` | executes the canonical contract at `autoresearch/contract/` directly (prepare.py then train.py), explicit args, timeout; parses `val_bpb` from the summary line (`val_bpb: 3.795531`) or legacy `RESULT val_bpb=`; workload dir resolved via `RESEARCH_WORKLOAD_DIR` → `repo/autoresearch/contract` (dev) → `/app/contract` (compose ro mount) |
 | Auth | `service/src/auth.py` | `hmac.compare_digest`, fail-closed, `AUTH_DISABLED=1` opt-out, `/health` open |
 | Packaging | `service/pyproject.toml`, `service/uv.lock` | fastapi, uvicorn, fastmcp 4.x, apscheduler, pydantic |
 | Image | `service/Dockerfile`, `service/.dockerignore` | pinned `ghcr.io/astral-sh/uv:0.12.9`, two-stage `uv sync`, venv binary CMD |
@@ -45,7 +45,7 @@ posture. Each names the seam that keeps the upgrade local (PRD-05 SC8).
 | Scheduling | `BackgroundScheduler` in-process, `ThreadPoolExecutor(max_workers=RESEARCH_MAX_CONCURRENT_JOBS)` | BullMQ / Celery / an external queue worker | `_run_job` is the single dispatch entry point; the scheduler only calls it |
 | Auth | Static bearer token, `hmac.compare_digest`, fail-closed (`service/src/auth.py`) | OAuth 2.1 via a hosted IdP (FastMCP MultiAuth); per-sender keys | `require_bearer` is the one FastAPI dependency; `/health` stays outside it |
 | Loop sandbox | Subprocess (`prepare.py` → `train.py`), explicit argv, always a timeout, per-job cwd | Docker/WASM boundary with read-only fs, egress allowlist, cpu/memory budget | `ResearchRunner.run_loop` owns process creation; no handler spawns processes |
-| Workspace lifetime | Workspaces retained under `data/workspaces/` after terminal jobs | TTL sweeper over `data/workspaces/` | Provisioner + runner address workspaces by `job_id` path only |
+| Workspace lifetime | Workspaces retained under `service/data/workspaces/` after terminal jobs | TTL sweeper over `service/data/workspaces/` | Provisioner + runner address workspaces by `job_id` path only |
 
 ## Verification
 
@@ -79,8 +79,8 @@ Originally verified 2026-09-05 at 66 + 16 + 4.
 
 - Full job lifecycle over REST and over an MCP client: start → queued → running
   → completed with `result.val_bpb ≈ 3.795` (canonical contract loop, ~0.1s)
-- Single source of truth: the service runs `contract/` directly — the runner
-  resolves `repo/contract` on the host and `/app/contract` in the container via
+- Single source of truth: the service runs `autoresearch/contract/` directly — the runner
+  resolves `repo/autoresearch/contract` on the host and `/app/contract` in the container via
   the compose read-only bind mount; no vendored workload copy. Custom workloads
   override via `RESEARCH_WORKLOAD_DIR`; `resolve_workload_dir()` otherwise falls
   back to `<service-root>/workload`, a directory this repo does not ship.

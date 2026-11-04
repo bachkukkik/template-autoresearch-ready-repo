@@ -17,9 +17,10 @@ services:
       # Read-only corpus mount — serves research topics from the repo's
       # kb/raw/transcripts out of the box.
       - ./kb/raw:/kb-raw:ro
-      # Read-only canonical-contract mount — the service executes contract/
-      # directly (single source of truth; no vendored copy in the image).
-      - ./contract:/app/contract:ro
+      # Read-only canonical-contract mount — the service executes
+      # autoresearch/contract/ directly (single source of truth; no vendored
+      # copy in the image).
+      - ./autoresearch/contract:/app/contract:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s

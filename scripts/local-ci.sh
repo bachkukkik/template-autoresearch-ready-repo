@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Local CI — the pre-PR gate (AGENTS.md §6) run with nektos/act.
 #
-#   bash scripts/local-ci.sh              # unit, integration, secret-scan, doctrine, ops-drift
+#   bash scripts/local-ci.sh              # unit, integration, secret-scan, doctrine
 #   bash scripts/local-ci.sh unit doctrine  # a named subset
 #
 # ONE INVOCATION PER JOB: `act push -j unit -j integration` runs ONLY the last job —
@@ -18,7 +18,7 @@ cd "$ROOT"
 if [ "$#" -gt 0 ]; then
   JOBS=("$@")
 else
-  JOBS=(unit integration secret-scan doctrine ops-drift)
+  JOBS=(unit integration secret-scan doctrine)
 fi
 
 for job in "${JOBS[@]}"; do

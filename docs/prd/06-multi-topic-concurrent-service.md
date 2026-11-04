@@ -38,7 +38,7 @@ time budget, no shell), all run/install/build code self-contained in
 
 **Decided design (2026-09-05):** each job gets an **isolated workspace**
 `<workspaces_root>/<job_id>/` — a copy of the **canonical autoresearch
-contract** (`contract/`, the single source of truth; the service consumes it
+contract** (`autoresearch/contract/`, the single source of truth; the service consumes it
 directly via the `/app/contract:ro` mount and copies it per-job) plus
 `topic.txt`, `corpus/` (inline texts and/or files copied from the corpus
 root), and `context.json`. The runner executes inside that workspace. Inline
@@ -47,13 +47,13 @@ corpus texts work everywhere; corpus files resolve under `RESEARCH_CORPUS_ROOT`
 validated **fail-fast at submit** (400). Concurrency is bounded by a
 ThreadPoolExecutor on the scheduler sized from `RESEARCH_MAX_CONCURRENT_JOBS`
 (default 4). Workspaces are retained after terminal jobs (observable runtime
-artifacts; `data/` is gitignored).
+artifacts; `service/data/` is gitignored).
 
 ## Success Criteria
 
 - **SC1** — Every research job runs in an **isolated per-job workspace**:
   `<workspaces_root>/<job_id>/` contains a copy of the canonical autoresearch
-  contract (`contract/`), `topic.txt`, and `context.json`; two jobs never share
+  contract (`autoresearch/contract/`), `topic.txt`, and `context.json`; two jobs never share
   a working directory and never race on `data.txt`. _Verify:_
   `tests/unit/test_workspace.py` (AC-MCP-031, AC-MCP-035).
 - **SC2** — **Multi-topic out-of-the-box**: `POST /api/v1/research` and the
@@ -107,7 +107,7 @@ artifacts; `data/` is gitignored).
 
 ## Assumptions
 
-- The workload source is the **canonical autoresearch contract** (`contract/`,
+- The workload source is the **canonical autoresearch contract** (`autoresearch/contract/`,
   bigram baseline, real `val_bpb` ≈ 3.7); it runs in milliseconds and is
   copied into every job workspace. The old vendored `service/workload/` copy
   was removed in the same window (single source of truth). `[ASSUMPTION]`
@@ -116,7 +116,7 @@ artifacts; `data/` is gitignored).
 - `RESEARCH_CORPUS_ROOT` defaults to `<repo>/kb/raw` on the host and `/kb-raw`
   in the compose container (read-only bind mount); the compose default is the
   out-of-the-box "research from `kb/raw/transcripts`" story. The container
-  also mounts `./contract:/app/contract:ro` so per-job workspaces can copy the
+  also mounts `./autoresearch/contract:/app/contract:ro` so per-job workspaces can copy the
   contract in-process. `[ASSUMPTION]`
 
 ## Confidence

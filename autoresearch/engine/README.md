@@ -21,13 +21,13 @@ Stdlib only, Python >= 3.11. Nothing to install.
 Run it through the wrapper (it sets `PYTHONPATH` for you):
 
 ```bash
-engine/bin/autoresearch <command> [options]
+autoresearch/engine/bin/autoresearch <command> [options]
 ```
 
 or directly:
 
 ```bash
-PYTHONPATH=engine python3 -P -m autoresearch <command> [options]
+PYTHONPATH=autoresearch/engine python3 -P -m autoresearch <command> [options]
 ```
 
 `-P` is not decoration: `python3 -m` puts the working directory first on
@@ -45,7 +45,7 @@ instead of the engine. The wrapper already passes `-P`.
 ### init
 
 ```bash
-engine/bin/autoresearch init \
+autoresearch/engine/bin/autoresearch init \
   --repo . \
   --verify "python3 benchmark.py" \
   --guard  "python3 tests/run.sh --fast" \
@@ -83,7 +83,7 @@ in a scope, and an existing `run.json` without `--force`.
 ### run
 
 ```bash
-engine/bin/autoresearch run --agent claude --model claude-sonnet-4-5 \
+autoresearch/engine/bin/autoresearch run --agent claude --model claude-sonnet-4-5 \
   --max-iterations 20 --record .autoresearch/replay.jsonl
 ```
 
@@ -130,7 +130,7 @@ ledger is a sequence of segments and each stop closes only its own.
 Replay a recorded run anywhere — no harness needed:
 
 ```bash
-engine/bin/autoresearch run --agent replay --replay .autoresearch/replay.jsonl --max-iterations 6
+autoresearch/engine/bin/autoresearch run --agent replay --replay .autoresearch/replay.jsonl --max-iterations 6
 ```
 
 Start the replay at the recorded run's baseline commit. A record whose patch is
@@ -142,9 +142,9 @@ silently skips an iteration.
 ### status / report
 
 ```bash
-engine/bin/autoresearch status          # replay-validates the ledger
-engine/bin/autoresearch report          # writes .autoresearch/report.md + results.tsv
-engine/bin/autoresearch report --out out/run.md
+autoresearch/engine/bin/autoresearch status          # replay-validates the ledger
+autoresearch/engine/bin/autoresearch report          # writes .autoresearch/report.md + results.tsv
+autoresearch/engine/bin/autoresearch report --out out/run.md
 ```
 
 `status` exits 3 and names every violation when the ledger does not replay — a

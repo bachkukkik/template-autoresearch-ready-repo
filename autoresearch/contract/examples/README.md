@@ -20,7 +20,7 @@ run** — do not continue appending to it. To reproduce it, copy the example int
 scratch clone and run the driver from the tracked baseline:
 
 ```bash
-cp -r contract/examples/ex2-iris-knn /tmp/ex2 && cd /tmp/ex2
+cp -r autoresearch/contract/examples/ex2-iris-knn /tmp/ex2 && cd /tmp/ex2
 git init -q && git add -A && git commit -qm "contract: baseline"
 python3 loop_driver.py --from-baseline
 ```
@@ -30,7 +30,7 @@ network, from the tracked baseline:
 
 ```bash
 mkdir -p "$TMPDIR/ex4"
-git archive HEAD contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
+git archive HEAD autoresearch/contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
 cd "$TMPDIR/ex4" && git init -q && git add -A && git commit -qm "contract: baseline"
 python3 agent_driver.py --from-baseline --replay transcript.jsonl
 ```

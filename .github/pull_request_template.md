@@ -16,7 +16,7 @@
 
 ## Checklist
 
-- [ ] CI is green (unit + integration + e2e + secret-scan + doctrine + ops-drift + zizmor + qc-gate)
+- [ ] CI is green (unit + integration + e2e + secret-scan + doctrine + zizmor + qc-gate)
 - [ ] No secrets committed (only `.example` shapes; see AGENTS.md §Security)
 - [ ] Document funnel followed (AGENTS.md §Document Funnel) — no stray `.md` at root
 - [ ] Docs and tests updated to match the change

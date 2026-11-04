@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-EXAMPLES = ROOT / "contract" / "examples"
+EXAMPLES = ROOT / "autoresearch" / "contract" / "examples"
 EXAMPLE_DIRS = ("ex1-music-abc", "ex2-iris-knn", "ex3-hotpath-speedup")
 TIMING_HEADER = ("commit", "val_bpb", "accuracy", "median_seconds")
 

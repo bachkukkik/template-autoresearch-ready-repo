@@ -1,6 +1,6 @@
 """SC8/SC9 — evaluator-owned decision + ledger checker. IDs: AC-TPL-025, AC-TPL-027.
 
-Both live in the frozen evaluator (`contract/prepare.py`), never in the agent's
+Both live in the frozen evaluator (`autoresearch/contract/prepare.py`), never in the agent's
 `train.py`: the agent cannot award itself a `keep` (that is the anti-cheat
 surface), and the ledger it appends to is validated by the same frozen file.
 Hermetic: stdlib only, one subprocess for the CLI exit-code contract.
@@ -12,7 +12,7 @@ from pathlib import Path
 import prepare
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CONTRACT = REPO_ROOT / "contract"
+CONTRACT = REPO_ROOT / "autoresearch" / "contract"
 HEADER = "commit\tval_bpb\tmemory_gb\tstatus\tdescription"
 
 

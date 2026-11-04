@@ -799,7 +799,10 @@ def test_fallback_check_reports_a_deleted_fallback():
     # Lifecycle section replaced the `/goal`-only cluster, so the occurrence set
     # is now five lines (adapter row, D1 row, kickoff line, the no-/goal heading
     # and its paragraph). Same intent — every occurrence is pinned.
-    assert reported_lines == [108, 131, 136, 181, 183], (
+    # Recomputed again for the root-layout refactor (2026-11-04): two doctrine
+    # lines above the `/goal` cluster were dropped, so every pinned line moved
+    # up by two. Same intent — every occurrence is still pinned.
+    assert reported_lines == [106, 129, 134, 179, 181], (
         f"the blanked copy should report every `/goal` occurrence, got {reported_lines}"
     )
 

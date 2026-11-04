@@ -3,7 +3,7 @@
 One module-scoped subprocess running the actual service (uvicorn via
 ``src.main``) on PORT 18001 with bearer auth enabled (AUTH_BEARER_TOKEN),
 a tmp SQLite database, a tmp workspaces root (so nothing is ever written
-into the repo's data/ dir), and RESEARCH_CORPUS_ROOT pointing at the repo's
+into the repo's `service/data/` dir), and RESEARCH_CORPUS_ROOT pointing at the repo's
 kb/raw. Every test talks to that live process over HTTP — no mocks, no
 in-process app.
 
@@ -47,7 +47,7 @@ def service(tmp_path_factory):
             "AUTH_BEARER_TOKEN": TOKEN,
             "RESEARCH_JOBS_DB": str(db_path),
             # Hermetic PRD-06 isolation: workspaces live in the tmp run,
-            # never in the repo's data/ dir; corpus files resolve under kb/raw.
+            # never in the repo's `service/data/` dir; corpus files resolve under kb/raw.
             "RESEARCH_WORKSPACES_DIR": str(workspaces_dir),
             "RESEARCH_CORPUS_ROOT": CORPUS_ROOT,
         }

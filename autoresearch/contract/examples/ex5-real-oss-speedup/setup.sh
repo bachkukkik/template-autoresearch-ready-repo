@@ -11,19 +11,20 @@ set -euo pipefail
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 dest="${1:-${TMPDIR:-/tmp}/ex5}"
 
-# The engine lives in the template repo three levels up; AUTORESEARCH_ENGINE
-# overrides it for a copy of this example that was moved somewhere else.
+# The engine lives in the template repo four levels up (`autoresearch/engine`);
+# AUTORESEARCH_ENGINE overrides it for a copy of this example that was moved
+# somewhere else.
 engine="${AUTORESEARCH_ENGINE:-}"
 if [[ -z "$engine" ]]; then
   probe="$here"
-  while [[ "$probe" != "/" && ! -d "$probe/engine/autoresearch" ]]; do
+  while [[ "$probe" != "/" && ! -d "$probe/autoresearch/engine/autoresearch" ]]; do
     probe="$(dirname -- "$probe")"
   done
-  if [[ ! -d "$probe/engine/autoresearch" ]]; then
-    echo "error: no engine/ found above $here; set AUTORESEARCH_ENGINE to the repo's engine directory" >&2
+  if [[ ! -d "$probe/autoresearch/engine/autoresearch" ]]; then
+    echo "error: no autoresearch/engine/ found above $here; set AUTORESEARCH_ENGINE to the repo's autoresearch/engine directory" >&2
     exit 2
   fi
-  engine="$probe/engine"
+  engine="$probe/autoresearch/engine"
 fi
 
 command -v git >/dev/null || { echo "error: git is required" >&2; exit 2; }

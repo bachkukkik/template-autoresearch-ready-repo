@@ -23,7 +23,11 @@ ALLOWED_TRANSITIONS = {
 
 TERMINAL_STATUSES = frozenset({"completed", "failed", "cancelled"})
 
-DEFAULT_DB_PATH = os.path.join("data", "jobs.db")
+DEFAULT_DB_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "data",
+    "jobs.db",
+)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
@@ -46,7 +50,7 @@ def _now() -> str:
 
 
 def _default_db_path() -> str:
-    """RESEARCH_JOBS_DB env var wins; otherwise ./data/jobs.db."""
+    """RESEARCH_JOBS_DB env var wins; otherwise service/data/jobs.db."""
     return os.environ.get("RESEARCH_JOBS_DB") or DEFAULT_DB_PATH
 
 

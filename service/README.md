@@ -50,11 +50,11 @@ Local CI before any PR: run the pre-PR chain stated in `AGENTS.md` §6 — never
 |---|---|---|
 | `AUTH_BEARER_TOKEN` | unset | Bearer token gating REST (except `/health`) and `/mcp`. Fail-closed: no token ⇒ deny. |
 | `AUTH_DISABLED` | `0` | `1` = skip auth (local dev only). |
-| `RESEARCH_JOBS_DB` | `data/jobs.db` | SQLite file backing the durable job store (WAL). Survives restarts. |
+| `RESEARCH_JOBS_DB` | `data/jobs.db` | SQLite file backing the durable job store (WAL); relative to the service root (`/app` in the container). Survives restarts. |
 | `RESEARCH_RUN_TIMEOUT` | `30` | Per-job time budget (seconds) for `prepare.py`→`train.py`. |
-| `RESEARCH_WORKLOAD_DIR` | unset | Optional override of the workload source (default: canonical `contract/`). |
+| `RESEARCH_WORKLOAD_DIR` | unset | Optional override of the workload source (default: canonical `autoresearch/contract/`). |
 | `RESEARCH_MAX_CONCURRENT_JOBS` | `4` | How many research jobs run concurrently in one process (scheduler ThreadPoolExecutor cap). |
-| `RESEARCH_WORKSPACES_DIR` | `data/workspaces` | Root for **per-job isolated workspaces** (see Workspaces below; `data/` is gitignored). |
+| `RESEARCH_WORKSPACES_DIR` | `data/workspaces` | Root for **per-job isolated workspaces** (see Workspaces below; `service/data/` is gitignored). |
 | `RESEARCH_CORPUS_ROOT` | `kb/raw` (host) / `/kb-raw` (compose mount) | Root for `params.corpus.files` paths. Compose mounts `./kb/raw:/kb-raw:ro`. |
 
 ## REST API
@@ -82,8 +82,8 @@ REST routes. Bearer auth is applied by the ASGI guard in front of `/mcp`.
 The service is built to serve **multiple research topics concurrently,
 out-of-the-box**. Each job:
 
-1. gets its own **isolated workspace** — `data/workspaces/<job_id>/` containing
-   a copy of the **canonical autoresearch contract** (`contract/` — the single
+1. gets its own **isolated workspace** — `service/data/workspaces/<job_id>/` containing
+   a copy of the **canonical autoresearch contract** (`autoresearch/contract/` — the single
    source of truth; `prepare.py`, `train.py`, `data.txt`), `topic.txt`,
    `context.json`, and a `corpus/` directory;
 2. runs `prepare.py` → `train.py` **inside that workspace** (subprocess, time
@@ -146,7 +146,7 @@ queued → running → completed | failed | cancelled | timeout
 ## Workspace layout
 
 ```
-data/workspaces/<job_id>/
+service/data/workspaces/<job_id>/
 ├── prepare.py          # copy of the canonical autoresearch contract (immutable step)
 ├── train.py            # copy of the canonical autoresearch contract (agent-edited step)
 ├── data.txt            # prepare output, per-workspace (no cross-job race)

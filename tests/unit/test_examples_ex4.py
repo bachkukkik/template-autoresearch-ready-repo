@@ -47,7 +47,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-EX4 = ROOT / "contract" / "examples" / "ex4-llm-repo-speedup"
+EX4 = ROOT / "autoresearch" / "contract" / "examples" / "ex4-llm-repo-speedup"
 REQUIRED = ("README.md", "program.md", "prepare.py", "solution_baseline.py",
             "agent_driver.py", "results.tsv", "transcript.jsonl",
             "target/README.md", "target/solution.py", "target/tests.py")
@@ -511,7 +511,7 @@ def test_ex4_driver_refuses_to_run_inside_a_parent_repo(tmp_path):
     template checkout), the driver exits non-zero before any git write: the
     parent's HEAD is unchanged and an uncommitted file survives untouched."""
     repo = tmp_path / "repo"
-    nested = repo / "contract" / "examples" / "ex4-llm-repo-speedup"
+    nested = repo / "autoresearch" / "contract" / "examples" / "ex4-llm-repo-speedup"
     shutil.copytree(EX4, nested)
     notes = repo / "NOTES.md"
     notes.write_text("committed\n", encoding="utf-8")

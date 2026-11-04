@@ -19,7 +19,7 @@ IDs: AC-MCP-031..037 — spec: docs/prd/06-multi-topic-concurrent-service.md.
 - AC-MCP-037 (SC4)  — the async decision is locked: all four research handlers
   remain sync `def` (no coroutine).
 
-Hermetic: every workspace roots to tmp; the runner's contract/ baseline runs in
+Hermetic: every workspace roots to tmp; the runner's `autoresearch/contract/` baseline runs in
 milliseconds; the overlap test is bounded by timeout_s.
 """
 
@@ -52,7 +52,7 @@ from src.workspace import (  # noqa: E402
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CONTRACT_DIR = REPO_ROOT / "contract"
+CONTRACT_DIR = REPO_ROOT / "autoresearch" / "contract"
 SLOW_WORKLOAD = REPO_ROOT / "tests" / "fixtures" / "workloads" / "slow"
 
 

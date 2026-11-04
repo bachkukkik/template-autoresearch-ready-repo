@@ -11,7 +11,7 @@ Each candidate: apply edit -> git commit -> run -> parse val_bpb from run.log
 Reproduce the vendored ledger in a scratch clone, starting from the tracked
 baseline (results.tsv stays untracked / gitignored):
 
-    cp -r contract/examples/ex1-music-abc /tmp/ex1 && cd /tmp/ex1
+    cp -r autoresearch/contract/examples/ex1-music-abc /tmp/ex1 && cd /tmp/ex1
     git init -q && git add -A && git commit -qm "contract: baseline"
     python3 loop_driver.py --from-baseline
 

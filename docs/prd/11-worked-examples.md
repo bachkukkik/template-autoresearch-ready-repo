@@ -1,6 +1,6 @@
 # PRD 11 — Worked Examples: Honest Provenance and Reproducible Ledgers
 
-> Intent: the worked examples under `contract/examples/` must be **honest
+> Intent: the worked examples under `autoresearch/contract/examples/` must be **honest
 > about how they were produced** and **reproducible from tracked state** — a
 > reader who copies an example into a scratch clone and runs its driver must get
 > the vendored ledger back (ex1/ex2 row for row; ex3 on its deterministic
@@ -98,7 +98,8 @@ its own commit hashes and its own (jittering) timing column.
   candidate, never as a target the run is expected to fill. _Verify:_
   `tests/unit/test_examples_replay.py` (AC-EXA-010).
 - **SC7 ✅ implemented 2026-10-17** — **ex4 is the live-LLM instance, and its run
-  replays offline.** `contract/examples/ex4-llm-repo-speedup/` instantiates the
+  replays offline.**
+  `autoresearch/contract/examples/ex4-llm-repo-speedup/` instantiates the
   contract with a live model in the mutation slot: `agent_driver.py` (an
   OpenAI-compatible loop keyed on env-var NAMES only, `--from-baseline` /
   `--replay`) prompts the model for the complete `target/solution.py`, applies

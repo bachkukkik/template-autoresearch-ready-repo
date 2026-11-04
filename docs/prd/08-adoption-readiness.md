@@ -19,6 +19,12 @@
 > names the issues as intent drivers and does **not** fake a `kb/` citation for them.
 > Their working capture is a gitignored scratchpad, which funnel rule 6 makes
 > uncitable — see *Assumptions*.
+>
+> **Retirement note — 2026-11-04.** The `ops/` home and its sync tool were removed
+> to match the upstream `template-agentic-ready-repo` root layout (no `ops/` there).
+> SC1, `AC-OPS-001..010`, `tests/unit/test_ops_sync.py`, the `ops-drift` CI job and
+> the ops-related assumptions are retired as of that date; SC2–SC12 stand unchanged.
+> See [docs/18-root-layout-refactor.md](../18-root-layout-refactor.md).
 
 ## Context
 
@@ -34,7 +40,9 @@ gate. Five classes of gap mattered:
   artifacts — a scheduler entry, a wrapper script, a board/graph definition, environment
   manifests — to a system *outside* the repo. None of those are knowledge (stage 3),
   intent (stage 4), a gap (stage 5) or verified reality (stage 6), so funnel rule 1 made
-  them a defect and the `doctrine` job had nothing to check them against.
+  them a defect and the `doctrine` job had nothing to check them against. (Superseded
+  2026-11-04: `ops/` was removed to match the upstream root layout; this template ships
+  no externally-operated subject.)
 - **Onboarding was a list of steps, not a check.** A fresh clone could be broken
   (Windows-cloned symlinks as plain text, a gitignored doctrine path) with nothing to
   run that says so in one line.
@@ -51,15 +59,13 @@ gate. Five classes of gap mattered:
 
 **Target users:** the downstream adopter operating a research program from a clone of
 this template, maintainers reviewing changes, and every coding agent working across
-harnesses. **Constraints:** the ops home is repo-canonical with the live side a deploy
-target only; the sync tool's destructive mode is gated behind an explicit confirmation
-env var; every new guard is hermetic (stdlib + file reads) so it runs on any runner;
-no new CI job — the guards land in the existing `unit` / `integration` / `doctrine`
-jobs.
+harnesses. **Constraints:** every new guard is hermetic (stdlib + file reads) so it runs
+on any runner; no new CI job — the guards land in the existing `unit` / `integration` /
+`doctrine` jobs. (The ops-home constraint was retired 2026-11-04 with `ops/`.)
 
 ## Success Criteria
 
-- **SC1** — **The operational subject has a tracked home and a safe sync tool.** `ops/`
+- ~~**SC1** — **The operational subject has a tracked home and a safe sync tool.** `ops/`
   is the canonical home for artifacts deployed outside the repo; `ops/sync.sh` has a
   read-only `--check` (drift in both directions, live-only files reported with an
   explicit path-scoped allowlist for generated runtime state) and an `--apply` that
@@ -67,7 +73,9 @@ jobs.
   absent, unenumerable or empty. _Verify:_ `tests/unit/test_ops_sync.py`
   (AC-OPS-001..010) + the `ops-drift` job in `.github/workflows/ci.yml`, which runs
   `ops/sync.sh --check` (self-fixturing a temp target when the `OPS_LIVE_ROOT`
-  repository variable is unset; gating the configured target when it is set).
+  repository variable is unset; gating the configured target when it is set).~~
+  **Retired 2026-11-04: `ops/` removed to match upstream root layout** — the home,
+  `sync.sh`, `AC-OPS-001..010` and the `ops-drift` job no longer exist.
 
 - **SC2** — **Documentary invariants are enforced, not merely stated.** Every
   `docs/NN-slug.md` carries the eight stage-6 sections in the fixed order, `What Fails`
@@ -102,9 +110,8 @@ jobs.
   `integration` job fails when its junit artifact is missing or unparseable, and when
   the tier executed zero tests or skipped all of them; the shared preflight in
   `tests/conftest.py` (`resolve_ambient` / `require_tool`) makes a missing ambient
-  binary or interpreter skip **loudly, naming what was resolved and why**; the same
-  preflight is applied module-wide in `tests/unit/test_ops_sync.py` (its
-  `require_tool("bash")` fixture). _Verify:_ the `integration` job's junit guard step
+  binary or interpreter skip **loudly, naming what was resolved and why**. _Verify:_ the
+  `integration` job's junit guard step
   in `.github/workflows/ci.yml` + the `resolve_ambient`/`require_tool` preflight in
   `tests/conftest.py` (no test ID — see *Assumptions*).
 
@@ -169,12 +176,11 @@ jobs.
 
 | Expected behavior | Test file | Test IDs |
 |---|---|---|
-| `ops/` home + sync tool: loud on an absent/empty root, `--check` drift in both directions, `--apply` gated behind `OPS_APPLY_CONFIRM=1`, symlinked root deployed through; `--check` run in CI with drift proven detectable | `tests/unit/test_ops_sync.py` + `.github/workflows/ci.yml` (`ops-drift`) | AC-OPS-001..010 + the `ops-drift` job |
 | Documentary invariants enforced (eight-section order, fails↔resolution parity, catalog rows, cross-layer `NN`) | `tests/unit/test_docs_template.py` | AC-DOC-001..016 |
 | A new tracked root cannot pass the `doctrine` job silently; the job's list and `AC-FUN-002` cannot drift | `tests/unit/test_funnel_structure.py` + `.github/workflows/ci.yml` (`doctrine`) | AC-FUN-003 + the `doctrine` tracked-root coverage step |
 | Gap lifecycle: a legitimately empty open set still reports a malformed gap | `tests/unit/test_gaps_lifecycle.py` | AC-FUN-021 |
 | Closed gaps 03/07 archived with their records; re-ingested `kb/raw` articles sha-verified | `tests/unit/test_docs_template.py`, `tests/unit/test_corpus_integrity.py` | AC-DOC-004, AC-DOC-006, AC-EXC-001/002 |
-| A host-dependent test cannot decide a tier's verdict; a whole-tier skip is a red run | `.github/workflows/ci.yml` (`integration`) + `tests/conftest.py` + `tests/unit/test_ops_sync.py` | `integration` junit guard step; `resolve_ambient`/`require_tool` preflight (module-wide `require_tool("bash")` in `test_ops_sync.py`) |
+| A host-dependent test cannot decide a tier's verdict; a whole-tier skip is a red run | `.github/workflows/ci.yml` (`integration`) + `tests/conftest.py` | `integration` junit guard step; `resolve_ambient`/`require_tool` preflight |
 | All four harnesses first-class; no harness needs a slash command; README ↔ AGENTS.md cannot drift; every Hermes-only mechanism documents a fallback and a missing mechanism never waives a skill gate | `tests/unit/test_harness_neutrality.py` | AC-HRN-001..007 (negative controls) + AC-HRN-008..014 (fallback completeness, skill-gate escape) |
 | A fresh clone is proven healthy in one read-only command, broken-clone negative controls included | `tests/unit/test_verify_clone.py` + `.github/workflows/ci.yml` (`doctrine`) | AC-VC-001..008 + the `doctrine` tracked-path / tracked-root coverage steps |
 | Every mandated skill resolves — vendored `.agents/skills/<name>/SKILL.md`, or a README § *Skills* row with an `https://` install source | `tests/unit/test_harness_neutrality.py` | AC-HRN-015 (+ negative control) |
@@ -196,12 +202,13 @@ jobs.
   unreachable from outside the script — nothing a caller does can force the count to
   zero — so it is pinned where it is observable, not faked: AC-VC-001 asserts the
   parsed check count is non-zero and AC-VC-002 asserts the run changed nothing.
-- **The ops `--check` mode runs in CI.** The `ops-drift` job runs `ops/sync.sh --check`.
+- ~~**The ops `--check` mode runs in CI.** The `ops-drift` job runs `ops/sync.sh --check`.
   With the `OPS_LIVE_ROOT` repository variable unset it self-fixtures (a temp root
   `--apply`ed, checked green, then one artifact mutated and required to go red naming
   it); with the variable set, both write steps are `if:`-gated off and it becomes a real
   read-only gate on the adopter's own target. `--apply` is never run against a
-  configured target from CI.
+  configured target from CI.~~ **Retired 2026-11-04: `ops/` removed to match upstream
+  root layout.**
 - **Harness neutrality is asserted at the document level; the live-client half is
   stated scope.** `tests/unit/test_harness_neutrality.py` (AC-HRN-001..014) asserts the
   catalog tables *and* fallback completeness in `AGENTS.md`; it does not drive an
@@ -219,31 +226,34 @@ jobs.
   OpenAI-compatible row stays repo-artifact doctrine (it is the generic
   inline-`SKILL.md` case, not a distinct vendor product). `[ASSUMPTION]` resolved
   2026-10-16.
-- **One new CI job.** The `ops-drift` job is added to `.github/workflows/ci.yml`; every
+- ~~**One new CI job.** The `ops-drift` job is added to `.github/workflows/ci.yml`; every
   other guard lands in an existing job (`unit`, `integration`, `doctrine`) or in
-  `tests/conftest.py`.
+  `tests/conftest.py`.~~ **Retired 2026-11-04: the `ops-drift` job was removed with
+  `ops/`;** every remaining guard lands in an existing job (`unit`, `integration`,
+  `doctrine`) or in `tests/conftest.py`.
 
 ## Confidence
 
-**High** — the change set is shipped and green: `tests/unit/test_ops_sync.py`
-(AC-OPS-001..010), `tests/unit/test_docs_template.py` (AC-DOC-001..016),
-`tests/unit/test_funnel_structure.py` + `tests/unit/test_gaps_lifecycle.py`
-(AC-FUN-001..004, 021), `tests/unit/test_harness_neutrality.py` (AC-HRN-001..014),
+**High** — the change set shipped and green: `tests/unit/test_docs_template.py`
+(AC-DOC-001..016), `tests/unit/test_funnel_structure.py` +
+`tests/unit/test_gaps_lifecycle.py` (AC-FUN-001..004, 021),
+`tests/unit/test_harness_neutrality.py` (AC-HRN-001..014),
 `tests/unit/test_verify_clone.py` (AC-VC-001..008) and
-`tests/unit/test_corpus_integrity.py` all pass (`120 passed` for the unit tier), and
-`docs/08-adoption-readiness.md` records the run. Seven of the eight SCs point at a real
-test ID; SC6 points at a named CI step plus the `tests/conftest.py` preflight rather
-than a test ID, because its subject is a runner artifact, not a unit assertion. The one
-residual seam is scope, not a gap: the harness guard proves the document every harness
-reads and no pinned third-party client exists to drive the live-client half.
+`tests/unit/test_corpus_integrity.py` all pass, and `docs/08-adoption-readiness.md`
+records the run. SC1 was retired on 2026-11-04 with `ops/`; the remaining SCs point
+at real test IDs except SC6, which points at a named CI step plus the
+`tests/conftest.py` preflight, because its subject is a runner artifact, not a unit
+assertion. The one residual seam is scope, not a gap: the harness guard proves the
+document every harness reads and no pinned third-party client exists to drive the
+live-client half.
 
 ## CI/CD Gate
 
 All tests run in CI per `.github/workflows/ci.yml`. No PR merges with a red test.
-This PRD adds **one CI job**, `ops-drift`, which runs `ops/sync.sh --check` (see SC1 and
-*Assumptions*); the new unit guards run in the existing `unit` tier
-(`test_ops_sync.py`, `test_docs_template.py`, `test_harness_neutrality.py`,
+The `ops-drift` job this PRD once added was retired on 2026-11-04 with `ops/`; the
+remaining unit guards run in the existing `unit` tier
+(`test_docs_template.py`, `test_harness_neutrality.py`,
 `test_funnel_structure.py`, `test_gaps_lifecycle.py`, `test_verify_clone.py`,
-`test_corpus_integrity.py`), the `integration` job gained its junit guard step, and the
+`test_corpus_integrity.py`), the `integration` job carries its junit guard step, and the
 `doctrine` job's tracked-root coverage step is what SC3 and SC8 rest on. `bash
 tests/run.sh` must be `PASSED` locally before a PR is opened (`AGENTS.md` §6).

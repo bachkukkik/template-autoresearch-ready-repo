@@ -3,7 +3,7 @@
 
 Each research job gets an isolated workspace at
 `<workspaces_root>/<job_id>/`: a copy of the canonical autoresearch
-contract (`contract/` — the single source of truth; the
+contract (`autoresearch/contract/` — the single source of truth; the
 `RESEARCH_WORKLOAD_DIR` env override is honored via `resolve_workload_dir`)
 plus `topic.txt`, `context.json`, and a `corpus/` tree (inline texts and/or
 files copied from the corpus root). The runner executes inside that
@@ -11,8 +11,8 @@ directory, so two concurrent jobs never share a working directory and
 never race on `data.txt`.
 
 Workspaces are retained runtime artifacts under an ignored dir
-(`data/workspaces` by default — `/data/*` is gitignored): observable for
-debugging after terminal jobs, never tracked by git.
+(`service/data/workspaces` by default — `service/data/*` is gitignored):
+observable for debugging after terminal jobs, never tracked by git.
 """
 
 import json
@@ -24,10 +24,10 @@ from pathlib import Path
 
 from .runner import resolve_workload_dir
 
-# Repo root/data/workspaces — /data/* is gitignored; env override for compose.
+# service/data/workspaces — service/data/* is gitignored; env override for compose.
 DEFAULT_WORKSPACES_DIR = Path(os.environ.get(
     "RESEARCH_WORKSPACES_DIR",
-    str(Path(__file__).resolve().parents[2] / "data" / "workspaces"),
+    str(Path(__file__).resolve().parents[1] / "data" / "workspaces"),
 ))
 # Repo root/kb/raw on the host, /kb-raw in the compose container (PRD-06).
 DEFAULT_CORPUS_ROOT = Path(os.environ.get(
@@ -79,7 +79,7 @@ def provision_workspace(
 
     Layout:
       <workspaces_root>/<job_id>/
-        prepare.py, train.py           <- copied from contract/ (resolve_workload_dir())
+        prepare.py, train.py           <- copied from autoresearch/contract/ (resolve_workload_dir())
         topic.txt                        <- the topic string
         context.json                     <- job_id, topic, corpus_spec summary
         corpus/

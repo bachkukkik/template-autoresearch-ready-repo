@@ -90,7 +90,7 @@ DO_NOT_TRACK=1 codegraph files
 echo service/src/runner.py | DO_NOT_TRACK=1 codegraph affected --stdin
 # ℹ No test files affected by the changed files.                # the DEFAULT filter matches nothing
 
-echo contract/prepare.py | DO_NOT_TRACK=1 codegraph affected --stdin -f 'tests/**/*.py' -q
+echo autoresearch/contract/prepare.py | DO_NOT_TRACK=1 codegraph affected --stdin -f 'tests/**/*.py' -q
 # tests/unit/test_domain_hooks.py                               # a test glob maps it (2026-10-17)
 # tests/unit/test_prepare_py.py
 echo service/src/main.py | DO_NOT_TRACK=1 codegraph affected --stdin -f 'tests/**/*.py' -q
@@ -176,7 +176,7 @@ PATH=<dir-with-a-python3-and-no-codegraph>:/usr/bin:/bin python3 -m pytest \
 ## Resolution
 
 - **`codegraph affected` maps nothing with its default filter:** pass a test glob —
-  `codegraph affected --stdin -f 'tests/**/*.py'` maps `contract/prepare.py` to
+  `codegraph affected --stdin -f 'tests/**/*.py'` maps `autoresearch/contract/prepare.py` to
   `tests/unit/test_domain_hooks.py` and `service/src/main.py` to
   `tests/unit/test_routes.py` + `tests/unit/test_workspace.py`. The default filter
   stays a limitation, so always give the recipient tier a glob.

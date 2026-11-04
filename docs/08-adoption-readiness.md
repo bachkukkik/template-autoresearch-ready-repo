@@ -1,13 +1,20 @@
 # 08 — Adoption Readiness
 
+> **Retirement note — 2026-11-04.** `ops/` and its `sync.sh` were removed to match the
+> upstream template root layout (no `ops/` there); `AC-OPS-001..010`,
+> `tests/unit/test_ops_sync.py` and the `ops-drift` CI job are retired. The ops sections
+> below record the state before that date as historical evidence; the remaining
+> adoption-readiness guards are current. See
+> [18-root-layout-refactor.md](18-root-layout-refactor.md).
+
 ## What
 
 The layer that makes this template adoptable and safe to take to production: the
-`ops/` home for artifacts deployed to a subject outside the repo with its read-only
-`sync.sh --check`, the one-command onboarding path (`ADOPTING.md` +
-`scripts/verify-clone.sh`), harness neutrality across Hermes / Claude Code / opencode /
-DeepSeek-OpenAI-compatible, and the seven guards that turn doctrine which was merely
-stated into doctrine that is enforced.
+one-command onboarding path (`ADOPTING.md` + `scripts/verify-clone.sh`), harness
+neutrality across Hermes / Claude Code / opencode / DeepSeek-OpenAI-compatible, and
+the guards that turn doctrine which was merely stated into doctrine that is enforced.
+(The `ops/` home and `sync.sh` this layer once added were retired 2026-11-04 — see the
+note above.)
 
 ## Why
 
@@ -17,7 +24,7 @@ stated into doctrine that is enforced.
 - **The operational subject had no legal home.** Funnel rule 1 made a scheduler entry
   or a deploy-wrapper script a defect, because the funnel covers writing that lives
   *inside* the repo — so production artifacts were either untracked or smuggled into a
-  stage that means something else.
+  stage that means something else. Retired 2026-11-04 with `ops/`.
 - **Doctrine written from one seat is not harness-neutral.** The capability tables were
   authored for a harness with host-level skills and slash commands; opencode and a
   DeepSeek/OpenAI-compatible harness had no binding, and nothing failed if a harness
@@ -30,7 +37,10 @@ stated into doctrine that is enforced.
 
 ## How
 
-### The ops home
+### The ops home (retired 2026-11-04)
+
+Removed with `ops/` to match the upstream root layout. The table records the
+pre-retirement contract as historical evidence.
 
 | Contract | Statement |
 |---|---|
@@ -58,7 +68,7 @@ performed no checks.
 | Local-CI false red | a declared root that exists on disk but is not committed YET, failing the `doctrine` tracked check on a working-tree (`act`) run | the `doctrine` job's tracked step (a root passes when it is tracked **or** present; ignored roots still fail) + `scripts/local-ci.sh` (one `act` run per job, `e2e` refused) |
 | Host-dependent verdict | a tier that executed zero tests or skipped all of them reading as green | the `integration` job's junit guard step + the `resolve_ambient`/`require_tool` preflight in `tests/conftest.py` |
 | Broken fresh clone | a dangling harness symlink, a plain-copy entry point, an undeclared tracked root, a gitignored doctrine path, a `verify-clone.sh` that can no longer locate the tracked-root list, and a run that performed no checks | `tests/unit/test_verify_clone.py` (AC-VC-001..008) in the `unit` job |
-| Ops drift | a vendored `ops/artifacts/` file that differs from the live deploy target, and a `--check` that cannot go red; becomes a real read-only gate on the adopter's own target once the `OPS_LIVE_ROOT` repository variable is set | the `ops-drift` job in `.github/workflows/ci.yml` |
+| ~~Ops drift~~ (retired 2026-11-04) | a vendored `ops/artifacts/` file that differs from the live deploy target, and a `--check` that cannot go red; becomes a real read-only gate on the adopter's own target once the `OPS_LIVE_ROOT` repository variable is set | removed from `.github/workflows/ci.yml` with `ops/` |
 | Harness neutrality | a Hermes-only mechanism in `AGENTS.md` presented without its non-Hermes fallback in the same context; a harness missing a mechanism with no documented path to a skill gate; a mandated skill (§1) that resolves nowhere; a README harness row with no `AGENTS.md` binding; a forked Gemini CLI entry point | `tests/unit/test_harness_neutrality.py` (AC-HRN-001..017) in the `unit` job |
 
 The neutrality guard parses the two catalog tables by **header text**, never by column
@@ -216,12 +226,12 @@ act push -j ops-drift -P ubuntu-latest=catthehacker/ubuntu:act-22.04 --pull=fals
   the offender; AC-VC-008 keeps every invocation explicit-argv with `timeout=`, `cwd=`
   and `capture_output=True`. The one guard unreachable from outside the script (the
   success line over zero checks) is pinned where it is observable, not faked.
-- **The ops `--check` runs in CI and drift is proven detectable:** the `ops-drift` job
-  runs `ops/sync.sh --check`; with the `OPS_LIVE_ROOT` repository variable unset it
-  self-fixtures (`--apply` into a temp root, `--check` green, mutate one artifact,
-  `--check` red naming it), and with the variable set both write steps are `if:`-gated
-  off so it becomes a real read-only gate on the adopter's own target — proven green
-  under `act` in both modes.
+- **The ops `--check` ran in CI and drift was proven detectable (retired 2026-11-04):**
+  the `ops-drift` job ran `ops/sync.sh --check`; with the `OPS_LIVE_ROOT` repository
+  variable unset it self-fixtured (`--apply` into a temp root, `--check` green, mutate
+  one artifact, `--check` red naming it), and with the variable set both write steps
+  were `if:`-gated off so it became a real read-only gate on the adopter's own target —
+  proven green under `act` in both modes. Recorded here as historical evidence.
 - **Harness neutrality enforces fallback completeness:** `tests/unit/test_harness_neutrality.py`
   (AC-HRN-001..017) proves `AGENTS.md`'s Harness Adapter names Hermes, Claude Code,
   opencode and DeepSeek/OpenAI-compatible plus a generic fallback, binds each to an entry
@@ -266,11 +276,13 @@ hermetic `unit` tier.
 ## Verdict
 
 **works** — the adoption-readiness layer is verified end to end where the guards reach:
-`ops/sync.sh` (AC-OPS-001..010), the documentary invariants (AC-DOC-001..016), the gap
+the documentary invariants (AC-DOC-001..016), the gap
 lifecycle (AC-FUN-021), harness neutrality including fallback completeness and mandated-skill
 resolution (AC-HRN-001..017),
-the onboarding script with its five broken-clone negative controls (AC-VC-001..008), and
-the `ops-drift` job that runs `--check` in CI with drift proven detectable. The one seam
-outside the guard — a live third-party harness client — is a stated scope boundary, not a
-failure: no pinned client exists to drive it, and driving one would move the `unit` tier's
+the onboarding script with its five broken-clone negative controls (AC-VC-001..008). The
+`ops/sync.sh` guard (AC-OPS-001..010) and the `ops-drift` job that ran `--check` in CI
+were retired on 2026-11-04 with `ops/` (see the retirement note); their evidence above is
+historical. The one seam outside the guard — a live third-party harness client — is a
+stated scope boundary, not a failure: no pinned client exists to drive it, and driving one
+would move the `unit` tier's
 verdict onto the host.

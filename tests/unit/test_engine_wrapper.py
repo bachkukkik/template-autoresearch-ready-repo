@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-WRAPPER = ROOT / "engine" / "bin" / "autoresearch"
+WRAPPER = ROOT / "autoresearch" / "engine" / "bin" / "autoresearch"
 
 
 def test_the_wrapper_ignores_a_repo_local_autoresearch_module(tmp_path):

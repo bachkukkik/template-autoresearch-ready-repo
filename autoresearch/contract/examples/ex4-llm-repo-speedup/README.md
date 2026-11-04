@@ -80,7 +80,7 @@ the template. Work in a disposable copy (from the repo root):
 
 ```bash
 mkdir -p "$TMPDIR/ex4"
-git archive HEAD contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
+git archive HEAD autoresearch/contract/examples/ex4-llm-repo-speedup | tar -x -C "$TMPDIR/ex4" --strip-components=3
 cd "$TMPDIR/ex4" && git init -q && git add -A && git commit -qm "contract: baseline"
 python3 agent_driver.py --from-baseline --replay transcript.jsonl
 ```
