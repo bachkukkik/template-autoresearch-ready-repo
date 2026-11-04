@@ -799,7 +799,7 @@ def test_fallback_check_reports_a_deleted_fallback():
     # Lifecycle section replaced the `/goal`-only cluster, so the occurrence set
     # is now five lines (adapter row, D1 row, kickoff line, the no-/goal heading
     # and its paragraph). Same intent — every occurrence is pinned.
-    assert reported_lines == [108, 148, 153, 198, 200], (
+    assert reported_lines == [108, 131, 136, 181, 183], (
         f"the blanked copy should report every `/goal` occurrence, got {reported_lines}"
     )
 

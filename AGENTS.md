@@ -117,24 +117,7 @@ Harness-neutral: written against **capabilities**, not one agent product — a h
 | **DeepSeek / OpenAI-compatible** | read `AGENTS.md` manually | vendor into `.agents/skills/`, or inline `SKILL.md` | — | run the phase order inline | no MCP client — the codegraph CLI twins `codegraph explore\|…` | `scratchpads/` | `llm-wiki` by hand | prompt the phases |
 | **Codex CLI / Cursor / Gemini CLI / Aider** | `AGENTS.md` native (Gemini CLI: `GEMINI.md`) | `.agents/skills`, else README § *Skills* | — | — | — | `scratchpads/` | `llm-wiki` by hand | prompt the phases |
 
-**Two symlink families, both pointing at one canonical source.** Entry points — every one resolves to `AGENTS.md`:
-
-```
-CLAUDE.md                        -> AGENTS.md
-GEMINI.md                        -> AGENTS.md
-.github/copilot-instructions.md  -> ../AGENTS.md
-```
-
-Skill/plugin roots — `.agents/` is canonical, harness dirs point into it:
-
-```
-.agents/skills/                  # canonical, tracked
-.agents/plugins/                 # canonical, tracked
-.claude/skills                   -> ../.agents/skills
-.claude/plugins                  -> ../.agents/plugins
-```
-
-Adding a harness = two symlinks (`ln -s AGENTS.md <entry-file>`, `ln -s ../.agents/skills <vendor-dir>/skills`) plus a row above. `.agents/` pins `root-cause` (the gate's procedure); `.claude/agents/investigator.md` binds it for Claude Code (a read-only sub-agent returning cited evidence or "not found"); other harnesses run it inline.
+**Two symlink families, one canonical source.** Entry files all resolve to `AGENTS.md` (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` → `../AGENTS.md`). Skill/plugin roots: `.agents/` canonical; `.claude/{skills,plugins}` → `../.agents/*`. Adding a harness = those two symlinks plus a row above. `.agents/` pins `root-cause` (the gate's procedure); `.claude/agents/investigator.md` binds it for Claude Code (a read-only sub-agent returning cited evidence or "not found"); other harnesses run it inline.
 
 ## Lifecycle — Zero to Deployment (coding-agent entry point)
 
@@ -197,7 +180,7 @@ lastly do full redeployment cycle from pull to serve — the production stack.
 
 ### Running the pipeline without `/goal`
 
-`/goal` is a **Hermes-only** slash command; a harness without it prompts the same steps in order — the canonical cross-harness contract is the `D0`–`D4` and `sub1`–`sub4` (UAT: `sub1`–`sub5`) labels plus the phase table below, so **"go through sub1-4"** is valid everywhere. Or use this table:
+`/goal` is **Hermes-only**; a harness without it prompts the same steps in order — the canonical cross-harness contract is the `D0`–`D4` / `sub1`–`sub4` (UAT: `sub1`–`sub5`) labels plus the phase table below, so **"go through sub1-4"** is valid everywhere.
 
 | # | Phase | Do | Done when |
 |---|-------|----|-----------|
@@ -242,7 +225,7 @@ For explanatory output, climb to the richest useful rung: prose → controlled E
 
 ### Ops artifacts — repo canonical, live location a deploy target
 
-`--check` reports drift read-only, `--apply` writes live behind a confirmation env var, generated state excluded both ways, vendored copies are byte-copies. → `ops/README.md`
+`--check` = read-only drift report; `--apply` = gated live write → `ops/README.md`
 
 ## Repository Structure
 
@@ -270,8 +253,12 @@ Pre-PR local CI has ONE home: § 6. → `README.md`
 
 [CodeGraph](https://github.com/colbymchenry/codegraph) is the **primary graph search for coding agents** here — a local-first tree-sitter → SQLite symbol/edge graph over MCP (MIT).
 
-One MCP tool by design, `codegraph_explore`. **Without an MCP client, use the CLI twins** `codegraph explore|node|callers|callees|impact|query|affected`. Install `npm i -g @colbymchenry/codegraph` → `codegraph install` → `codegraph init`. Scripted runs set `DO_NOT_TRACK=1`. → `docs/prd/07-codegraph-adoption.md`
+One MCP tool by design, `codegraph_explore`; without an MCP client use the CLI twins `codegraph explore|node|callers|callees|impact|query|affected`. Install → `codegraph install` → `codegraph init`; scripted runs set `DO_NOT_TRACK=1`. → `docs/prd/07-codegraph-adoption.md`
 
 ### graphify (optional)
 
 Non-code knowledge graph (docs, SQL, configs, PDFs): `graphify query|path|explain`. → `kb/comparisons/codegraph-vs-graphify.md`
+
+## pr-agent
+
+[PR-Agent](https://github.com/The-PR-Agent/pr-agent) is the **optional, dormant AI PR reviewer** (MIT, donated by Qodo) — `/review` `/improve` `/describe` `/ask` on PRs, only after explicit opt-in: repo variable `PR_AGENT_ENABLED=true` + secret `OPENAI_API_KEY`; endpoint/model via conventional variables `OPENAI_BASE_URL` / `OPENAI_DEFAULT_MODEL` (mapped to PR-Agent internals in the SHA-pinned `.github/workflows/pr-agent.yml`). Local: same names in `.env` + `pip install "pr-agent[github]"`. Tuning: `.pr_agent.toml`. → `docs/prd/18-pr-agent-adoption.md`
