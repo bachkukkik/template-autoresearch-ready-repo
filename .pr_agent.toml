@@ -1,0 +1,33 @@
+# PR-Agent tuning — optional, dormant (PRD 18: docs/prd/18-pr-agent-adoption.md)
+#
+# PR-Agent reads this file from the repo root on every run; nothing here is a
+# secret and nothing here is required — PR-Agent's own defaults apply to every
+# knob left commented out. Uncomment and adjust per repository.
+#
+# Full option reference: https://docs.pr-agent.ai/usage-guide/configuration_options/
+#
+# Endpoint, key and model are NOT configured here: they arrive as environment
+# variables from the workflow (`OPENAI_API_BASE`, `OPENAI_KEY`, `CONFIG__MODEL`)
+# or from your local `.env` when you run the CLI. Keeping credentials out of this
+# file is what makes it safe to commit.
+
+[config]
+# Language for review comments and descriptions. Empty = PR-Agent default (en).
+# response_language = "en"
+
+[pr_reviewer]
+# Repo-specific review guidance appended to PR-Agent's built-in review prompt.
+# Use it for conventions a generic reviewer cannot know, e.g.:
+# extra_instructions = """
+# - Cite the PRD success criterion (AC-*) any behavioural change touches.
+# - Flag any new tracked file outside the document funnel (AGENTS.md).
+# - Treat a new `uses:` without a 40-hex SHA as a blocking finding.
+# """
+# Minimum self-scored confidence for an inline suggestion to be posted (0.0-1.0).
+# suggestions_score_threshold = 0.0
+
+[pr_description]
+# extra_instructions = "Summarize the change in three bullets; list the test ids added."
+
+[pr_code_suggestions]
+# extra_instructions = "Prefer surgical diffs; do not propose reformatting-only changes."

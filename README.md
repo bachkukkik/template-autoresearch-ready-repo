@@ -90,6 +90,18 @@ python3 scripts/gen-env.py --update     # .env.new carrying this deployment's va
 python3 scripts/audit-ste.py            # default: docs/*.md + README.md, 80% threshold
 ```
 
+## PR-Agent (optional but dormant) — see AGENTS.md §pr-agent
+
+[PR-Agent](https://github.com/The-PR-Agent/pr-agent) (MIT) is an AI reviewer that posts
+`/review`, `/describe` and `/improve` comments on a PR. It is **off until you opt in**:
+set the repository variable `PR_AGENT_ENABLED=true` and the secret `OPENAI_API_KEY`; optionally
+set the variables `OPENAI_BASE_URL` (any OpenAI-compatible endpoint — LiteLLM gateway, cloud API,
+local vLLM) and `OPENAI_DEFAULT_MODEL`. The same names live in `.env.example`, so a locally
+filled `.env` lets the CLI (`pip install "pr-agent[github]"`) review your branch before the PR.
+Per-repo tuning is `.pr_agent.toml`; intent and success criteria are in
+[docs/prd/18-pr-agent-adoption.md](docs/prd/18-pr-agent-adoption.md). Fork PRs receive no
+secrets on `pull_request`, so the reviewer does not run on forks.
+
 ## Repository Structure
 
 ```
