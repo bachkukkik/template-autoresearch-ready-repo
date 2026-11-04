@@ -226,3 +226,5 @@ The output-medium doctrine (`AGENTS.md` §7) adds the consumer-side skills: `sim
 - [x] Output-medium doctrine — `AGENTS.md` §7 (prose → controlled English → diagram → HTML → explainer video) + `kb/` grounding + `AC-OM-*` / `AC-CTX-*` tripwires
 - [x] `scripts/gen-env.py` (`--fresh` byte copy / `--update` value-carry, no clobber) + `AC-GEN-001..005`
 - [x] `scripts/audit-ste.py` (the "80% to ASD-STE100" prose gate) + `AC-STE-001..003`; repo docs measured at 99.0% within-limit (1544/1559, 2026-10-16)
+
+<!-- pr-agent smoke test: verifies the optional AI reviewer fires on a real PR -->
