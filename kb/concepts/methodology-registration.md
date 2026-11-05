@@ -1,7 +1,7 @@
 ---
 title: Methodology Registration (the reusable template pattern)
 created: 2026-09-26
-updated: 2026-10-16
+updated: 2026-11-04
 type: concept
 tags: [autoresearch, research-method, doctrine]
 sources: [raw/articles/2026-09-26-autoresearch-methodology-registration.md, raw/articles/autoresearch-program-md-reference.md]
@@ -35,7 +35,7 @@ easier" is removed from the action space, and residual risk moves from cheating
 
 ## Portability proof
 
-The instance's `contract/` is byte-identical to this template's
+The instance's `autoresearch/contract/` is byte-identical to this template's
 (zero bytes changed) and met its objective by re-instantiating the same shape
 one layer down. Only the DATA side of an instantiation ever moves.
 
