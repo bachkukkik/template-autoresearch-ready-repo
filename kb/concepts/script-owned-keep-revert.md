@@ -1,7 +1,7 @@
 ---
 title: Script-Owned Keep/Revert
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-11-04
 type: concept
 tags: [autoresearch, architecture]
 sources: [raw/articles/2026-10-28-autoresearch-real-world-engines.md]
@@ -57,7 +57,7 @@ assumption an interrupted or parallel run breaks.
   and `autoresearch-results`, `.git`, `.agents/skills/codex-autoresearch` refused outright.
   research-loop: `git diff --name-only parent..HEAD` must be non-empty, contain no
   `protected_paths`, and every path must sit inside `allowed_paths`. steer's structural
-  equivalent: the whole `contract/` directory is frozen and read-only, so the measurement
+  equivalent: the whole `autoresearch/contract/` directory is frozen and read-only, so the measurement
   cannot be edited at all.
 - **Frozen evaluator + convention.** karpathy's `prepare.py` is off-limits by instruction;
   autokernel's guard is a script living in the same repo the agent edits, with no checksum and

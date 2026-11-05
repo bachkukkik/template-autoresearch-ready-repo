@@ -1,7 +1,7 @@
 ---
 title: Autoresearch OSS Landscape (19 implementations compared)
 created: 2026-10-16
-updated: 2026-10-28
+updated: 2026-11-04
 type: comparison
 tags: [autoresearch, research-method]
 sources: [raw/articles/2026-10-16-autoresearch-oss-landscape.md, raw/articles/2026-10-28-autoresearch-real-world-engines.md]
@@ -20,7 +20,7 @@ in the raw source. ^[raw/articles/2026-10-16-autoresearch-oss-landscape.md]
 | Dimension | Best-in-class exemplar | Local exemplar | Verdict |
 |-----------|------------------------|----------------|---------|
 | Deterministic keep gate | leo-lilinxiao (state machine), evo (gate inheritance) | the contract writer's `compare` 0/1/2 | adopt the exit-code triple → [[deterministic-keep-gate]] |
-| Budget enforced in code | n-autoresearch (import + hard kill), TheGreenCedar (cumulative), autokernel (SIGALRM) | `contract/prepare.py TIME_BUDGET` | strengthen: enforce, don't just declare |
+| Budget enforced in code | n-autoresearch (import + hard kill), TheGreenCedar (cumulative), autokernel (SIGALRM) | `autoresearch/contract/prepare.py TIME_BUDGET` | strengthen: enforce, don't just declare |
 | Noise floor | autokernel (1% rule), davebcn87 / Bilevel (MAD) | none | add a minimum-delta rule |
 | Protected surface | autoguardrails (surface hash), cyzlmh (bundle hash), AutoResearchClaw (injected harness) | object-identity test only | consider a byte pin |
 | Ledger validation | leo (strict event schema), uditgoenka (`validate-state`) | untracked `results.tsv` | optional hardening |
