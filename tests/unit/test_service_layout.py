@@ -1,6 +1,6 @@
 """Unit tier — one package, one lock, one loop (PRD-20 SC1/SC2).
 
-IDs: AC-SVC-001..004.
+IDs: AC-SVC-001..005.
 
 - AC-SVC-001 (SC1) — there is no `service/` at the repo root, and
   `autoresearch/pyproject.toml` ships BOTH top-level packages from one
@@ -10,6 +10,9 @@ IDs: AC-SVC-001..004.
 - AC-SVC-004 (SC2) — the service imports the engine's loop/measure and carries
   no loop or metric parser of its own. A static AST audit, with a synthetic
   negative control so the audit cannot pass by matching nothing.
+- AC-SVC-005 (SC1) — the compose service carries `restart: unless-stopped`, so
+  it comes back after a Docker daemon restart; `docker compose stop` still keeps
+  it down. A synthetic compose text without the key is reported.
 
 Read-only and stdlib-only: the claims are checked, not the prose.
 """
@@ -166,3 +169,55 @@ def run(cfg):
     return measure.measure(cfg)
 '''
     assert _audit({"engine_backed.py": engine_backed}) == []
+
+
+def _compose_service_restart(compose_text: str):
+    """Return the `restart:` value set directly under `services.service`.
+
+    Line-based and stdlib-only — this module parses no YAML, so the compose file
+    is read as text like AC-SVC-003 does. Keys directly under `service:` sit at
+    4-space indent; a commented-out key never counts.
+    """
+    lines = compose_text.splitlines()
+    service_at = next(
+        (
+            index
+            for index, line in enumerate(lines)
+            if line.strip() == "service:" and len(line) - len(line.lstrip()) == 2
+        ),
+        None,
+    )
+    if service_at is None:
+        return None
+    for line in lines[service_at + 1 :]:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= 2:  # the service block ended
+            break
+        if indent == 4 and line.strip().startswith("restart:"):
+            return line.split(":", 1)[1].split("#", 1)[0].strip()
+    return None
+
+
+def test_compose_service_restarts_unless_stopped():
+    """AC-SVC-005: the service comes back after a Docker daemon restart, and is
+    still kept down by `docker compose stop`."""
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    assert _compose_service_restart(compose) == "unless-stopped"
+
+    # Negative control: a synthetic service block with no `restart:` — not even a
+    # commented-out one — is reported as unset, so the assertion above cannot
+    # pass by matching a comment.
+    without_policy = """services:
+  service:
+    build:
+      context: ./autoresearch
+      dockerfile: service/Dockerfile
+    environment:
+      # restart: always
+      AUTH_DISABLED: "1"
+    healthcheck:
+      interval: 5s
+"""
+    assert _compose_service_restart(without_policy) is None
