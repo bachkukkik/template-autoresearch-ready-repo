@@ -54,6 +54,7 @@ Three sources feed this PRD set. When they conflict, this doctrine resolves:
 | 16 | Quality Controls | [docs/prd/16-quality-controls.md](docs/prd/16-quality-controls.md) | Active — ported from the foundation template's PRD 06 (`AC-QC-001..012`); gap [16](docs/gaps/16-quality-controls-not-adopted.md); verified in [docs/16](docs/16-quality-controls.md) |
 | 17 | Autoresearch Engine | [docs/prd/17-autoresearch-engine.md](docs/prd/17-autoresearch-engine.md) | Active — generic harness-pluggable engine (`autoresearch/engine/`, `AC-ENG-*`) + real-OSS target ex5 (`AC-EXA-040..050`); verified in [docs/17](docs/17-autoresearch-engine.md) |
 | 18 | Optional PR-Agent Adoption | [docs/prd/18-pr-agent-adoption.md](docs/prd/18-pr-agent-adoption.md) | Active — opt-in AI code review via `The-PR-Agent/pr-agent` (MIT, SHA-pinned v0.49.0), gated by `vars.PR_AGENT_ENABLED` + conventional `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_DEFAULT_MODEL` names; `AC-PRA-001..009` in `tests/unit/test_pr_agent_adoption.py`; dormant until enabled |
+| 20 | AutoResearch as a Service | [docs/prd/20-autoresearch-as-a-service.md](docs/prd/20-autoresearch-as-a-service.md) | Active — one `autoresearch/` package (engine + contract + service), REST/MCP re-founded on the engine, slash commands + engine skill (`AC-SVC-*`, `AC-HRN-019..020`) |
 
 ## Verification Policy
 

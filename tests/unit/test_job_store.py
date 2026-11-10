@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from src import jobs
-from src.jobs import JobStore
+from autoresearch_service import jobs
+from autoresearch_service.jobs import JobStore
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -209,9 +209,11 @@ def test_db_path_from_env_var(tmp_path, monkeypatch):
 
 
 def test_db_path_fallback_is_service_data(tmp_path, monkeypatch):
-    """db_path falls back to service/data/jobs.db (service root, not cwd)."""
+    """db_path falls back to autoresearch/service/data/jobs.db (service root, not cwd)."""
     monkeypatch.delenv("RESEARCH_JOBS_DB", raising=False)
-    assert jobs.DEFAULT_DB_PATH == str(REPO_ROOT / "service" / "data" / "jobs.db")
+    assert jobs.DEFAULT_DB_PATH == str(
+        REPO_ROOT / "autoresearch" / "service" / "data" / "jobs.db"
+    )
 
     # The parent-directory creation is exercised against a temp path so the test
     # never writes into the tracked tree.

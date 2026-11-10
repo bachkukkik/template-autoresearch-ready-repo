@@ -19,35 +19,42 @@ import urllib.request
 import pytest
 from fastmcp import Client
 
+from .replay_support import replay_records
+
 BASE_URL = "http://127.0.0.1:18000"
 MCP_URL = f"{BASE_URL}/mcp"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SERVICE_DIR = os.path.join(REPO_ROOT, "service")
+SERVICE_DIR = os.path.join(REPO_ROOT, "autoresearch", "service")
 
 TOOL_NAMES = {
     "research_start",
     "research_status",
     "research_results",
     "research_cancel",
+    "run_start",
+    "run_status",
+    "run_report",
+    "run_cancel",
+    "doctor",
 }
 
 
 @pytest.fixture(scope="module")
-def service(tmp_path_factory):
+def service(tmp_path_factory, service_env):
     """Start the auth-disabled service in a subprocess, yield, then stop it."""
     db_path = tmp_path_factory.mktemp("jobs") / "jobs.db"
-    env = dict(os.environ)
-    venv_bin = os.path.join(SERVICE_DIR, ".venv", "bin")
-    env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
-    env.update(
-        {
-            "PORT": "18000",
-            "AUTH_DISABLED": "1",
-            "RESEARCH_JOBS_DB": str(db_path),
-        }
+    # PYTHONPATH carries the engine + repo root (see tests/conftest.py), so the
+    # spawn works with no venv present — as in CI and a fresh clone.
+    env = service_env(
+        PORT="18000",
+        AUTH_DISABLED="1",
+        RESEARCH_JOBS_DB=str(db_path),
+        # Per-job run repos land in the session's tmp dir, not in the repo.
+        RESEARCH_WORKSPACES_DIR=str(tmp_path_factory.mktemp("workspaces")),
+        RESEARCH_RUN_TIMEOUT="30",
     )
     proc = subprocess.Popen(
-        ["python3", "-m", "src.main"],
+        ["python3", "-m", "autoresearch_service.main"],
         cwd=SERVICE_DIR,
         env=env,
         stdout=subprocess.PIPE,
@@ -97,6 +104,19 @@ async def _wait_completed(client, job_id, max_seconds=30):
             return job
         await asyncio.sleep(0.5)
     raise AssertionError(f"job {job_id} did not complete within {max_seconds}s")
+
+
+async def _wait_run(client, job_id, max_seconds=120):
+    """Poll run_status until the run is terminal; returns the job dict."""
+    deadline = time.monotonic() + max_seconds
+    job = {}
+    while time.monotonic() < deadline:
+        res = await client.call_tool("run_status", {"job_id": job_id})
+        job = res.structured_content
+        if job["status"] in ("completed", "failed", "cancelled", "timeout"):
+            return job
+        await asyncio.sleep(0.5)
+    raise AssertionError(f"run {job_id} did not terminate within {max_seconds}s: {job}")
 
 
 def test_mcp_lists_all_four_tools(service):
@@ -170,3 +190,29 @@ def test_mcp_research_cancel_returns_cancelled(service):
     job = asyncio.run(check())
     assert job["id"]
     assert job["status"] == "cancelled"
+
+
+def test_mcp_run_start_replay_completes(service):
+    """AC-SVC-202: run_start over MCP with a replay record set -> the engine
+    drives the loop and run_status reports the engine's summary."""
+
+    async def check():
+        async with Client(MCP_URL) as client:
+            res = await client.call_tool(
+                "run_start",
+                {
+                    "workload": "contract",
+                    "agent": "replay",
+                    "max_iterations": 1,
+                    "records": replay_records(count=1),
+                },
+            )
+            assert res.is_error is False
+            job = res.structured_content
+            assert job["status"] == "queued"
+            return await _wait_run(client, job["id"])
+
+    job = asyncio.run(check())
+    assert job["status"] == "completed"
+    assert job["engine"]["trials"] == 1
+    assert isinstance(job["engine"]["baseline_metric"], float)

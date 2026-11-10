@@ -22,27 +22,24 @@ import pytest
 
 BASE_URL = "http://127.0.0.1:18000"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SERVICE_DIR = os.path.join(REPO_ROOT, "service")
+SERVICE_DIR = os.path.join(REPO_ROOT, "autoresearch", "service")
 TOKEN = "test-token"
 AUTH_HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
 
 @pytest.fixture(scope="module")
-def service(tmp_path_factory):
+def service(tmp_path_factory, service_env):
     """Start the auth-enabled service in a subprocess, yield, then stop it."""
     db_path = tmp_path_factory.mktemp("jobs") / "jobs.db"
-    env = dict(os.environ)
-    venv_bin = os.path.join(SERVICE_DIR, ".venv", "bin")
-    env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
-    env.update(
-        {
-            "PORT": "18000",
-            "AUTH_BEARER_TOKEN": TOKEN,
-            "RESEARCH_JOBS_DB": str(db_path),
-        }
+    # PYTHONPATH carries the engine + repo root (see tests/conftest.py), so the
+    # spawn works with no venv present — as in CI and a fresh clone.
+    env = service_env(
+        PORT="18000",
+        AUTH_BEARER_TOKEN=TOKEN,
+        RESEARCH_JOBS_DB=str(db_path),
     )
     proc = subprocess.Popen(
-        ["python3", "-m", "src.main"],
+        ["python3", "-m", "autoresearch_service.main"],
         cwd=SERVICE_DIR,
         env=env,
         stdout=subprocess.PIPE,

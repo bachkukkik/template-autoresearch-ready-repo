@@ -1,4 +1,4 @@
-"""Harness-neutrality guard (unit tier). IDs: AC-HRN-001..018.
+"""Harness-neutrality guard (unit tier). IDs: AC-HRN-001..020.
 
 Locks in the repo's own claim that this template serves Hermes, Claude Code,
 opencode and a DeepSeek/OpenAI-compatible harness as equals, with no
@@ -25,6 +25,14 @@ harness `AGENTS.md` did not list tripped a regex instead of reporting drift
 `AGENTS.md` binding). And the Gemini CLI entry point had to be a symlink to the
 one canonical file (AC-HRN-017). AC-HRN-018 vendors the optional `autoresearch`
 skill once, under `.agents/skills/`, so every harness resolves the same file.
+
+AC-HRN-019..020 extend the same rule from skills to the engine's slash-command
+surface: `/ar-init`, `/ar-run`, `/ar-status`, `/ar-report` live ONCE in
+`.agents/commands/` and reach Claude Code and opencode through symlinked command
+directories (AC-HRN-019), and the `autoresearch-engine` skill that documents them
+is vendored once and named in README § *Skills* (AC-HRN-020). A forked command
+file is the expensive failure here: two harnesses would drive the engine with two
+different procedures.
 
 What this guard still cannot reach: it reads the document, not a live client.
 A harness whose *behaviour* diverges from the documented binding (an opencode
@@ -1103,4 +1111,161 @@ def test_vendored_autoresearch_skill_resolves_for_every_harness():
     )
     assert "uditgoenka/autoresearch" in sources["autoresearch"], (
         f"the README row does not name its upstream: {sources['autoresearch']!r}"
+    )
+
+
+# --- the engine's slash-command surface (AC-HRN-019..020) -------------------
+#
+# `/ar-*` lives ONCE, in `.agents/commands/`. Each harness's command directory is
+# a SYMLINK to it, so a procedure edit lands everywhere at the same byte — two
+# harnesses driving the engine from two forked procedures is the defect this
+# guards. The command bodies name the binary they drive; the skill explains when
+# to use it instead of the vendored prompt-driven `autoresearch` skill.
+
+ENGINE_COMMANDS_DIR = REPO_ROOT / ".agents" / "commands"
+ENGINE_COMMANDS = ("ar-init", "ar-run", "ar-status", "ar-report")
+# The harnesses that read a command directory of their own. Hermes and dsh have
+# no slash-command mechanism and reach the same flow through the SKILL instead.
+COMMAND_HARNESS_DIRS = {
+    "Claude Code": REPO_ROOT / ".claude" / "commands",
+    "opencode": REPO_ROOT / ".opencode" / "commands",
+}
+ENGINE_CLI_RE = re.compile(r"bin/autoresearch")
+SERVICE_SURFACE_RE = re.compile(r"/api/v1/runs")
+ARGS_TOKEN = "$ARGUMENTS"
+
+
+SKILL_ROW_RE = re.compile(r"^\|\s*`?([^`|]+?)`?\s*\|(.*)$")
+
+
+def readme_skill_row(name):
+    """The whole `README.md` § *Skills* table row for `name`, or None.
+
+    The row, not one cell: "vendored, engine-backed, not a mandated gate" is a
+    claim spread across the Skill, Source and Install-shape columns.
+    """
+    text = README_MD.read_text(encoding="utf-8")
+    if name not in readme_skill_sources(text):
+        return None
+    for line in text.splitlines():
+        match = SKILL_ROW_RE.match(line)
+        if match and match.group(1).strip() == name:
+            return line
+    return None
+
+
+def command_drift_findings(names, harness_dir, canonical_dir=ENGINE_COMMANDS_DIR):
+    """Findings for one harness's command dir. Empty list == it is a live symlink."""
+    findings = []
+    for name in names:
+        canonical = canonical_dir / f"{name}.md"
+        reached = harness_dir / f"{name}.md"
+        if not canonical.is_file():
+            findings.append(f"{name}: {canonical} does not travel with the repo")
+            continue
+        if not reached.is_file():
+            findings.append(f"{name}: {reached} does not resolve")
+            continue
+        if reached.resolve() != canonical.resolve():
+            findings.append(
+                f"{name}: {reached} resolves to {reached.resolve()}, not {canonical.resolve()}"
+            )
+            continue
+        if reached.read_bytes() != canonical.read_bytes():
+            findings.append(f"{name}: {reached} reads back different bytes — a forked copy")
+    return findings
+
+
+def test_engine_commands_live_once_and_resolve_for_every_harness():
+    """AC-HRN-019: the four `/ar-*` command files exist ONCE under
+    `.agents/commands/`, each is non-empty frontmatter+body that names the engine
+    binary it drives, and `.claude/commands` and `.opencode/commands` reach them
+    through a symlinked directory at identical bytes."""
+    for name in ENGINE_COMMANDS:
+        path = ENGINE_COMMANDS_DIR / f"{name}.md"
+        assert path.is_file(), f"{path.relative_to(REPO_ROOT)} does not exist"
+        text = path.read_text(encoding="utf-8")
+        assert text.strip(), f"{name}.md is empty — a slash command that does nothing"
+
+        fields = frontmatter_fields(text)
+        assert len(fields.get("description", "")) > 20, (
+            f"{name}.md carries no usable frontmatter description — the command is "
+            "invisible in a harness's command list"
+        )
+        assert ARGS_TOKEN in text, (
+            f"{name}.md never reads {ARGS_TOKEN} — it cannot act on what the user typed"
+        )
+        assert ENGINE_CLI_RE.search(text), (
+            f"{name}.md does not name the engine CLI it drives (`bin/autoresearch`)"
+        )
+
+    for harness, harness_dir in COMMAND_HARNESS_DIRS.items():
+        assert os.path.islink(harness_dir), (
+            f"{harness_dir.relative_to(REPO_ROOT)} is not a symlink — {harness} would "
+            "read a forked copy of every command"
+        )
+        assert harness_dir.exists(), (
+            f"{harness_dir.relative_to(REPO_ROOT)} is a dangling symlink -> "
+            f"{os.readlink(harness_dir)}"
+        )
+        findings = command_drift_findings(ENGINE_COMMANDS, harness_dir)
+        assert findings == [], "; ".join(findings)
+
+    # Negative control: a command with no canonical file is reported, not skipped.
+    ghost = command_drift_findings(["ar-ghost"], REPO_ROOT / ".claude" / "commands")
+    assert ghost and "ar-ghost" in ghost[0], ghost
+
+
+def test_autoresearch_engine_skill_resolves_and_is_named_in_readme():
+    """AC-HRN-020: the `autoresearch-engine` skill — the engine binary's own
+    procedure, distinct from the vendored prompt-driven `autoresearch` skill — is
+    vendored once, points at `bin/autoresearch` and the service surface, resolves
+    through `.claude/skills` at identical bytes, and has a README § *Skills* row."""
+    skill = REPO_ROOT / ".agents" / "skills" / "autoresearch-engine" / "SKILL.md"
+    assert skill.is_file(), f"{skill} does not travel with the repo"
+    text = skill.read_text(encoding="utf-8")
+
+    fields = frontmatter_fields(text)
+    assert fields.get("name") == "autoresearch-engine", (
+        f"frontmatter name is {fields.get('name')!r}, so a harness indexes the skill "
+        "under the wrong name"
+    )
+    assert len(fields.get("description", "")) > 20, (
+        "frontmatter carries no usable description — a harness that lists skills by "
+        "description would never surface this one"
+    )
+    assert ENGINE_CLI_RE.search(text), (
+        "SKILL.md never names `bin/autoresearch` — it does not document the binary it "
+        "exists for"
+    )
+    assert SERVICE_SURFACE_RE.search(text), (
+        "SKILL.md never names the service surface (/api/v1/runs) — an API or MCP caller "
+        "would be pointed at the local binary instead of the agent allowlist"
+    )
+
+    claude_side = REPO_ROOT / ".claude" / "skills" / "autoresearch-engine" / "SKILL.md"
+    assert claude_side.is_file(), (
+        ".claude/skills/autoresearch-engine/SKILL.md does not resolve — Claude Code "
+        "would not see the engine skill"
+    )
+    assert claude_side.resolve() == skill.resolve(), (
+        f"the Claude Code path resolves to {claude_side.resolve()}, not {skill.resolve()}"
+    )
+    assert claude_side.read_text(encoding="utf-8") == text, (
+        "the Claude Code path reads back different bytes — a forked copy exists"
+    )
+
+    row = readme_skill_row("autoresearch-engine")
+    assert row, (
+        "README.md § Skills has no `autoresearch-engine` row — an adopter cannot find "
+        "the engine skill that is already sitting in the tree"
+    )
+    assert "vendored" in row.lower(), (
+        f"the README row does not say the skill is vendored in-repo: {row!r}"
+    )
+    assert "engine" in row.lower(), (
+        f"the README row does not say the skill is engine-backed: {row!r}"
+    )
+    assert re.search(r"optional|not a mandated", row, re.I), (
+        f"the README row presents the skill as a mandated gate: {row!r} — it is not"
     )

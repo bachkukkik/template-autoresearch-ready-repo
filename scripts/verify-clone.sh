@@ -26,7 +26,7 @@ cd "$ROOT"
 
 CI=".github/workflows/ci.yml"
 DOCTRINE_PATHS="AGENTS.md PRD.md README.md ADOPTING.md .agents .github docs kb tests scripts"
-HARNESS_LINKS="CLAUDE.md GEMINI.md .github/copilot-instructions.md .claude/skills .claude/plugins"
+HARNESS_LINKS="CLAUDE.md GEMINI.md .github/copilot-instructions.md .claude/skills .claude/plugins .claude/commands .opencode/commands"
 
 checks_run=0
 failures=0
@@ -211,7 +211,7 @@ fi
 bad=0
 checks_run=$((checks_run + 1))
 if ! command -v python3 >/dev/null 2>&1; then
-  say "python3 is not on PATH — tests/run.sh, autoresearch/contract/ and service/ all need it"
+  say "python3 is not on PATH — tests/run.sh, autoresearch/contract/ and autoresearch/service/ all need it"
   bad=1
 fi
 checks_run=$((checks_run + 1))

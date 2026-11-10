@@ -1,0 +1,15 @@
+# Build-context exclusions (context = autoresearch/, Dockerfile = service/Dockerfile).
+# `**/` patterns so the nested service/.venv is excluded too: the host test venv
+# must NEVER enter the image — its scripts carry host-path shebangs that break
+# `uv run uvicorn` inside the container.
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/*.egg-info
+
+# Runtime state — the SQLite job store and per-job workspaces never belong in
+# the image; both are created on demand under $RESEARCH_*_DIR.
+service/data/workspaces
+service/data/jobs.db*

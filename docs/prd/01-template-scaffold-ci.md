@@ -1,6 +1,6 @@
 # PRD 01 — Template Scaffold & CI
 
-> Intent for the verified scaffold: `service/` example, three-tier tests, CI gates.
+> Intent for the verified scaffold: `autoresearch/service/` example, three-tier tests, CI gates.
 > Verified reality: the service is documented in
 > [docs/05-mcp-rest-service.md](../05-mcp-rest-service.md) +
 > [docs/06-multi-topic-concurrency.md](../06-multi-topic-concurrency.md); the

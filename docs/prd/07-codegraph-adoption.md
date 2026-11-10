@@ -127,11 +127,11 @@ anonymous, default-on, opt-out; no live credentials anywhere in the wiring.
   never moves onto the host. `[ASSUMPTION]`
 - `codegraph affected --stdin` maps **nothing by default** on this repo's Python
   layout: the default test-file filter does not match `tests/*.py`, so `echo
-  service/src/runner.py | codegraph affected --stdin` prints "No test files affected
+  autoresearch/service/autoresearch_service/runner.py | codegraph affected --stdin` prints "No test files affected
   by the changed files." **A test-file glob fixes it** — `echo
   autoresearch/contract/prepare.py | codegraph affected --stdin -f
   'tests/**/*.py' -q` prints
-  `tests/unit/test_domain_hooks.py`, and `service/src/main.py` prints
+  `tests/unit/test_domain_hooks.py`, and `autoresearch/service/autoresearch_service/main.py` prints
   `tests/unit/test_routes.py` + `tests/unit/test_workspace.py`. SC5 therefore
   requires `-f <glob>`, and AC-CG-202 asserts both halves (the glob maps, the
   default stays empty). Test selection is also available from the

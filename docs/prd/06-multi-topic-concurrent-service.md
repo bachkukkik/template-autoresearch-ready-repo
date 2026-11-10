@@ -34,7 +34,7 @@ lifecycle stated in `docs/gaps/README.md`; the verified fix is
 through the same service (REST or MCP). **Constraints:** batteries-included
 (single process, zero external infra), per-job sandbox posture (subprocess +
 time budget, no shell), all run/install/build code self-contained in
-`service/` per the service convention.
+`autoresearch/service/` per the service convention.
 
 **Decided design (2026-09-05):** each job gets an **isolated workspace**
 `<workspaces_root>/<job_id>/` — a copy of the **canonical autoresearch
@@ -47,7 +47,7 @@ corpus texts work everywhere; corpus files resolve under `RESEARCH_CORPUS_ROOT`
 validated **fail-fast at submit** (400). Concurrency is bounded by a
 ThreadPoolExecutor on the scheduler sized from `RESEARCH_MAX_CONCURRENT_JOBS`
 (default 4). Workspaces are retained after terminal jobs (observable runtime
-artifacts; `service/data/` is gitignored).
+artifacts; `autoresearch/service/data/` is gitignored).
 
 ## Success Criteria
 
@@ -75,13 +75,13 @@ artifacts; `service/data/` is gitignored).
   APScheduler threads as subprocesses, so no handler blocks the event loop;
   a structural guard asserts no research handler is a coroutine (preventing a
   future refactor from moving `run_loop` inline). Rationale recorded in this
-  PRD and in `service/README.md`. _Verify:_ `tests/unit/test_workspace.py`
-  (AC-MCP-037), `service/README.md` review checklist.
+  PRD and in `autoresearch/service/README.md`. _Verify:_ `tests/unit/test_workspace.py`
+  (AC-MCP-037), `autoresearch/service/README.md` review checklist.
 - **SC5** — **Corpus files fail fast**: a missing corpus file is rejected at
   submit with a clear 400 (REST) / tool error (MCP), not discovered mid-run.
   _Verify:_ `tests/unit/test_workspace.py` (AC-MCP-033),
   `tests/integration/test_multi_topic.py` (AC-MCP-233).
-- **SC6** — **Agent-facing runbook**: `service/README.md` exists as the
+- **SC6** — **Agent-facing runbook**: `autoresearch/service/README.md` exists as the
   service runbook template — what the service is, how to run it (uv +
   compose), env vars (including the three new ones), REST + MCP API, job
   lifecycle, concurrency + multi-topic model, workspace layout, security, and

@@ -16,6 +16,8 @@ HARNESS_ENTRY_POINTS = [
     ".github/copilot-instructions.md",
     ".claude/skills",
     ".claude/plugins",
+    ".claude/commands",
+    ".opencode/commands",
 ]
 
 # Every directory a fresh clone needs: the funnel stages, and the tracked roots
@@ -34,11 +36,11 @@ REQUIRED_DIRS = [
     "docs",                 # stage 6
     ".agents",              # harness adapter (skills/plugins the symlinks point at)
     ".claude",              # harness symlink dir
+    ".opencode",            # opencode commands dir (symlink into .agents/commands)
     ".credentials",         # documented credential home (README + *.example only)
     ".github",              # CI itself
-    "autoresearch",         # the loop: contract/ (program.md/train.py/prepare.py) + engine/
+    "autoresearch",         # the loop: contract/, engine/ and service/ under one pyproject
     "scripts",              # operator/verification scripts (e.g. verify-clone.sh)
-    "service",              # MCP + REST research service
     "tests",                # the three tiers
 ]
 

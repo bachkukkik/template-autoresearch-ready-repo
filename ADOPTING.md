@@ -24,7 +24,7 @@ bash scripts/verify-clone.sh             # step 2 — read-only, one PASS/FAIL l
 | Need | Why | Required |
 |---|---|---|
 | `git`, with `git config core.symlinks true` | every harness entry point is a symlink to `AGENTS.md` (step 1) | yes |
-| `python3.12` | `tests/run.sh`, `autoresearch/contract/`, `service/` | yes |
+| `python3.12` | `tests/run.sh`, `autoresearch/contract/`, `autoresearch/service/` | yes |
 | Docker + Compose | the `e2e` tier and `docker compose up -d` | for the container tier |
 | `bats` | `tests/e2e/` runs under bats (the tier skips loudly without it) | optional |
 | [`nektos/act`](https://github.com/nektos/act) | the pre-PR local-CI command in `AGENTS.md` §6 | optional |
@@ -91,15 +91,15 @@ prepare.py && python3 train.py` runs the same loop outside the repo.
 Only if your project ships the service. It builds and runs **without Docker**:
 
 ```bash
-cd service && uv sync --locked
-AUTH_DISABLED=1 uv run --no-sync uvicorn src.main:app --port 8000   # dev only
+cd autoresearch && uv sync --locked --extra service
+AUTH_DISABLED=1 uv run --no-sync uvicorn autoresearch_service.main:app --port 8000   # dev only
 ```
 
 Or the container path: `docker compose up -d --build` from the repo root, then
 `curl localhost:8000/health` → `{"status":"ok"}`. The service is optional —
-`autoresearch/contract/` (the loop above) is the template's core; delete `service/`,
-`docker-compose.yml` and the `e2e` tier together if you do not ship one
-(Step 3).
+`autoresearch/contract/` (the loop above) is the template's core; delete
+`autoresearch/service/`, `docker-compose.yml` and the `e2e` tier together if you do not
+ship one (Step 3).
 
 ## Step 3 — keep / replace / delete
 
@@ -113,7 +113,7 @@ The most useful table in this file. Nothing here is a rule — for every rule, r
 | `PRD.md` + `docs/prd/` | **REPLACE** | this template's intent, not yours — rewrite the master PRD and start your topic PRDs at `01` |
 | `docs/NN-slug.md` + `docs/README.md` | **REPLACE** | the empirical layer records what *this* project verified; start your own `NN` set at `01`, keep the catalog format |
 | `autoresearch/contract/` (the autoresearch loop) | **REPLACE** | the loop's objective and its immutable evaluator are this template's; keep the `program.md` / `train.py` / `prepare.py` shape, swap the subject |
-| `service/` (the example harness) | **REPLACE-OR-DELETE** | the example service is not your product — keep it only if your project ships a service; if not, delete `service/`, `docker-compose.yml` and the `e2e` tier together |
+| `autoresearch/service/` (the example harness) | **REPLACE-OR-DELETE** | the example service is not your product — keep it only if your project ships a service; if not, delete `autoresearch/service/`, `docker-compose.yml` and the `e2e` tier together |
 | `tests/` | **KEEP the shape, REPLACE the tests** | three tiers, each with a runner *and* a CI job, is the contract; the `AC-*` tests are this repo's |
 | `.github/workflows/` | **KEEP** | `ci.yml` is the gate; `sources-readonly.yml` enforces the add-only rule for `kb/raw/` |
 | `ADOPTING.md` | **REPLACE or REUSE** | it is a root entry doc, not a stray document; re-point it at your project or drop it once your own README carries onboarding |

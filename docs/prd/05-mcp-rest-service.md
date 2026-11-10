@@ -3,7 +3,7 @@
 > Intent for the service layer: expose the autoresearch loop as **RESTful APIs**
 > and as **streamable-HTTP MCP tools** from one process, with a batteries-included
 > deployment posture and the whole install+run surface self-contained in
-> `service/`.
+> `autoresearch/service/` (one `autoresearch/pyproject.toml` + one `uv.lock`).
 > Grounded in: [mcp-streamable-http-transport](../../kb/concepts/mcp-streamable-http-transport.md),
 > [research-job-pattern](../../kb/concepts/research-job-pattern.md),
 > [fastmcp](../../kb/entities/fastmcp.md),
@@ -21,8 +21,9 @@ Deep research (2026-09-04, conclusions in
 settled the shape: dual exposure of one core, no duplicated handler syntax.
 
 **Users:** a human researcher / operator (REST, OpenAPI, admin), and agent
-harnesses + LiteLLM gateway (MCP). **Constraints:** all code + build logic lives
-in `service/` (Docker build context = `service/`); production-managed with `uv`
+harnesses + LiteLLM gateway (MCP). **Constraints:** all service code lives in
+`autoresearch/service/` (Docker build context = `autoresearch/`, Dockerfile =
+`service/Dockerfile`); production-managed with `uv`
 (`uv.lock`, `uv run --locked uvicorn`); `docker compose up` delivers a working
 service with zero external infra.
 
@@ -65,9 +66,10 @@ execution; security stack introduced fully.
   _Verify:_ `tests/integration/test_auth.py` (AC-MCP-221..223),
   `tests/unit/test_auth.py` (AC-MCP-041..043 — the fail-closed core:
   `verify_token`, unset-token denial, `AUTH_DISABLED=1`).
-- **SC7** — The service is `uv`-managed and the whole surface lives in
-  `service/`: `pyproject.toml` + `uv.lock` + `Dockerfile` + sources all under
-  `service/`; the image installs with `uv sync --locked` and the container
+- **SC7** — The service is `uv`-managed: sources + `Dockerfile` live in
+  `autoresearch/service/`, and since PRD-20 they ship from ONE
+  `autoresearch/pyproject.toml` + `uv.lock` as the `[service]` extra; the image
+  installs with `uv sync --locked --extra service` and the container
   starts with `uv run --no-sync --no-dev uvicorn` (no runtime re-sync — a
   runtime `uv run --locked` can uninstall the entrypoint mid-boot, see
   [docs/05](../05-mcp-rest-service.md) *What Fails*); `docker compose up -d

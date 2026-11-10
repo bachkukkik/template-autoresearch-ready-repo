@@ -1,12 +1,13 @@
 """Integration tier — the real service over a real socket. IDs: AC-MCP-211..215.
 
 One module-scoped subprocess running the actual service (uvicorn via
-``src.main``) on PORT 18000 with bearer auth enabled (AUTH_BEARER_TOKEN);
+``autoresearch_service.main``) on PORT 18000 with bearer auth enabled (AUTH_BEARER_TOKEN);
 the run's SQLite database lives in a per-session tmp dir. Every test talks
 to that live process over HTTP — no mocks, no in-process app.
 
-The ``python3`` in the subprocess resolves to the checked-in service venv by
-prepending its bin/ to PATH (system python3 has no service deps installed).
+The spawned ``python3`` is whatever interpreter the tier runs on: the service
+deps come from tests/requirements.txt and PYTHONPATH names both source roots
+(tests/conftest.py), so no venv has to exist.
 """
 import json
 import os
@@ -18,29 +19,31 @@ import urllib.request
 
 import pytest
 
+from .replay_support import replay_records
+
 BASE_URL = "http://127.0.0.1:18000"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SERVICE_DIR = os.path.join(REPO_ROOT, "service")
+SERVICE_DIR = os.path.join(REPO_ROOT, "autoresearch", "service")
 TOKEN = "test-token"
 AUTH_HEADER = {"Authorization": f"Bearer {TOKEN}"}
 
 
 @pytest.fixture(scope="module")
-def service(tmp_path_factory):
+def service(tmp_path_factory, service_env):
     """Start the auth-enabled service in a subprocess, yield, then stop it."""
     db_path = tmp_path_factory.mktemp("jobs") / "jobs.db"
-    env = dict(os.environ)
-    venv_bin = os.path.join(SERVICE_DIR, ".venv", "bin")
-    env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
-    env.update(
-        {
-            "PORT": "18000",
-            "AUTH_BEARER_TOKEN": TOKEN,
-            "RESEARCH_JOBS_DB": str(db_path),
-        }
+    # PYTHONPATH carries the engine + repo root (see tests/conftest.py), so the
+    # spawn works with no venv present — as in CI and a fresh clone.
+    env = service_env(
+        PORT="18000",
+        AUTH_BEARER_TOKEN=TOKEN,
+        RESEARCH_JOBS_DB=str(db_path),
+        # Per-job run repos land in the session's tmp dir, not in the repo.
+        RESEARCH_WORKSPACES_DIR=str(tmp_path_factory.mktemp("workspaces")),
+        RESEARCH_RUN_TIMEOUT="30",
     )
     proc = subprocess.Popen(
-        ["python3", "-m", "src.main"],
+        ["python3", "-m", "autoresearch_service.main"],
         cwd=SERVICE_DIR,
         env=env,
         stdout=subprocess.PIPE,
@@ -100,6 +103,19 @@ def _wait_completed(job_id, max_seconds=30):
     raise AssertionError(f"job {job_id} did not complete within {max_seconds}s")
 
 
+def _wait_run_completed(job_id, max_seconds=120):
+    """Poll GET /api/v1/runs/<id> until the run is terminal."""
+    deadline = time.monotonic() + max_seconds
+    body = {}
+    while time.monotonic() < deadline:
+        status, body = _request("GET", f"/api/v1/runs/{job_id}", headers=AUTH_HEADER)
+        assert status == 200
+        if body["status"] in ("completed", "failed", "cancelled", "timeout"):
+            return body
+        time.sleep(0.5)
+    raise AssertionError(f"run {job_id} did not terminate within {max_seconds}s: {body}")
+
+
 def test_health_is_open_and_ok_without_auth(service):
     """AC-MCP-211: /health returns 200 {status: ok} with no token."""
     status, body = _request("GET", "/health")
@@ -150,3 +166,51 @@ def test_delete_cancels_a_fresh_job(service):
     assert status == 200
     assert cancelled["id"] == job_id
     assert cancelled["status"] == "cancelled"
+
+
+def test_run_replay_completes_over_rest(service):
+    """AC-SVC-201: POST /api/v1/runs with a replay record set -> 202, then the
+    engine drives the loop to completion and the status carries its summary."""
+    records = replay_records(count=2)
+    status, job = _request(
+        "POST",
+        "/api/v1/runs",
+        headers=AUTH_HEADER,
+        body={
+            "workload": "contract",
+            "agent": "replay",
+            "max_iterations": 2,
+            "records": records,
+        },
+    )
+    assert status == 202
+    assert job["status"] == "queued"
+
+    done = _wait_run_completed(job["id"])
+    assert done["status"] == "completed"
+    assert done["result"]["exit_code"] == 0
+    engine = done["engine"]
+    assert engine["metric_name"] == "val_bpb"
+    assert isinstance(engine["baseline_metric"], float)
+    assert engine["trials"] == 2
+    assert engine["stop_reason"] == "max_iterations"
+
+
+def test_run_report_over_rest(service):
+    """AC-SVC-201 (report): the run's report is the engine's markdown."""
+    records = replay_records(count=1)
+    status, job = _request(
+        "POST",
+        "/api/v1/runs",
+        headers=AUTH_HEADER,
+        body={"agent": "replay", "max_iterations": 1, "records": records},
+    )
+    assert status == 202
+    _wait_run_completed(job["id"])
+
+    status, body = _request(
+        "GET", f"/api/v1/runs/{job['id']}/report", headers=AUTH_HEADER
+    )
+    assert status == 200
+    assert "val_bpb" in body["report"]
+    assert body["results"][0]["outcome"] == "baseline"

@@ -1,9 +1,9 @@
 """Integration tier — concurrent multi-topic research over the live service. IDs: AC-MCP-231..233.
 
 One module-scoped subprocess running the actual service (uvicorn via
-``src.main``) on PORT 18001 with bearer auth enabled (AUTH_BEARER_TOKEN),
+``autoresearch_service.main``) on PORT 18001 with bearer auth enabled (AUTH_BEARER_TOKEN),
 a tmp SQLite database, a tmp workspaces root (so nothing is ever written
-into the repo's `service/data/` dir), and RESEARCH_CORPUS_ROOT pointing at the repo's
+into the repo's `autoresearch/service/data/` dir), and RESEARCH_CORPUS_ROOT pointing at the repo's
 kb/raw. Every test talks to that live process over HTTP — no mocks, no
 in-process app.
 
@@ -12,8 +12,9 @@ concurrently with distinct results (AC-MCP-231); corpus files resolve under
 the corpus root (AC-MCP-232); a missing corpus file is rejected fail-fast
 with a 400 at submit (AC-MCP-233).
 
-The ``python3`` in the subprocess resolves to the checked-in service venv by
-prepending its bin/ to PATH (system python3 has no service deps installed).
+The spawned ``python3`` is whatever interpreter the tier runs on: the service
+deps come from tests/requirements.txt and PYTHONPATH names both source roots
+(tests/conftest.py), so no venv has to exist.
 """
 import json
 import os
@@ -27,33 +28,30 @@ import pytest
 
 BASE_URL = "http://127.0.0.1:18001"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SERVICE_DIR = os.path.join(REPO_ROOT, "service")
+SERVICE_DIR = os.path.join(REPO_ROOT, "autoresearch", "service")
 CORPUS_ROOT = os.path.join(REPO_ROOT, "kb", "raw")
 TOKEN = "test-token"
 AUTH_HEADER = {"Authorization": f"Bearer {TOKEN}"}
 
 
 @pytest.fixture(scope="module")
-def service(tmp_path_factory):
+def service(tmp_path_factory, service_env):
     """Start the auth-enabled service in a subprocess, yield, then stop it."""
     db_path = tmp_path_factory.mktemp("jobs") / "jobs.db"
     workspaces_dir = tmp_path_factory.mktemp("workspaces")
-    env = dict(os.environ)
-    venv_bin = os.path.join(SERVICE_DIR, ".venv", "bin")
-    env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
-    env.update(
-        {
-            "PORT": "18001",
-            "AUTH_BEARER_TOKEN": TOKEN,
-            "RESEARCH_JOBS_DB": str(db_path),
-            # Hermetic PRD-06 isolation: workspaces live in the tmp run,
-            # never in the repo's `service/data/` dir; corpus files resolve under kb/raw.
-            "RESEARCH_WORKSPACES_DIR": str(workspaces_dir),
-            "RESEARCH_CORPUS_ROOT": CORPUS_ROOT,
-        }
+    # PYTHONPATH carries the engine + repo root (see tests/conftest.py), so the
+    # spawn works with no venv present — as in CI and a fresh clone.
+    env = service_env(
+        PORT="18001",
+        AUTH_BEARER_TOKEN=TOKEN,
+        RESEARCH_JOBS_DB=str(db_path),
+        # Hermetic PRD-06 isolation: workspaces live in the tmp run,
+        # never in the repo's `autoresearch/service/data/` dir; corpus files resolve under kb/raw.
+        RESEARCH_WORKSPACES_DIR=str(workspaces_dir),
+        RESEARCH_CORPUS_ROOT=CORPUS_ROOT,
     )
     proc = subprocess.Popen(
-        ["python3", "-m", "src.main"],
+        ["python3", "-m", "autoresearch_service.main"],
         cwd=SERVICE_DIR,
         env=env,
         stdout=subprocess.PIPE,

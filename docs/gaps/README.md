@@ -116,6 +116,10 @@ returning its `NN` to circulation (rule 6):
   `11-examples-unreproducible.md` (baseline replay + honest provenance, PRD 11),
   `16-quality-controls-not-adopted.md` (quality controls ported, PRD 16; the `main`
   ruleset verified via `gh api …/rulesets` post-merge, AC-QC-011).
+- **Archived 2026-11-10** — resolution landed in PRD-20 (four waves on
+  `feat/autoresearch-as-a-service`; PRD-20 waves W1–W3 + the empirical record
+  [docs/20](../20-autoresearch-as-a-service.md)): `20-three-loops-one-name.md` moved to
+  [`_archive/20-three-loops-one-name.md`](_archive/20-three-loops-one-name.md).
 - **Withdrawn tombstones** — `02-contract-files-missing.md`,
   `03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
   `05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`. These

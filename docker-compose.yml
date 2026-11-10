@@ -2,7 +2,11 @@
 services:
   # ─── Python microservice ────────────────────────────────────
   service:
-    build: ./service
+    # Build context is autoresearch/ — ONE pyproject ships the engine, the
+    # contract and the service; the Dockerfile lives under service/.
+    build:
+      context: ./autoresearch
+      dockerfile: service/Dockerfile
     environment:
       # Passthrough defaults — dev runs auth-disabled out of the box;
       # override via the host environment (e.g. `AUTH_DISABLED=0 AUTH_BEARER_TOKEN=... docker compose up -d`).
@@ -13,6 +17,9 @@ services:
       RESEARCH_MAX_CONCURRENT_JOBS: ${RESEARCH_MAX_CONCURRENT_JOBS:-4}
       RESEARCH_WORKSPACES_DIR: ${RESEARCH_WORKSPACES_DIR:-data/workspaces}
       RESEARCH_CORPUS_ROOT: ${RESEARCH_CORPUS_ROOT:-/kb-raw}
+      # Comma list of harness agents the API may drive (claude,opencode,hermes,dsh).
+      # Empty = only `replay`; `command` is never allowed over the API.
+      RESEARCH_ALLOWED_AGENTS: ${RESEARCH_ALLOWED_AGENTS:-}
     volumes:
       # Read-only corpus mount — serves research topics from the repo's
       # kb/raw/transcripts out of the box.

@@ -2,7 +2,7 @@
 
 Pure logic, no transport, no fastapi required for the core. The module reads
 its config from the environment at import time, so each test configures the
-env via monkeypatch and reloads ``src.auth`` to re-read it — deterministic
+env via monkeypatch and reloads ``autoresearch_service.auth`` to re-read it — deterministic
 control over the fail-closed behaviour without global state.
 
 IDs 041..043 are the unit-tier auth block: 031..037 belong to the
@@ -14,7 +14,7 @@ import importlib
 
 import pytest
 
-import src.auth as auth
+import autoresearch_service.auth as auth
 
 try:
     from fastapi import HTTPException  # only needed for the dependency tests
@@ -24,7 +24,7 @@ except ImportError:
 
 @pytest.fixture
 def auth_env(monkeypatch):
-    """Apply an env config (None = unset) and reload src.auth to re-read it."""
+    """Apply an env config (None = unset) and reload the auth module to re-read it."""
 
     def _apply(token=None, disabled=None):
         if token is None:
