@@ -94,7 +94,6 @@ Rules:
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
 | 17 | [The loop described by the docs cannot be pointed at real code](17-loop-cannot-target-real-code.md) | prd ↔ code | open | 2026-10-28 | closed by PRD-17: the `autoresearch/engine/` package + ex5 (NLTK 3.9.1 under a four-stage isolated guard); verified in [docs/17](../17-autoresearch-engine.md) |
-| 20 | [Three loops under one name; the service cannot reach the engine](20-three-loops-one-name.md) | prd ↔ code | open | 2026-11-10 | resolution: PRD-20 — fold `service/` into `autoresearch/service/`, re-found the service on the engine, add slash commands + engine skill |
 
 Resolved gaps leave this directory but stay in the repo, their path structure preserved
 under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a tombstone there instead of
@@ -117,6 +116,10 @@ returning its `NN` to circulation (rule 6):
   `11-examples-unreproducible.md` (baseline replay + honest provenance, PRD 11),
   `16-quality-controls-not-adopted.md` (quality controls ported, PRD 16; the `main`
   ruleset verified via `gh api …/rulesets` post-merge, AC-QC-011).
+- **Archived 2026-11-10** — resolution landed in PRD-20 (four waves on
+  `feat/autoresearch-as-a-service`; PRD-20 waves W1–W3 + the empirical record
+  [docs/20](../20-autoresearch-as-a-service.md)): `20-three-loops-one-name.md` moved to
+  [`_archive/20-three-loops-one-name.md`](_archive/20-three-loops-one-name.md).
 - **Withdrawn tombstones** — `02-contract-files-missing.md`,
   `03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
   `05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`. These

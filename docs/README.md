@@ -13,6 +13,7 @@
 
 | # | Topic | Verdict | Updated | Covers | PRD | Gaps |
 |---|-------|---------|---------|--------|-----|------|
+| 20 | [Autoresearch as a Service](20-autoresearch-as-a-service.md) | works | 2026-11-10 | `autoresearch/pyproject.toml` + one `uv.lock` (one distribution: the stdlib `autoresearch` engine + `autoresearch_service` behind the `service` extra), `autoresearch/service/autoresearch_service/{policy,jobs,workloads,workspace,main}.py` (`run_start`/`run_status`/`run_report`/`run_cancel`/`doctor` dual-registered on `/api/v1/runs*` and as MCP tools at `/mcp`; `research_*` served by one engine baseline measurement of the bundled `contract` workload), the `RESEARCH_ALLOWED_AGENTS` allowlist (`replay` default, `command` refused), `.agents/commands/ar-{init,run,status,report}.md` + `.agents/skills/autoresearch-engine/SKILL.md`, `tests/unit/test_service_{layout,engine,readme}.py` (`AC-SVC-*`), `tests/unit/test_harness_neutrality.py` (`AC-HRN-019..020`) | [20-autoresearch-as-a-service](prd/20-autoresearch-as-a-service.md) | [20-three-loops-one-name](gaps/_archive/20-three-loops-one-name.md) (resolved, archived 2026-11-10) |
 | 19 | [PR-Agent Live Adoption](19-pr-agent-live-adoption.md) | works | 2026-11-04 | `.github/workflows/pr-agent.yml` (opt-in gate), repo variables/secrets (`PR_AGENT_ENABLED`, `OPENAI_BASE_URL`, `OPENAI_DEFAULT_MODEL`, `OPENAI_API_KEY`), `.pr_agent.toml` (`custom_model_max_tokens`, `fallback_models`), `tests/unit/test_pr_agent_adoption.py` (`AC-PRA-001..009`); live cycle verified on PR #40 (job green 49 s, reviewer-guide + suggestions comments) | [18-pr-agent-adoption](prd/18-pr-agent-adoption.md) | — |
 | 18 | [Root Layout Refactor](18-root-layout-refactor.md) | works | 2026-11-04 | Root `contract/` + `engine/` grouped under `autoresearch/`; root `data/` folded into `service/data/`; `ops/` retired (`AC-OPS-001..010`, `tests/unit/test_ops_sync.py`, `ops-drift` job); tracked roots 14 → 11 (`AC-FUN-002`, `DOCTRINE_ROOTS`, README tree, `scripts/verify-clone.sh`) | — (layout change; intent recorded in the [PRD.md](../PRD.md) 2.3.0 changelog row) | — |
 | 17 | [Autoresearch Engine](17-autoresearch-engine.md) | works | 2026-10-28 | `autoresearch/engine/` (init/run/status/report/doctor; script-owned keep/revert; verify/guard/scope/protected; noise floor; bounded stops; `--dry-run`; `--record`/replay; adapters for Hermes, Claude Code, opencode, DeepSeek Harness; `AC-ENG-*`), `autoresearch/contract/examples/ex5-real-oss-speedup/` (NLTK 3.9.1 `distance.py`, four-stage isolated guard; `AC-EXA-040..050`), `tests/unit/test_engine_*.py`, `tests/integration/test_engine_loop.py` | [17-autoresearch-engine](prd/17-autoresearch-engine.md) | [17-loop-cannot-target-real-code](gaps/17-loop-cannot-target-real-code.md) |
@@ -44,6 +45,11 @@ recorded failures: `bash tests/run.sh` → `RESULT: PASSED` (135 unit + 16 integ
 the e2e tier needs a container) with `bash scripts/verify-clone.sh` → `RESULT: PASSED — 34
 check(s) passed`, and the `ops-drift` job green end to end under `act` in both modes —
 that job was retired 2026-11-04 with `ops/`; see its *Verification*.
+
+Row 20 was verified 2026-11-10 on `feat/autoresearch-as-a-service`: `python3 -m pytest
+tests/unit -q` → 353 passed, `python3 -m pytest tests/integration -q` → 26 passed,
+`bash scripts/verify-clone.sh` → `RESULT: PASSED — 33 check(s) passed`, `docker compose
+build` green, and one temp container exercised all four surfaces (see its *Verification*).
 
 `09` is `partial`, not `works`: the file is delivered whole under the cap, but this repo
 cannot preserve its contract regions byte-for-byte (the four protected regions total

@@ -113,6 +113,7 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 ├── .gitattributes         # Merge drivers + line-ending policy (graphify; see AGENTS.md)
 ├── autoresearch/           # Autoresearch loop — CANONICAL, one pyproject + one uv.lock
 │   ├── pyproject.toml     # one distribution: `autoresearch` (engine) + `autoresearch_service`
+│   ├── uv.lock            # one lock for both packages
 │   ├── contract/          # the contract: program.md / prepare.py / train.py + examples/
 │   ├── engine/            # generic harness-pluggable loop engine (PRD-17)
 │   └── service/           # REST + streamable-HTTP MCP service (PRD-05/06), Dockerfile here
