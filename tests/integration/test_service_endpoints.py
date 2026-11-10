@@ -5,8 +5,9 @@ One module-scoped subprocess running the actual service (uvicorn via
 the run's SQLite database lives in a per-session tmp dir. Every test talks
 to that live process over HTTP — no mocks, no in-process app.
 
-The ``python3`` in the subprocess resolves to the checked-in service venv by
-prepending its bin/ to PATH (system python3 has no service deps installed).
+The spawned ``python3`` is whatever interpreter the tier runs on: the service
+deps come from tests/requirements.txt and PYTHONPATH names both source roots
+(tests/conftest.py), so no venv has to exist.
 """
 import json
 import os
@@ -28,23 +29,18 @@ AUTH_HEADER = {"Authorization": f"Bearer {TOKEN}"}
 
 
 @pytest.fixture(scope="module")
-def service(tmp_path_factory):
+def service(tmp_path_factory, service_env):
     """Start the auth-enabled service in a subprocess, yield, then stop it."""
     db_path = tmp_path_factory.mktemp("jobs") / "jobs.db"
-    env = dict(os.environ)
-    # The venv of the ONE distribution (autoresearch/, both packages), not a
-    # service-local one: the service now imports the engine.
-    venv_bin = os.path.join(REPO_ROOT, "autoresearch", ".venv", "bin")
-    env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
-    env.update(
-        {
-            "PORT": "18000",
-            "AUTH_BEARER_TOKEN": TOKEN,
-            "RESEARCH_JOBS_DB": str(db_path),
-            # Per-job run repos land in the session's tmp dir, not in the repo.
-            "RESEARCH_WORKSPACES_DIR": str(tmp_path_factory.mktemp("workspaces")),
-            "RESEARCH_RUN_TIMEOUT": "30",
-        }
+    # PYTHONPATH carries the engine + repo root (see tests/conftest.py), so the
+    # spawn works with no venv present — as in CI and a fresh clone.
+    env = service_env(
+        PORT="18000",
+        AUTH_BEARER_TOKEN=TOKEN,
+        RESEARCH_JOBS_DB=str(db_path),
+        # Per-job run repos land in the session's tmp dir, not in the repo.
+        RESEARCH_WORKSPACES_DIR=str(tmp_path_factory.mktemp("workspaces")),
+        RESEARCH_RUN_TIMEOUT="30",
     )
     proc = subprocess.Popen(
         ["python3", "-m", "autoresearch_service.main"],

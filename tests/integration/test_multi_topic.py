@@ -12,8 +12,9 @@ concurrently with distinct results (AC-MCP-231); corpus files resolve under
 the corpus root (AC-MCP-232); a missing corpus file is rejected fail-fast
 with a 400 at submit (AC-MCP-233).
 
-The ``python3`` in the subprocess resolves to the checked-in service venv by
-prepending its bin/ to PATH (system python3 has no service deps installed).
+The spawned ``python3`` is whatever interpreter the tier runs on: the service
+deps come from tests/requirements.txt and PYTHONPATH names both source roots
+(tests/conftest.py), so no venv has to exist.
 """
 import json
 import os
@@ -34,25 +35,20 @@ AUTH_HEADER = {"Authorization": f"Bearer {TOKEN}"}
 
 
 @pytest.fixture(scope="module")
-def service(tmp_path_factory):
+def service(tmp_path_factory, service_env):
     """Start the auth-enabled service in a subprocess, yield, then stop it."""
     db_path = tmp_path_factory.mktemp("jobs") / "jobs.db"
     workspaces_dir = tmp_path_factory.mktemp("workspaces")
-    env = dict(os.environ)
-    # The venv of the ONE distribution (autoresearch/, both packages), not a
-    # service-local one: the service now imports the engine.
-    venv_bin = os.path.join(REPO_ROOT, "autoresearch", ".venv", "bin")
-    env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
-    env.update(
-        {
-            "PORT": "18001",
-            "AUTH_BEARER_TOKEN": TOKEN,
-            "RESEARCH_JOBS_DB": str(db_path),
-            # Hermetic PRD-06 isolation: workspaces live in the tmp run,
-            # never in the repo's `autoresearch/service/data/` dir; corpus files resolve under kb/raw.
-            "RESEARCH_WORKSPACES_DIR": str(workspaces_dir),
-            "RESEARCH_CORPUS_ROOT": CORPUS_ROOT,
-        }
+    # PYTHONPATH carries the engine + repo root (see tests/conftest.py), so the
+    # spawn works with no venv present — as in CI and a fresh clone.
+    env = service_env(
+        PORT="18001",
+        AUTH_BEARER_TOKEN=TOKEN,
+        RESEARCH_JOBS_DB=str(db_path),
+        # Hermetic PRD-06 isolation: workspaces live in the tmp run,
+        # never in the repo's `autoresearch/service/data/` dir; corpus files resolve under kb/raw.
+        RESEARCH_WORKSPACES_DIR=str(workspaces_dir),
+        RESEARCH_CORPUS_ROOT=CORPUS_ROOT,
     )
     proc = subprocess.Popen(
         ["python3", "-m", "autoresearch_service.main"],

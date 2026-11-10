@@ -40,23 +40,18 @@ TOOL_NAMES = {
 
 
 @pytest.fixture(scope="module")
-def service(tmp_path_factory):
+def service(tmp_path_factory, service_env):
     """Start the auth-disabled service in a subprocess, yield, then stop it."""
     db_path = tmp_path_factory.mktemp("jobs") / "jobs.db"
-    env = dict(os.environ)
-    # The venv of the ONE distribution (autoresearch/, both packages), not a
-    # service-local one: the service now imports the engine.
-    venv_bin = os.path.join(REPO_ROOT, "autoresearch", ".venv", "bin")
-    env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
-    env.update(
-        {
-            "PORT": "18000",
-            "AUTH_DISABLED": "1",
-            "RESEARCH_JOBS_DB": str(db_path),
-            # Per-job run repos land in the session's tmp dir, not in the repo.
-            "RESEARCH_WORKSPACES_DIR": str(tmp_path_factory.mktemp("workspaces")),
-            "RESEARCH_RUN_TIMEOUT": "30",
-        }
+    # PYTHONPATH carries the engine + repo root (see tests/conftest.py), so the
+    # spawn works with no venv present — as in CI and a fresh clone.
+    env = service_env(
+        PORT="18000",
+        AUTH_DISABLED="1",
+        RESEARCH_JOBS_DB=str(db_path),
+        # Per-job run repos land in the session's tmp dir, not in the repo.
+        RESEARCH_WORKSPACES_DIR=str(tmp_path_factory.mktemp("workspaces")),
+        RESEARCH_RUN_TIMEOUT="30",
     )
     proc = subprocess.Popen(
         ["python3", "-m", "autoresearch_service.main"],

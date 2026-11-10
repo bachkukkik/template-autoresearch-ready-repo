@@ -87,26 +87,64 @@ def require_tool():
     return _require
 
 
-# ─── Integration-tier preflight ──────────────────────────────────────────────
+# ─── The service subprocess environment ──────────────────────────────────────
 # The integration modules spawn `python3 -m autoresearch_service.main` with
-# autoresearch/.venv/bin prepended to PATH, so the interpreter that runs
-# the service is ambient. Rather than edit four files to request the fixture, the
-# tier gets the same preflight once, at collection: the spawn either has the
-# service's deps or the test could never pass, so it must skip (naming what was
-# resolved) instead of failing 15s later with a service it could not start.
-# One distribution under autoresearch/ ⇒ one venv (uv.lock lives there too).
-_SERVICE_VENV_BIN = os.path.join(ROOT, "autoresearch", ".venv", "bin")
-_SERVICE_IMPORTS = "import fastapi, fastmcp, uvicorn"
+# `autoresearch/service/` as cwd. That process imports BOTH packages: the
+# service from its cwd, and the engine (`from autoresearch import adapters, …`)
+# from `autoresearch/engine/`. Nothing is installed — CI and a fresh clone have
+# tests/requirements.txt and no venv — so the spawn is told where both live via
+# PYTHONPATH. This is the ONE definition; the four service fixtures and the
+# preflight probe below all take their environment from it.
+_SERVICE_ROOT = os.path.join(ROOT, "autoresearch")
+# `engine/` first: `<engine>/autoresearch` is a regular package, so it resolves
+# ahead of the namespace directory a bare ROOT entry would expose. `ROOT` itself
+# keeps repo-root imports (`tests.integration.replay_support`, …) working.
+_SERVICE_PYTHONPATH = os.pathsep.join(
+    (os.path.join(_SERVICE_ROOT, "engine"), ROOT)
+)
+# A dev-host venv is still prepended to PATH when it exists — a convenience, not
+# a dependency: the tier must pass with this directory absent.
+_SERVICE_VENV_BIN = os.path.join(_SERVICE_ROOT, ".venv", "bin")
+_SERVICE_IMPORTS = "import fastapi, fastmcp, uvicorn, autoresearch"
 
 
+def service_subprocess_env(**overrides):
+    """Return the environment for a spawned service process (no venv required)."""
+    env = dict(os.environ)
+    inherited = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        _SERVICE_PYTHONPATH + os.pathsep + inherited if inherited else _SERVICE_PYTHONPATH
+    )
+    env["PATH"] = _SERVICE_VENV_BIN + os.pathsep + env.get("PATH", "")
+    env.update({key: str(value) for key, value in overrides.items()})
+    return env
+
+
+@pytest.fixture(scope="session")
+def service_env():
+    """``service_subprocess_env`` as a fixture — one definition, four consumers."""
+    return service_subprocess_env
+
+
+# ─── Integration-tier preflight ──────────────────────────────────────────────
+# Rather than edit four files to request the fixture, the tier gets the same
+# preflight once, at collection: the spawn either has the service deps and the
+# engine on PYTHONPATH or the test could never pass, so it must skip (naming what
+# was resolved) instead of failing 15s later with a service it could not start.
 def _probe_service_python(resolved):
-    """Probe: can the interpreter the tier spawns import the service's deps?"""
+    """Probe: can the interpreter the tier spawns serve the service?
+
+    Same environment the fixtures build, so the probe cannot disagree with the
+    run it guards: the service deps (tests/requirements.txt) plus the engine on
+    PYTHONPATH.
+    """
     try:
         proc = subprocess.run(
             [resolved, "-c", _SERVICE_IMPORTS],
             capture_output=True,
             text=True,
             timeout=60,
+            env=service_subprocess_env(),
         )
     except subprocess.TimeoutExpired:
         return "the probe timed out after 60s"
