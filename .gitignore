@@ -78,6 +78,9 @@ scratchpads/*
 !.claude/skills
 !.claude/plugins
 !.claude/agents
+!.claude/commands
+.opencode/*
+!.opencode/commands
 
 # === The doctrine is TRACKED — do not add ignores for any of these ===
 # AGENTS.md, PRD.md, docs/, kb/, tests/, .agents/, .github/ and the harness symlinks

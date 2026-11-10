@@ -228,7 +228,7 @@ jobs:
       # two lists cannot drift. Keep it a single line of the form
       # `DOCTRINE_ROOTS: "root1 root2 …"` — the test matches it with a regex and
       # tests/requirements.txt carries no YAML parser.
-      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md SECURITY.md CLAUDE.md GEMINI.md LICENSE .env.example .pr_agent.toml .gitignore .gitattributes docker-compose.yml .agents .claude .credentials .github autoresearch docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries scratchpads scripts tests"
+      DOCTRINE_ROOTS: "AGENTS.md ADOPTING.md PRD.md README.md SECURITY.md CLAUDE.md GEMINI.md LICENSE .env.example .pr_agent.toml .gitignore .gitattributes docker-compose.yml .agents .claude .opencode .credentials .github autoresearch docs docs/prd docs/gaps kb kb/raw kb/concepts kb/entities kb/comparisons kb/queries scratchpads scripts tests"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -240,7 +240,7 @@ jobs:
           fail=0
           # A plain copy forks AGENTS.md silently; a dangling link breaks the
           # harness on a fresh clone while still looking committed.
-          for link in CLAUDE.md GEMINI.md .github/copilot-instructions.md .claude/skills .claude/plugins; do
+          for link in CLAUDE.md GEMINI.md .github/copilot-instructions.md .claude/skills .claude/plugins .claude/commands .opencode/commands; do
             if [ ! -L "$link" ]; then
               echo "::error file=$link::$link is not a symlink. It must point at the canonical source (git config core.symlinks true on Windows)."
               fail=1
