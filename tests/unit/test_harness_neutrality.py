@@ -811,7 +811,10 @@ def test_fallback_check_reports_a_deleted_fallback():
     # Recomputed again for the root-layout refactor (2026-11-04): two doctrine
     # lines above the `/goal` cluster were dropped, so every pinned line moved
     # up by two. Same intent — every occurrence is still pinned.
-    assert reported_lines == [106, 129, 134, 179, 181], (
+    # Recomputed again for the slash-commands adapter row (2026-11-10): the new
+    # row above the cluster moved every pinned line down by one. Same intent —
+    # every occurrence is still pinned.
+    assert reported_lines == [107, 130, 135, 180, 182], (
         f"the blanked copy should report every `/goal` occurrence, got {reported_lines}"
     )
 

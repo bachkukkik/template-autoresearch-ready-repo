@@ -99,6 +99,7 @@ Harness-neutral: written against **capabilities**, not one agent product — a h
 |---|---|---|---|---|
 | Entry instruction file | `AGENTS.md` (native) | `CLAUDE.md` (symlink) | `.github/copilot-instructions.md` (symlink) | read `AGENTS.md` manually |
 | Repo-scoped skills / plugins | `.agents/skills`, `.agents/plugins` | same, via symlinks | symlink the vendor dir to `.agents/` | inline the skill's `SKILL.md` |
+| Repo-scoped slash commands | `.agents/commands` | `.claude/commands` (symlink) | symlink the vendor dir to `.agents/commands` | read `.agents/commands/<name>.md`, follow it |
 | Host-level skills | `~/.hermes/skills/` | `~/.claude/skills/` | vendor-specific | — |
 | Sub-agent delegation | `delegate_task` / `kanban` | `Task` tool sub-agents | vendor-specific | do the work inline, in the documented phase order |
 | Plan scratch space | `~/.hermes/plans/*.md` | `scratchpads/` | `scratchpads/` | `scratchpads/` |
@@ -115,7 +116,7 @@ Harness-neutral: written against **capabilities**, not one agent product — a h
 | **DeepSeek / OpenAI-compatible** | read `AGENTS.md` manually | vendor into `.agents/skills/`, or inline `SKILL.md` | — | run the phase order inline | no MCP client — the codegraph CLI twins `codegraph explore\|…` | `scratchpads/` | `llm-wiki` by hand | prompt the phases |
 | **Codex CLI / Cursor / Gemini CLI / Aider** | `AGENTS.md` native (Gemini CLI: `GEMINI.md`) | `.agents/skills`, else README § *Skills* | — | — | — | `scratchpads/` | `llm-wiki` by hand | prompt the phases |
 
-**Two symlink families, one canonical source.** Entry files all resolve to `AGENTS.md` (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` → `../AGENTS.md`). Skill/plugin roots: `.agents/` canonical; `.claude/{skills,plugins}` → `../.agents/*`. Adding a harness = those two symlinks plus a row above. `.agents/` pins `root-cause` (the gate's procedure); `.claude/agents/investigator.md` binds it for Claude Code (a read-only sub-agent returning cited evidence or "not found"); other harnesses run it inline.
+**Two symlink families, one canonical source.** Entry files all resolve to `AGENTS.md` (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` → `../AGENTS.md`). Skill/plugin roots: `.agents/` canonical; `.claude/{skills,plugins,commands}` → `../.agents/*`. Adding a harness = those two symlinks plus a row above. `.agents/` pins `root-cause` (the gate's procedure); `.claude/agents/investigator.md` binds it for Claude Code (a read-only sub-agent returning cited evidence or "not found"); other harnesses run it inline.
 
 ## Lifecycle — Zero to Deployment (coding-agent entry point)
 
