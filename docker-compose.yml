@@ -2,7 +2,11 @@
 services:
   # ─── Python microservice ────────────────────────────────────
   service:
-    build: ./service
+    # Build context is autoresearch/ — ONE pyproject ships the engine, the
+    # contract and the service; the Dockerfile lives under service/.
+    build:
+      context: ./autoresearch
+      dockerfile: service/Dockerfile
     environment:
       # Passthrough defaults — dev runs auth-disabled out of the box;
       # override via the host environment (e.g. `AUTH_DISABLED=0 AUTH_BEARER_TOKEN=... docker compose up -d`).

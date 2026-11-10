@@ -12,16 +12,18 @@ reaches a different one.
 | Side | Source | Claim |
 |------|--------|-------|
 | A | `docs/prd/05-mcp-rest-service.md`, `docs/prd/17-autoresearch-engine.md` | REST/MCP serve "the autoresearch loop"; the engine is "a generic loop for real code" |
-| B | `service/src/runner.py`, `autoresearch/engine/`, `.agents/skills/autoresearch/` at `6cb04cb` | the service runs only `prepare.py && train.py` of the toy contract via its own runner; the engine has a CLI and no API; the vendored skill is a prompt loop with neither |
+| B | `autoresearch/service/autoresearch_service/runner.py`, `autoresearch/engine/`, `.agents/skills/autoresearch/` at `6cb04cb` | the service runs only `prepare.py && train.py` of the toy contract via its own runner; the engine has a CLI and no API; the vendored skill is a prompt loop with neither |
 
 ## Evidence
 
-- `service/src/runner.py` `run_loop` executes `python3 prepare.py && python3 train.py` and
-  parses `val_bpb` with its own regex; it imports nothing from `autoresearch/engine/`.
+- `autoresearch/service/autoresearch_service/runner.py` `run_loop` executes
+  `python3 prepare.py && python3 train.py` and parses `val_bpb` with its own regex; it
+  imports nothing from `autoresearch/engine/`.
 - `autoresearch/engine/autoresearch/cli.py` exposes `init/run/status/report/doctor`; no
-  module under `service/` references it.
-- `service/` and `autoresearch/` are separate roots with separate packaging
-  (`service/pyproject.toml`; the engine is unpackaged and reached by `sys.path` inserts).
+  module under `autoresearch/service/` references it.
+- Packaging is unified as of the PRD-20 W1 layout move (`autoresearch/pyproject.toml`
+  ships `autoresearch` + `autoresearch_service`), but only the packaging: the service
+  still carries its own loop and metric parser.
 
 ## Impact
 

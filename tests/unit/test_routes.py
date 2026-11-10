@@ -4,9 +4,9 @@ Contract (PRD-05 SC1): one ASGI app serves REST under /api/v1 and MCP
 streamable HTTP at /mcp; each operation handler is defined once and reachable
 both ways; /health is a REST-only probe and is never a tool.
 
-Note: importing ``src.main`` runs ``create_app()`` at module level, so a
-throwaway ``RESEARCH_JOBS_DB`` is pointed at a temp dir BEFORE the import to
-keep the repo root free of stray SQLite files.
+Note: importing ``autoresearch_service.main`` runs ``create_app()`` at module
+level, so a throwaway ``RESEARCH_JOBS_DB`` is pointed at a temp dir BEFORE the
+import to keep the repo root free of stray SQLite files.
 """
 import asyncio
 import os
@@ -17,8 +17,8 @@ os.environ["RESEARCH_JOBS_DB"] = _TEST_DB_PATH
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from src import main  # noqa: E402
-from src.jobs import JobStore  # noqa: E402
+from autoresearch_service import main  # noqa: E402
+from autoresearch_service.jobs import JobStore  # noqa: E402
 
 
 def test_app_exposes_rest_and_mcp_surface():
@@ -53,7 +53,7 @@ def test_research_without_auth_returns_401(monkeypatch):
     """AC-MCP-003: POST /api/v1/research without a bearer header is rejected
     with 401 when auth is enabled (fail closed); the same request WITH the
     token passes — proving the Authorization header is actually bound."""
-    import src.auth as auth
+    import autoresearch_service.auth as auth
 
     monkeypatch.setattr(auth, "AUTH_TOKEN", "test-token")
     monkeypatch.setattr(auth, "AUTH_DISABLED", False)

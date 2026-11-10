@@ -46,7 +46,7 @@ a CI job, not prose (the 80/20 codification rule).
 - **SC5** — `.github/pull_request_template.md` asks for scope, test evidence and an
   AI-contribution disclosure checkbox. _Verify:_ `tests/unit/test_quality_controls.py`
   (AC-QC-005). ✅ implemented 2026-10-16
-- **SC6** — `.github/dependabot.yml` covers the `github-actions`, `pip` (service/) and
+- **SC6** — `.github/dependabot.yml` covers the `github-actions`, `pip` (autoresearch/) and
   `docker` ecosystems. _Verify:_ `tests/unit/test_quality_controls.py` (AC-QC-006). ✅ implemented 2026-10-16
 - **SC7** — `SECURITY.md` at the repo root states how to report a vulnerability (private
   advisory) and holds no live secret. _Verify:_ `tests/unit/test_quality_controls.py`

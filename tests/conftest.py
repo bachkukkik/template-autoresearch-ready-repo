@@ -1,9 +1,9 @@
 """Shared fixtures — imports for the tests, plus the ambient-dependency preflight.
 
-The ``sys.path`` block makes the service + contract packages importable. The
-preflight below it is this repo's one definition of how a test whose verdict
-would otherwise depend on the host (an ambient binary on ``PATH``) decides
-whether it can run at all — see AGENTS.md §5.
+The ``sys.path`` block makes the engine, the service and the contract packages
+importable. The preflight below it is this repo's one definition of how a test
+whose verdict would otherwise depend on the host (an ambient binary on
+``PATH``) decides whether it can run at all — see AGENTS.md §5.
 """
 import os
 import shutil
@@ -13,12 +13,13 @@ import sys
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Repo root and the autoresearch contract subdir must both be importable so
-# `import prepare` / `import train` work from tests/unit/ (autoresearch
-# contract files live in autoresearch/contract/).
+# Repo root and the autoresearch subdirs must all be importable without an
+# install: engine/ carries the `autoresearch` package, service/ the
+# `autoresearch_service` package, contract/ the `prepare` / `train` modules the
+# tests import directly (one pyproject, three source roots).
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
-for pkg_dir in ("autoresearch/contract", "service"):
+for pkg_dir in ("autoresearch/engine", "autoresearch/service", "autoresearch/contract"):
     path = os.path.join(ROOT, pkg_dir)
     if path not in sys.path:
         sys.path.insert(0, path)
@@ -87,13 +88,13 @@ def require_tool():
 
 
 # ─── Integration-tier preflight ──────────────────────────────────────────────
-# The integration modules spawn `python3 -m src.main` with service/.venv/bin
-# prepended to PATH, so the interpreter that runs the service is ambient. Rather
-# than edit four files to request the fixture, the tier gets the same preflight
-# once, at collection: the spawn either has the service's deps or the test could
-# never pass, so it must skip (naming what was resolved) instead of failing 15s
-# later with a service it could not start.
-_SERVICE_VENV_BIN = os.path.join(ROOT, "service", ".venv", "bin")
+# The integration modules spawn `python3 -m autoresearch_service.main` with
+# autoresearch/service/.venv/bin prepended to PATH, so the interpreter that runs
+# the service is ambient. Rather than edit four files to request the fixture, the
+# tier gets the same preflight once, at collection: the spawn either has the
+# service's deps or the test could never pass, so it must skip (naming what was
+# resolved) instead of failing 15s later with a service it could not start.
+_SERVICE_VENV_BIN = os.path.join(ROOT, "autoresearch", "service", ".venv", "bin")
 _SERVICE_IMPORTS = "import fastapi, fastmcp, uvicorn"
 
 

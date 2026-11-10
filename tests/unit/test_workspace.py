@@ -36,16 +36,16 @@ from pathlib import Path
 
 import pytest
 
-# Importing src.main executes create_app() + JobStore() at module level, so point
+# Importing autoresearch_service.main executes create_app() + JobStore() at module level, so point
 # RESEARCH_JOBS_DB at a throwaway temp file BEFORE the import (test_routes.py
 # pattern) and drop any concurrency-cap env to keep the default-cap check honest.
 _TEST_DB_PATH = os.path.join(tempfile.mkdtemp(prefix="ar-unit-workspace-"), "jobs.db")
 os.environ["RESEARCH_JOBS_DB"] = _TEST_DB_PATH
 os.environ.pop("RESEARCH_MAX_CONCURRENT_JOBS", None)
 
-from src import main, workspace  # noqa: E402  (import order matters, see above)
-from src.runner import ResearchRunner  # noqa: E402
-from src.workspace import (  # noqa: E402
+from autoresearch_service import main, workspace  # noqa: E402  (import order matters, see above)
+from autoresearch_service.runner import ResearchRunner  # noqa: E402
+from autoresearch_service.workspace import (  # noqa: E402
     CorpusSpec,
     provision_workspace,
     validate_corpus_files,
@@ -191,13 +191,13 @@ def test_concurrent_jobs_cap_honors_env(tmp_path):
 
     env_cap = dict(os.environ)
     env_cap["RESEARCH_MAX_CONCURRENT_JOBS"] = "2"
-    env_cap["PYTHONPATH"] = str(REPO_ROOT / "service")
+    env_cap["PYTHONPATH"] = str(REPO_ROOT / "autoresearch" / "service")
     proc = subprocess.run(
         [
             sys.executable,
             "-c",
             "import os; os.environ['RESEARCH_MAX_CONCURRENT_JOBS']='2'; "
-            "from src import main; print(main.MAX_CONCURRENT_JOBS)",
+            "from autoresearch_service import main; print(main.MAX_CONCURRENT_JOBS)",
         ],
         capture_output=True,
         text=True,

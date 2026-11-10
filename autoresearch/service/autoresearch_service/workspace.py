@@ -11,7 +11,8 @@ directory, so two concurrent jobs never share a working directory and
 never race on `data.txt`.
 
 Workspaces are retained runtime artifacts under an ignored dir
-(`service/data/workspaces` by default — `service/data/*` is gitignored):
+(`autoresearch/service/data/workspaces` by default — `autoresearch/service/data/*` is
+gitignored):
 observable for debugging after terminal jobs, never tracked by git.
 """
 
@@ -24,15 +25,16 @@ from pathlib import Path
 
 from .runner import resolve_workload_dir
 
-# service/data/workspaces — service/data/* is gitignored; env override for compose.
+# autoresearch/service/data/workspaces — that dir is gitignored; env override for compose.
 DEFAULT_WORKSPACES_DIR = Path(os.environ.get(
     "RESEARCH_WORKSPACES_DIR",
     str(Path(__file__).resolve().parents[1] / "data" / "workspaces"),
 ))
 # Repo root/kb/raw on the host, /kb-raw in the compose container (PRD-06).
+# parents[3]: this file is autoresearch/service/autoresearch_service/workspace.py.
 DEFAULT_CORPUS_ROOT = Path(os.environ.get(
     "RESEARCH_CORPUS_ROOT",
-    str(Path(__file__).resolve().parents[2] / "kb" / "raw"),
+    str(Path(__file__).resolve().parents[3] / "kb" / "raw"),
 ))
 
 # Sanitizes a title into a filesystem-safe slug: keep [A-Za-z0-9_-], else '_'.

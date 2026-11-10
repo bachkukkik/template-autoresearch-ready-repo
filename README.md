@@ -111,9 +111,13 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 ├── CLAUDE.md              # symlink → AGENTS.md
 ├── GEMINI.md              # symlink → AGENTS.md (Gemini CLI's default context file)
 ├── .gitattributes         # Merge drivers + line-ending policy (graphify; see AGENTS.md)
-├── autoresearch/           # Autoresearch loop — CANONICAL
+├── autoresearch/           # Autoresearch loop — CANONICAL, one pyproject + one uv.lock
+│   ├── pyproject.toml     # one distribution: `autoresearch` (engine) + `autoresearch_service`
 │   ├── contract/          # the contract: program.md / prepare.py / train.py + examples/
-│   └── engine/            # generic harness-pluggable loop engine (PRD-17)
+│   ├── engine/            # generic harness-pluggable loop engine (PRD-17)
+│   └── service/           # REST + streamable-HTTP MCP service (PRD-05/06), Dockerfile here
+│       └── data/          # Service runtime state — gitignored except .gitkeep
+│                          #   (jobs.db + per-job workspaces/ are created at runtime)
 ├── .agents/               # Repo-scoped agent assets — CANONICAL
 │   └── skills/            # Skills pinned here: root-cause, llm-wiki, coding-agents-docs-guideline, autoresearch
 ├── .claude/               # skills, plugins → symlinks into ../.agents/
@@ -124,10 +128,7 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 ├── .gitignore             # Standard ignores for agentic repos
 ├── .credentials/          # Key files the runtime reads from disk — gitignored
 │                          #   `.credentials/example.json.example` ships in a fresh clone
-├── docker-compose.yml     # Service orchestration
-├── service/               # Python microservice (example harness)
-│   └── data/              # Service runtime state — gitignored except .gitkeep
-│                          #   (jobs.db + per-job workspaces/ are created at runtime)
+├── docker-compose.yml     # Service orchestration — builds from ./autoresearch
 ├── kb/                    # Knowledge base — llm-wiki layout, populated
 │   ├── SCHEMA.md          # KB domain + conventions + tag taxonomy
 │   ├── index.md           # Page catalog (llm-wiki-maintained)

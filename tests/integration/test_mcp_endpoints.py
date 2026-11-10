@@ -22,7 +22,7 @@ from fastmcp import Client
 BASE_URL = "http://127.0.0.1:18000"
 MCP_URL = f"{BASE_URL}/mcp"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SERVICE_DIR = os.path.join(REPO_ROOT, "service")
+SERVICE_DIR = os.path.join(REPO_ROOT, "autoresearch", "service")
 
 TOOL_NAMES = {
     "research_start",
@@ -47,7 +47,7 @@ def service(tmp_path_factory):
         }
     )
     proc = subprocess.Popen(
-        ["python3", "-m", "src.main"],
+        ["python3", "-m", "autoresearch_service.main"],
         cwd=SERVICE_DIR,
         env=env,
         stdout=subprocess.PIPE,

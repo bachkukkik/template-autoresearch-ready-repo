@@ -22,7 +22,7 @@ import pytest
 
 BASE_URL = "http://127.0.0.1:18000"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SERVICE_DIR = os.path.join(REPO_ROOT, "service")
+SERVICE_DIR = os.path.join(REPO_ROOT, "autoresearch", "service")
 TOKEN = "test-token"
 AUTH_HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
@@ -42,7 +42,7 @@ def service(tmp_path_factory):
         }
     )
     proc = subprocess.Popen(
-        ["python3", "-m", "src.main"],
+        ["python3", "-m", "autoresearch_service.main"],
         cwd=SERVICE_DIR,
         env=env,
         stdout=subprocess.PIPE,

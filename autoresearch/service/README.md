@@ -1,7 +1,7 @@
-# service/ — Autoresearch Service Runbook (template)
+# autoresearch/service/ — Autoresearch Service Runbook (template)
 
 > **This file is the agent-facing runbook for the autoresearch service.** It is
-> a template: downstream projects copy `service/` and keep this file accurate.
+> a template: downstream projects copy `autoresearch/service/` and keep this file accurate.
 > **Convention:** every agent that changes service behaviour (routes, tools,
 > job lifecycle, env vars, concurrency, packaging) MUST update this file in the
 > same change. It is the single source for *how to run and use the service*;
@@ -22,7 +22,7 @@ to **two consumers at once**:
 | MCP | `/mcp` streamable-HTTP (FastMCP v4) | agent harnesses, LiteLLM gateways |
 
 Both share the same operation handlers (one handler = REST route + MCP tool,
-flagged in `service/src/main.py::TOOL_FLAG`). Long work is a **durable
+flagged in `autoresearch_service/main.py::TOOL_FLAG`). Long work is a **durable
 job-id/poll** pattern: `research_start` returns a `job_id` immediately; poll
 `research_status` until terminal.
 
@@ -33,10 +33,10 @@ job-id/poll** pattern: `research_start` returns a `job_id` immediately; poll
 docker compose up -d --build
 curl localhost:8000/health            # {"status":"ok"}
 
-# Option B — uv, from repo root
-cd service
-uv sync --locked
-AUTH_DISABLED=1 uv run uvicorn src.main:app --port 8000
+# Option B — uv, from the repo root (one pyproject, `service` extra)
+cd autoresearch
+uv sync --locked --extra service
+AUTH_DISABLED=1 uv run --no-sync uvicorn autoresearch_service.main:app --port 8000
 ```
 
 Tests (repo root): `bash tests/run.sh` (unit+integration) and
@@ -50,11 +50,11 @@ Local CI before any PR: run the pre-PR chain stated in `AGENTS.md` §6 — never
 |---|---|---|
 | `AUTH_BEARER_TOKEN` | unset | Bearer token gating REST (except `/health`) and `/mcp`. Fail-closed: no token ⇒ deny. |
 | `AUTH_DISABLED` | `0` | `1` = skip auth (local dev only). |
-| `RESEARCH_JOBS_DB` | `data/jobs.db` | SQLite file backing the durable job store (WAL); relative to the service root (`/app` in the container). Survives restarts. |
+| `RESEARCH_JOBS_DB` | `autoresearch/service/data/jobs.db` | SQLite file backing the durable job store (WAL); a relative value resolves from the process cwd (compose sets `data/jobs.db`, i.e. `/app/data` in the container). Survives restarts. |
 | `RESEARCH_RUN_TIMEOUT` | `30` | Per-job time budget (seconds) for `prepare.py`→`train.py`. |
 | `RESEARCH_WORKLOAD_DIR` | unset | Optional override of the workload source (default: canonical `autoresearch/contract/`). |
 | `RESEARCH_MAX_CONCURRENT_JOBS` | `4` | How many research jobs run concurrently in one process (scheduler ThreadPoolExecutor cap). |
-| `RESEARCH_WORKSPACES_DIR` | `data/workspaces` | Root for **per-job isolated workspaces** (see Workspaces below; `service/data/` is gitignored). |
+| `RESEARCH_WORKSPACES_DIR` | `autoresearch/service/data/workspaces` | Root for **per-job isolated workspaces** (see Workspaces below; that dir is gitignored). |
 | `RESEARCH_CORPUS_ROOT` | `kb/raw` (host) / `/kb-raw` (compose mount) | Root for `params.corpus.files` paths. Compose mounts `./kb/raw:/kb-raw:ro`. |
 
 ## REST API
@@ -82,7 +82,7 @@ REST routes. Bearer auth is applied by the ASGI guard in front of `/mcp`.
 The service is built to serve **multiple research topics concurrently,
 out-of-the-box**. Each job:
 
-1. gets its own **isolated workspace** — `service/data/workspaces/<job_id>/` containing
+1. gets its own **isolated workspace** — `autoresearch/service/data/workspaces/<job_id>/` containing
    a copy of the **canonical autoresearch contract** (`autoresearch/contract/` — the single
    source of truth; `prepare.py`, `train.py`, `data.txt`), `topic.txt`,
    `context.json`, and a `corpus/` directory;
@@ -146,7 +146,7 @@ queued → running → completed | failed | cancelled | timeout
 ## Workspace layout
 
 ```
-service/data/workspaces/<job_id>/
+autoresearch/service/data/workspaces/<job_id>/
 ├── prepare.py          # copy of the canonical autoresearch contract (immutable step)
 ├── train.py            # copy of the canonical autoresearch contract (agent-edited step)
 ├── data.txt            # prepare output, per-workspace (no cross-job race)

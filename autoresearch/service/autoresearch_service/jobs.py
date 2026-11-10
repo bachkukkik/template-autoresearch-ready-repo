@@ -50,7 +50,7 @@ def _now() -> str:
 
 
 def _default_db_path() -> str:
-    """RESEARCH_JOBS_DB env var wins; otherwise service/data/jobs.db."""
+    """RESEARCH_JOBS_DB env var wins; otherwise autoresearch/service/data/jobs.db."""
     return os.environ.get("RESEARCH_JOBS_DB") or DEFAULT_DB_PATH
 
 

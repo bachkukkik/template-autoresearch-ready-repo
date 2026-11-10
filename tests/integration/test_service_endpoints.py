@@ -1,7 +1,7 @@
 """Integration tier — the real service over a real socket. IDs: AC-MCP-211..215.
 
 One module-scoped subprocess running the actual service (uvicorn via
-``src.main``) on PORT 18000 with bearer auth enabled (AUTH_BEARER_TOKEN);
+``autoresearch_service.main``) on PORT 18000 with bearer auth enabled (AUTH_BEARER_TOKEN);
 the run's SQLite database lives in a per-session tmp dir. Every test talks
 to that live process over HTTP — no mocks, no in-process app.
 
@@ -20,7 +20,7 @@ import pytest
 
 BASE_URL = "http://127.0.0.1:18000"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SERVICE_DIR = os.path.join(REPO_ROOT, "service")
+SERVICE_DIR = os.path.join(REPO_ROOT, "autoresearch", "service")
 TOKEN = "test-token"
 AUTH_HEADER = {"Authorization": f"Bearer {TOKEN}"}
 
@@ -40,7 +40,7 @@ def service(tmp_path_factory):
         }
     )
     proc = subprocess.Popen(
-        ["python3", "-m", "src.main"],
+        ["python3", "-m", "autoresearch_service.main"],
         cwd=SERVICE_DIR,
         env=env,
         stdout=subprocess.PIPE,

@@ -23,7 +23,7 @@ import pytest
 CODEGRAPH = "codegraph"
 TIMEOUT = 120
 NEW_FUNCTION = "\n\ndef b():\n    return 2\n"
-SOURCE = "src/m.py"
+SOURCE = "pkg/m.py"
 TEST_FILE = "tests/test_m.py"
 
 
@@ -89,12 +89,12 @@ def cg_project(tmp_path, require_tool):
     git("config", "user.name", "codegraph-live-test")
     git("config", "user.email", "codegraph-live-test@example.invalid")
 
-    (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "__init__.py").write_text("", encoding="utf-8")
-    (tmp_path / "src" / "m.py").write_text("def a():\n    return 1\n", encoding="utf-8")
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "__init__.py").write_text("", encoding="utf-8")
+    (tmp_path / "pkg" / "m.py").write_text("def a():\n    return 1\n", encoding="utf-8")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_m.py").write_text(
-        "from src.m import a\n\n\ndef test_a():\n    assert a() == 1\n",
+        "from pkg.m import a\n\n\ndef test_a():\n    assert a() == 1\n",
         encoding="utf-8",
     )
 

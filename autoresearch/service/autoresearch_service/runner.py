@@ -15,7 +15,8 @@ captured, and the child env carries the budget (`RUN_TIMEOUT`), overridable at
 the runner level via the `RESEARCH_RUN_TIMEOUT` env var.
 
 Isolated-workdir mode (PRD-06 SC1/SC2): pass `work_dir` to `run_loop` to execute
-inside a pre-provisioned per-job workspace (see `src.workspace.provision_workspace`)
+inside a pre-provisioned per-job workspace (see
+`autoresearch_service.workspace.provision_workspace`)
 instead of the shared reference workload dir, so concurrent jobs never share a
 working directory. In that mode the report additionally carries the workspace
 `topic` (from topic.txt) and corpus stats (file count + total chars) in every
@@ -38,9 +39,11 @@ def resolve_workload_dir() -> Path:
 
     Priority:
       1. $RESEARCH_WORKLOAD_DIR — explicit env override (custom workload).
-      2. <repo-root>/autoresearch/contract — host dev layout.
-      3. <service-root>/contract — container layout (/app/contract via the
-         compose read-only bind mount).
+      2. <autoresearch-root>/contract — host dev layout (autoresearch/contract)
+         and the image's COPY of it (/app/contract).
+      3. /app/contract — the compose read-only bind mount, which is where the
+         contract resolves when the package is imported from an installed
+         (non-editable) wheel instead of the source tree.
     The first candidate that is a directory containing `prepare.py` wins; if
     none exists, fall back to <service-root>/workload so a user can still drop
     a custom workload directory there.
@@ -50,8 +53,8 @@ def resolve_workload_dir() -> Path:
         return Path(env_dir)
     here = Path(__file__).resolve()
     for candidate in (
-        here.parents[2] / "autoresearch" / "contract",
-        here.parents[1] / "contract",
+        here.parents[2] / "contract",
+        Path("/app/contract"),
     ):
         if candidate.is_dir() and (candidate / "prepare.py").is_file():
             return candidate

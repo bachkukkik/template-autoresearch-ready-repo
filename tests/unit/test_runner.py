@@ -2,7 +2,7 @@
 import time
 from pathlib import Path
 
-from src.runner import ResearchRunner, parse_val_bpb
+from autoresearch_service.runner import ResearchRunner, parse_val_bpb
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "workloads"

@@ -211,7 +211,7 @@ fi
 bad=0
 checks_run=$((checks_run + 1))
 if ! command -v python3 >/dev/null 2>&1; then
-  say "python3 is not on PATH — tests/run.sh, autoresearch/contract/ and service/ all need it"
+  say "python3 is not on PATH — tests/run.sh, autoresearch/contract/ and autoresearch/service/ all need it"
   bad=1
 fi
 checks_run=$((checks_run + 1))

@@ -1,6 +1,7 @@
-# Test-only dependencies. Runtime deps belong to the service that needs them
-# (service/pyproject.toml); the service venv is the test interpreter, so the
-# runtime deps are listed here too for the CI tier that installs tests only.
+# Test-only dependencies. Runtime deps belong to the distribution that needs them
+# (autoresearch/pyproject.toml, the `service` extra); the service venv is the test
+# interpreter, so the runtime deps are listed here too for the CI tier that
+# installs tests only.
 fastapi>=0.115
 uvicorn[standard]>=0.30
 fastmcp>=4.0.0,<5

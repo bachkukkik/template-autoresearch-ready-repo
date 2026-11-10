@@ -36,9 +36,8 @@ REQUIRED_DIRS = [
     ".claude",              # harness symlink dir
     ".credentials",         # documented credential home (README + *.example only)
     ".github",              # CI itself
-    "autoresearch",         # the loop: contract/ (program.md/train.py/prepare.py) + engine/
+    "autoresearch",         # the loop: contract/, engine/ and service/ under one pyproject
     "scripts",              # operator/verification scripts (e.g. verify-clone.sh)
-    "service",              # MCP + REST research service
     "tests",                # the three tiers
 ]
 

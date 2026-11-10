@@ -1,9 +1,9 @@
 """Integration tier — concurrent multi-topic research over the live service. IDs: AC-MCP-231..233.
 
 One module-scoped subprocess running the actual service (uvicorn via
-``src.main``) on PORT 18001 with bearer auth enabled (AUTH_BEARER_TOKEN),
+``autoresearch_service.main``) on PORT 18001 with bearer auth enabled (AUTH_BEARER_TOKEN),
 a tmp SQLite database, a tmp workspaces root (so nothing is ever written
-into the repo's `service/data/` dir), and RESEARCH_CORPUS_ROOT pointing at the repo's
+into the repo's `autoresearch/service/data/` dir), and RESEARCH_CORPUS_ROOT pointing at the repo's
 kb/raw. Every test talks to that live process over HTTP — no mocks, no
 in-process app.
 
@@ -27,7 +27,7 @@ import pytest
 
 BASE_URL = "http://127.0.0.1:18001"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SERVICE_DIR = os.path.join(REPO_ROOT, "service")
+SERVICE_DIR = os.path.join(REPO_ROOT, "autoresearch", "service")
 CORPUS_ROOT = os.path.join(REPO_ROOT, "kb", "raw")
 TOKEN = "test-token"
 AUTH_HEADER = {"Authorization": f"Bearer {TOKEN}"}
@@ -47,13 +47,13 @@ def service(tmp_path_factory):
             "AUTH_BEARER_TOKEN": TOKEN,
             "RESEARCH_JOBS_DB": str(db_path),
             # Hermetic PRD-06 isolation: workspaces live in the tmp run,
-            # never in the repo's `service/data/` dir; corpus files resolve under kb/raw.
+            # never in the repo's `autoresearch/service/data/` dir; corpus files resolve under kb/raw.
             "RESEARCH_WORKSPACES_DIR": str(workspaces_dir),
             "RESEARCH_CORPUS_ROOT": CORPUS_ROOT,
         }
     )
     proc = subprocess.Popen(
-        ["python3", "-m", "src.main"],
+        ["python3", "-m", "autoresearch_service.main"],
         cwd=SERVICE_DIR,
         env=env,
         stdout=subprocess.PIPE,
