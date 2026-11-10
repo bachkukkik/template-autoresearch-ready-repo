@@ -32,7 +32,7 @@ stays as a documented, separate methodology); multi-host job distribution.
   and the service (`autoresearch/service/`) ship from ONE `autoresearch/pyproject.toml`
   (engine core is stdlib-only; the service is the `[service]` optional extra) with one
   `uv.lock`; `docker compose build` builds from it.
-  _Verify:_ `tests/unit/test_service_layout.py` (AC-SVC-001..003) + the `e2e` CI job.
+  _Verify:_ `tests/unit/test_service_layout.py` (AC-SVC-001..005) + the `e2e` CI job.
 - **SC2 — One loop.** Every surface reaches keep/discard through the engine package
   (`autoresearch.loop` / `autoresearch.measure`); the service carries no loop or metric
   parser of its own.
@@ -69,7 +69,7 @@ stays as a documented, separate methodology); multi-host job distribution.
 
 | Expected behavior | Test file | Test IDs |
 |---|---|---|
-| single package + lock; no root `service/`; compose builds from `autoresearch/` | `tests/unit/test_service_layout.py` | AC-SVC-001..003 |
+| single package + lock; no root `service/`; compose builds from `autoresearch/` | `tests/unit/test_service_layout.py` | AC-SVC-001..005 |
 | service imports the engine; no private loop/metric parser | `tests/unit/test_service_layout.py` | AC-SVC-004 |
 | `run_*`/`doctor` dual-registered; per-job workspace; engine baseline for `research_*` | `tests/unit/test_service_engine.py` | AC-SVC-010..016 |
 | agent allowlist, `command` refused, no host-path workloads | `tests/unit/test_service_engine.py` | AC-SVC-020..024 |

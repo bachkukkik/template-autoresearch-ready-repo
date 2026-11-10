@@ -7,6 +7,8 @@ services:
     build:
       context: ./autoresearch
       dockerfile: service/Dockerfile
+    # Survive a Docker daemon restart; `docker compose stop` still keeps it down.
+    restart: unless-stopped
     environment:
       # Passthrough defaults — dev runs auth-disabled out of the box;
       # override via the host environment (e.g. `AUTH_DISABLED=0 AUTH_BEARER_TOKEN=... docker compose up -d`).
