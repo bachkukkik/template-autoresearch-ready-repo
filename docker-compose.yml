@@ -17,6 +17,9 @@ services:
       RESEARCH_MAX_CONCURRENT_JOBS: ${RESEARCH_MAX_CONCURRENT_JOBS:-4}
       RESEARCH_WORKSPACES_DIR: ${RESEARCH_WORKSPACES_DIR:-data/workspaces}
       RESEARCH_CORPUS_ROOT: ${RESEARCH_CORPUS_ROOT:-/kb-raw}
+      # Comma list of harness agents the API may drive (claude,opencode,hermes,dsh).
+      # Empty = only `replay`; `command` is never allowed over the API.
+      RESEARCH_ALLOWED_AGENTS: ${RESEARCH_ALLOWED_AGENTS:-}
     volumes:
       # Read-only corpus mount — serves research topics from the repo's
       # kb/raw/transcripts out of the box.

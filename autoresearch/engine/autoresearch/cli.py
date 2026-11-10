@@ -17,7 +17,7 @@ import os
 import shutil
 import subprocess
 import sys
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 from . import __version__
 from . import adapters as adapters_mod
@@ -210,15 +210,35 @@ def cmd_report(args) -> int:
     return EXIT_OK
 
 
-def cmd_doctor(args) -> int:
+def probe_harnesses() -> List[dict]:
+    """One row per harness: its binary, where it resolved, its version.
+
+    The single source of "what can this host run" — ``cmd_doctor`` prints it and
+    a wrapper (e.g. the REST service's ``doctor``) returns it. Only names, paths
+    and version strings are collected: no credential value is ever read.
+    """
+    rows: List[dict] = []
     for name in adapters_mod.HARNESSES:
         binary = adapters_mod.DEFAULT_BINARIES[name]
         resolved = shutil.which(binary)
-        if not resolved:
-            print(f"{name:9s} MISSING  ({binary} not on PATH)")
+        rows.append(
+            {
+                "agent": name,
+                "binary": binary,
+                "path": resolved,
+                "version": _version_of(resolved) if resolved else None,
+                "available": resolved is not None,
+            }
+        )
+    return rows
+
+
+def cmd_doctor(args) -> int:
+    for row in probe_harnesses():
+        if not row["available"]:
+            print(f"{row['agent']:9s} MISSING  ({row['binary']} not on PATH)")
             continue
-        version = _version_of(resolved)
-        print(f"{name:9s} {resolved}  {version}")
+        print(f"{row['agent']:9s} {row['path']}  {row['version']}")
     state = "set" if os.environ.get("OPENAI_API_KEY") else "unset"
     # Name only — the value is never read, printed or logged.
     print(f"dsh       OPENAI_API_KEY is {state}")

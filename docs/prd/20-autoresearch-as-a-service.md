@@ -73,7 +73,7 @@ stays as a documented, separate methodology); multi-host job distribution.
 | service imports the engine; no private loop/metric parser | `tests/unit/test_service_layout.py` | AC-SVC-004 |
 | `run_*`/`doctor` dual-registered; per-job workspace; engine baseline for `research_*` | `tests/unit/test_service_engine.py` | AC-SVC-010..016 |
 | agent allowlist, `command` refused, no host-path workloads | `tests/unit/test_service_engine.py` | AC-SVC-020..024 |
-| REST + MCP live over a socket / container | `tests/integration/*`, `tests/e2e/service.bats` | AC-MCP-*, AC-SVC-101..102 |
+| REST + MCP live over a socket / container | `tests/integration/*`, `tests/e2e/service.bats` | AC-MCP-*, AC-SVC-101..102, AC-SVC-201..202 |
 | skill + slash commands resolve for every harness | `tests/unit/test_harness_neutrality.py` | AC-HRN-019..020 |
 
 ## CI/CD Gate

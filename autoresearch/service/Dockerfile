@@ -1,5 +1,12 @@
 FROM python:3.14-slim
 
+# The engine drives every run through git (init, commit, reset, apply), so git is
+# a runtime dependency of the service, not a build tool. Installed and cleaned in
+# one layer so the apt lists never reach the final image.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git \
+ && rm -rf /var/lib/apt/lists/*
+
 COPY --from=ghcr.io/astral-sh/uv:0.12.9 /uv /uvx /bin/
 
 ENV UV_NO_DEV=1 \

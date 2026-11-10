@@ -22,14 +22,20 @@ from autoresearch_service.jobs import JobStore  # noqa: E402
 
 
 def test_app_exposes_rest_and_mcp_surface():
-    """AC-MCP-001: create_app() builds an app exposing POST /api/v1/research
-    and the /mcp surface (the FastMCP streamable-HTTP route is spliced in)."""
+    """AC-MCP-001: create_app() builds an app exposing the research AND run
+    REST routes plus the /mcp surface (the FastMCP streamable-HTTP route is
+    spliced in)."""
     app = main.create_app()
     routes = {(m, r.path) for r in app.routes for m in (r.methods or [])}
     assert ("POST", "/api/v1/research") in routes
     assert ("GET", "/api/v1/research/{job_id}") in routes
     assert ("GET", "/api/v1/research/{job_id}/results") in routes
     assert ("DELETE", "/api/v1/research/{job_id}") in routes
+    assert ("POST", "/api/v1/runs") in routes
+    assert ("GET", "/api/v1/runs/{job_id}") in routes
+    assert ("GET", "/api/v1/runs/{job_id}/report") in routes
+    assert ("DELETE", "/api/v1/runs/{job_id}") in routes
+    assert ("GET", "/api/v1/doctor") in routes
     assert any(path == "/mcp" for _, path in routes)
 
 
@@ -80,13 +86,26 @@ def test_route_to_operation_mapping_covers_all_operations():
         ("GET", "/api/v1/research/{job_id}"): "research_status",
         ("GET", "/api/v1/research/{job_id}/results"): "research_results",
         ("DELETE", "/api/v1/research/{job_id}"): "research_cancel",
+        ("POST", "/api/v1/runs"): "run_start",
+        ("GET", "/api/v1/runs/{job_id}"): "run_status",
+        ("GET", "/api/v1/runs/{job_id}/report"): "run_report",
+        ("DELETE", "/api/v1/runs/{job_id}"): "run_cancel",
+        ("GET", "/api/v1/doctor"): "doctor",
     }
     assert set(main.ROUTE_TO_OPERATION.values()) == {
         "research_start",
         "research_status",
         "research_results",
         "research_cancel",
+        "run_start",
+        "run_status",
+        "run_report",
+        "run_cancel",
+        "doctor",
     }
+    # every mapped operation is a real handler, and the tools match the table
+    for operation in main.ROUTE_TO_OPERATION.values():
+        assert callable(getattr(main, operation)), operation
 
 
 def test_job_id_is_uuid4_hex(tmp_path):
@@ -105,12 +124,18 @@ def test_job_id_is_uuid4_hex(tmp_path):
 
 
 def test_tool_flag_defaults():
-    """AC-MCP-006: TOOL_FLAG defaults are True for the research operations and
-    False for health — health is REST-only by construction."""
+    """AC-MCP-006: TOOL_FLAG defaults are True for every operation handler —
+    research_*, run_* and doctor — and False for health, which is REST-only by
+    construction."""
     assert main.TOOL_FLAG == {
         "research_start": True,
         "research_status": True,
         "research_results": True,
         "research_cancel": True,
+        "run_start": True,
+        "run_status": True,
+        "run_report": True,
+        "run_cancel": True,
+        "doctor": True,
         "health": False,
     }

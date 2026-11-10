@@ -89,12 +89,13 @@ def require_tool():
 
 # ─── Integration-tier preflight ──────────────────────────────────────────────
 # The integration modules spawn `python3 -m autoresearch_service.main` with
-# autoresearch/service/.venv/bin prepended to PATH, so the interpreter that runs
+# autoresearch/.venv/bin prepended to PATH, so the interpreter that runs
 # the service is ambient. Rather than edit four files to request the fixture, the
 # tier gets the same preflight once, at collection: the spawn either has the
 # service's deps or the test could never pass, so it must skip (naming what was
 # resolved) instead of failing 15s later with a service it could not start.
-_SERVICE_VENV_BIN = os.path.join(ROOT, "autoresearch", "service", ".venv", "bin")
+# One distribution under autoresearch/ ⇒ one venv (uv.lock lives there too).
+_SERVICE_VENV_BIN = os.path.join(ROOT, "autoresearch", ".venv", "bin")
 _SERVICE_IMPORTS = "import fastapi, fastmcp, uvicorn"
 
 

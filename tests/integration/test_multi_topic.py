@@ -39,7 +39,9 @@ def service(tmp_path_factory):
     db_path = tmp_path_factory.mktemp("jobs") / "jobs.db"
     workspaces_dir = tmp_path_factory.mktemp("workspaces")
     env = dict(os.environ)
-    venv_bin = os.path.join(SERVICE_DIR, ".venv", "bin")
+    # The venv of the ONE distribution (autoresearch/, both packages), not a
+    # service-local one: the service now imports the engine.
+    venv_bin = os.path.join(REPO_ROOT, "autoresearch", ".venv", "bin")
     env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
     env.update(
         {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# E2E tests — AC-MCP-101..104 — exec into the running Docker container.
+# E2E tests — AC-MCP-101..104, AC-SVC-101..102 — exec into the running Docker container.
 # Run from the repo root with: bats tests/e2e/
 
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
@@ -125,5 +125,69 @@ for done, expect in ((done_a, 'e2e multi-topic alpha'), (done_b, 'e2e multi-topi
     assert done['result']['topic'] == expect, 'result topic echo mismatch'
     val = done['result']['val_bpb']
     assert isinstance(val, (int, float)), 'val_bpb is not a number: %r' % (val,)
+"
+}
+
+@test "AC-SVC-101: run_* replay loop — POST /api/v1/runs completes with engine summary" {
+  docker compose -f "$REPO_ROOT/docker-compose.yml" exec -T service \
+    python -c "
+import difflib
+import json
+import time
+import urllib.request
+
+base = 'http://localhost:8000'
+source = open('/app/contract/train.py').read()
+patched = source.replace('STEP_WINDOW = 256', 'STEP_WINDOW = 64')
+patch = ''.join(difflib.unified_diff(source.splitlines(True), patched.splitlines(True),
+                                     'a/train.py', 'b/train.py'))
+assert patch.strip(), 'the replay patch is empty'
+
+body = json.dumps({
+    'workload': 'contract',
+    'agent': 'replay',
+    'max_iterations': 2,
+    'records': [{'iteration': i, 'description': 'e2e replay', 'patch': patch}
+                for i in (1, 2)],
+}).encode()
+req = urllib.request.Request(base + '/api/v1/runs', data=body,
+                             headers={'Content-Type': 'application/json'})
+resp = urllib.request.urlopen(req, timeout=30)
+assert resp.status == 202, 'POST /api/v1/runs HTTP ' + str(resp.status)
+job = json.load(resp)
+
+cur = job
+deadline = time.time() + 120
+while time.time() < deadline:
+    cur = json.load(urllib.request.urlopen(base + '/api/v1/runs/' + job['id'], timeout=30))
+    if cur['status'] in ('completed', 'failed', 'cancelled', 'timeout'):
+        break
+    time.sleep(0.5)
+
+assert cur['status'] == 'completed', 'run did not complete: %s %s' % (
+    cur['status'], cur.get('result'))
+engine = cur['engine']
+assert engine['metric_name'] == 'val_bpb', 'unexpected metric: %r' % (engine,)
+assert isinstance(engine['baseline_metric'], (int, float)), (
+    'baseline metric is not numeric: %r' % (engine,))
+assert engine['trials'] == 2, 'expected 2 trials, got %r' % (engine,)
+assert engine['stop_reason'] == 'max_iterations', 'unexpected stop: %r' % (engine,)
+"
+}
+
+@test "AC-SVC-102: MCP tools/list names run_start and doctor" {
+  docker compose -f "$REPO_ROOT/docker-compose.yml" exec -T service \
+    python -c "
+import json
+import urllib.request
+
+body = json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'tools/list', 'params': {}}).encode()
+req = urllib.request.Request(
+    'http://localhost:8000/mcp', data=body,
+    headers={'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream'},
+)
+payload = urllib.request.urlopen(req, timeout=30).read().decode()
+for name in ('run_start', 'run_status', 'run_report', 'run_cancel', 'doctor'):
+    assert name in payload, 'tools/list response missing ' + name
 "
 }
