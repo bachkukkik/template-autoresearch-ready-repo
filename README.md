@@ -115,7 +115,7 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 │   ├── contract/          # the contract: program.md / prepare.py / train.py + examples/
 │   └── engine/            # generic harness-pluggable loop engine (PRD-17)
 ├── .agents/               # Repo-scoped agent assets — CANONICAL
-│   └── skills/            # Skills pinned here: root-cause, llm-wiki, coding-agents-docs-guideline
+│   └── skills/            # Skills pinned here: root-cause, llm-wiki, coding-agents-docs-guideline, autoresearch
 ├── .claude/               # skills, plugins → symlinks into ../.agents/
 │   └── agents/            # investigator.md — root-cause gate as a sub-agent
 ├── PRD.md                 # Master PRD → topic PRDs in docs/prd/
@@ -190,6 +190,7 @@ pollute the working tree.
 | `llm-wiki` | **vendored** at [`.agents/skills/llm-wiki/SKILL.md`](.agents/skills/llm-wiki/SKILL.md); upstream [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md) (MIT, LICENSE travels with it) | Already present. Funnel stage-3 gate — **the only writer of `kb/` layer-2 pages**; invoke as `llm-wiki ./kb/` so it does not default to `~/wiki` |
 | `coding-agents-docs-guideline` | **vendored** at [`.agents/skills/coding-agents-docs-guideline/SKILL.md`](.agents/skills/coding-agents-docs-guideline/SKILL.md); upstream [bachkukkik/coding-agents-docs-guideline](https://github.com/bachkukkik/coding-agents-docs-guideline) | Already present (SKILL.md + `examples/`). Funnel stage-6 gate — required to author or edit any `docs/NN-slug.md` |
 | `root-cause` | **vendored** at [`.agents/skills/root-cause/SKILL.md`](.agents/skills/root-cause/SKILL.md) | Already present. Gates every "why does X fail / what does X require" answer; [`.claude/agents/investigator.md`](.claude/agents/investigator.md) is its Claude Code binding (other harnesses run it inline) |
+| `autoresearch` | **vendored** at [`.agents/skills/autoresearch/SKILL.md`](.agents/skills/autoresearch/SKILL.md); upstream [uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch) (MIT, LICENSE travels with it) | Already present — optional, not a mandated gate. Goal-directed modify → verify → keep/discard loop with subcommands (`plan`, `debug`, `fix`, `security`, `ship`, …). Discovered from `.agents/skills` by Hermes (trust the repo once), dsh, opencode and Codex; Claude Code via `.claude/skills`. Run logs `autoresearch/<sub>-<stamp>/` are gitignored |
 | `opencode-plan-build-orchestrator` | https://github.com/bachkukkik/opencode-plan-build-orchestrator | Plain skill — clone the whole repo (SKILL.md + `agents/` + `references/`) |
 | `karpathy-guidelines` | https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md | Plain skill — a single `SKILL.md`. **Not vendored** (the upstream carries no licence file): a copy is captured at [`kb/raw/articles/karpathy-guidelines-skill.md`](kb/raw/articles/karpathy-guidelines-skill.md) |
 | `security-best-practices` | https://github.com/openai/skills/tree/main/skills/.curated/security-best-practices | Plain skill — sparse-checkout `skills/.curated/security-best-practices` (SKILL.md + `references/`, `LICENSE.txt`). Python / JS-TS / Go only. Not vendored (large) |

@@ -56,6 +56,11 @@ htmlcov/
 # === Autoresearch loop ===
 # upstream leaves the results log untracked (program.md §Logging results)
 results.tsv
+# The vendored .agents/skills/autoresearch skill writes each run's logs to
+# autoresearch/{subcommand}-{YYMMDD}-{HHMM}/. The pattern is narrowed to that
+# date stamp so the tracked engine root (contract/, engine/, README.md) under
+# autoresearch/ stays tracked.
+autoresearch/*-[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]/
 
 # === Runtime SQLite job store + per-job workspaces ===
 # the service writes its jobs DB to service/data/jobs.db (RESEARCH_JOBS_DB
