@@ -1,4 +1,4 @@
-"""Harness-neutrality guard (unit tier). IDs: AC-HRN-001..017.
+"""Harness-neutrality guard (unit tier). IDs: AC-HRN-001..018.
 
 Locks in the repo's own claim that this template serves Hermes, Claude Code,
 opencode and a DeepSeek/OpenAI-compatible harness as equals, with no
@@ -23,7 +23,8 @@ https URL). The harness set was an exact four, so adding a README row for a
 harness `AGENTS.md` did not list tripped a regex instead of reporting drift
 (AC-HRN-016 — the four are a MINIMUM, and a README row must pair with an
 `AGENTS.md` binding). And the Gemini CLI entry point had to be a symlink to the
-one canonical file (AC-HRN-017).
+one canonical file (AC-HRN-017). AC-HRN-018 vendors the optional `autoresearch`
+skill once, under `.agents/skills/`, so every harness resolves the same file.
 
 What this guard still cannot reach: it reads the document, not a live client.
 A harness whose *behaviour* diverges from the documented binding (an opencode
@@ -1031,4 +1032,75 @@ def test_gemini_cli_entry_point_symlinks_to_agents_md():
     )
     assert path.read_text(encoding="utf-8") == AGENTS_MD.read_text(encoding="utf-8"), (
         "GEMINI.md resolves to AGENTS.md but reads back different bytes"
+    )
+
+
+AUTORESEARCH_SKILL_DIR = REPO_ROOT / ".agents" / "skills" / "autoresearch"
+AUTORESEARCH_PROVENANCE_RE = re.compile(
+    r"Vendored from https://github\.com/uditgoenka/autoresearch"
+)
+
+
+def frontmatter_fields(text):
+    """Simple `key: value` pairs from a leading YAML frontmatter block."""
+    lines = text.splitlines()
+    assert lines and lines[0] == "---", "SKILL.md does not open with a frontmatter fence"
+    closing = lines.index("---", 1)
+    fields = {}
+    for line in lines[1:closing]:
+        key, sep, value = line.partition(":")
+        if sep:
+            fields[key.strip()] = value.strip().strip('"')
+    return fields
+
+
+def test_vendored_autoresearch_skill_resolves_for_every_harness():
+    """AC-HRN-018: the optional `autoresearch` skill is vendored ONCE under
+    `.agents/skills/` — named, described, licensed and provenance-headed — so the
+    harnesses that scan `.agents/skills` (Hermes, dsh, opencode, Codex) and the
+    ones that read through `.claude/skills` all resolve the same file."""
+    skill = AUTORESEARCH_SKILL_DIR / "SKILL.md"
+    assert skill.is_file(), f"{skill} does not travel with the repo"
+    text = skill.read_text(encoding="utf-8")
+
+    fields = frontmatter_fields(text)
+    assert fields.get("name") == "autoresearch", (
+        f"frontmatter name is {fields.get('name')!r}, so a harness indexes the "
+        "skill under the wrong name"
+    )
+    assert len(fields.get("description", "")) > 20, (
+        "frontmatter carries no usable description — the skill would be invisible "
+        "to a harness that lists skills by description"
+    )
+
+    assert AUTORESEARCH_PROVENANCE_RE.search(text), (
+        "SKILL.md has no provenance header naming uditgoenka/autoresearch — the "
+        "vendored copy has lost its upstream and commit"
+    )
+    assert not AUTORESEARCH_PROVENANCE_RE.search("<!-- Copied from somewhere -->"), (
+        "the provenance check passes a file with no provenance"
+    )
+
+    licence = (AUTORESEARCH_SKILL_DIR / "LICENSE").read_text(encoding="utf-8")
+    assert "MIT License" in licence, "no MIT LICENSE travels beside the vendored skill"
+
+    claude_side = REPO_ROOT / ".claude" / "skills" / "autoresearch" / "SKILL.md"
+    assert claude_side.is_file(), (
+        ".claude/skills/autoresearch/SKILL.md does not resolve — Claude Code would "
+        "not see the vendored skill"
+    )
+    assert claude_side.resolve() == skill.resolve(), (
+        f"the Claude Code path resolves to {claude_side.resolve()}, not {skill.resolve()}"
+    )
+    assert claude_side.read_text(encoding="utf-8") == text, (
+        "the Claude Code path reads back different bytes — a forked copy exists"
+    )
+
+    sources = readme_skill_sources(README_MD.read_text(encoding="utf-8"))
+    assert "autoresearch" in sources, (
+        "README.md § Skills has no `autoresearch` row — an adopter cannot find the "
+        "skill that is already sitting in the tree"
+    )
+    assert "uditgoenka/autoresearch" in sources["autoresearch"], (
+        f"the README row does not name its upstream: {sources['autoresearch']!r}"
     )

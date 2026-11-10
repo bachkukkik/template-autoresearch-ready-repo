@@ -172,6 +172,15 @@ on any runner; no new CI job — the guards land in the existing `unit` / `integ
   _Verify:_ `tests/unit/test_agents_md_budget.py` (AC-CTX-001..004) with
   `AGENTS_MD_BUDGET_CHARS = 20_000`.
 
+- **SC13** — **The optional `autoresearch` skill is vendored once and resolves for
+  every harness.** `.agents/skills/autoresearch/` travels with the repo — `SKILL.md`
+  carrying a provenance header and an MIT `LICENSE` beside it — so Hermes, dsh,
+  opencode and Codex discover it from `.agents/skills` and Claude Code reaches the same
+  file through `.claude/skills`; `README.md` § *Skills* names it with its upstream. Its
+  run logs (`autoresearch/<subcommand>-<YYMMDD>-<HHMM>/`) are gitignored, so they cannot
+  collide with the tracked `autoresearch/` engine root.
+  _Verify:_ `tests/unit/test_harness_neutrality.py` (AC-HRN-018).
+
 ## Test Mapping
 
 | Expected behavior | Test file | Test IDs |
@@ -186,6 +195,7 @@ on any runner; no new CI job — the guards land in the existing `unit` / `integ
 | Every mandated skill resolves — vendored `.agents/skills/<name>/SKILL.md`, or a README § *Skills* row with an `https://` install source | `tests/unit/test_harness_neutrality.py` | AC-HRN-015 (+ negative control) |
 | The canonical harness set is a minimum; README harness rows pair with the `AGENTS.md` adapter; a harness can be added without editing a test regex | `tests/unit/test_harness_neutrality.py` | AC-HRN-004 (pairing) + AC-HRN-016 (synthetic fifth harness) |
 | `GEMINI.md` is a symlink resolving to `AGENTS.md`, registered at every entry-point/root enumeration site | `tests/unit/test_harness_neutrality.py`, `tests/unit/test_agents_md_budget.py`, `tests/unit/test_funnel_structure.py` + `.github/workflows/ci.yml` (`doctrine`) | AC-HRN-017, AC-CTX-004, AC-FUN-004 + the `doctrine` symlink step |
+| The optional `autoresearch` skill is vendored once in `.agents/skills` (name, description, MIT `LICENSE`, provenance header), resolves through `.claude/skills`, and is named in README § *Skills*; its run logs are gitignored | `tests/unit/test_harness_neutrality.py` | AC-HRN-018 |
 | The ~20,000-char ceiling is a repo budget (tightest harness auto-load cap) with the host-pin override and headroom floor intact; `AGENTS.md` stays under it | `tests/unit/test_agents_md_budget.py` | AC-CTX-001..004 (`AGENTS_MD_BUDGET_CHARS`) |
 
 ## Assumptions
