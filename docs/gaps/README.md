@@ -94,6 +94,7 @@ Rules:
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
 | 17 | [The loop described by the docs cannot be pointed at real code](17-loop-cannot-target-real-code.md) | prd ↔ code | open | 2026-10-28 | closed by PRD-17: the `autoresearch/engine/` package + ex5 (NLTK 3.9.1 under a four-stage isolated guard); verified in [docs/17](../17-autoresearch-engine.md) |
+| 20 | [Three loops under one name; the service cannot reach the engine](20-three-loops-one-name.md) | prd ↔ code | open | 2026-11-10 | resolution: PRD-20 — fold `service/` into `autoresearch/service/`, re-found the service on the engine, add slash commands + engine skill |
 
 Resolved gaps leave this directory but stay in the repo, their path structure preserved
 under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a tombstone there instead of
