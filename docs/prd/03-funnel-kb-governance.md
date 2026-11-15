@@ -45,6 +45,17 @@ written only by llm-wiki; gaps are transient; secrets never enter `kb/` or `docs
   `docs/gaps/README.md`. _Verify:_ `tests/unit/test_gaps_lifecycle.py`
   (AC-FUN-021). ✅ implemented 2026-09-04
 
+- **SC6** — A tracked document's relative links resolve: every `[text](path)` in a
+  tracked `.md` points at a file that exists, so a moved stage does not leave the
+  funnel readable and unfollowable. Fenced code, inline code, HTML comments,
+  external and anchor-only links are skipped, and the skipped trees are named in
+  the test (`kb/_archive/`, `kb/raw/`, generated `kb/`, `scratchpads/`).
+  `docs/gaps/_archive/` is **not** skipped: retention is not link immutability.
+  _Verify:_ `tests/unit/test_markdown_links.py` (AC-FUN-005). ✅ implemented
+  2026-11-15 — the first run found 15 broken targets (archived gaps pointing at
+  `kb/raw/` two levels up, `docs/16` pointing one level above the repo root,
+  `PRD.md`/`docs/README.md` naming gap files that had archived).
+
 ## Test Mapping
 
 | Expected behavior | Test file | Test IDs |
@@ -54,6 +65,7 @@ written only by llm-wiki; gaps are transient; secrets never enter `kb/` or `docs
 | Doctrine tracked, entry points resolve | `.github/workflows/ci.yml` | job `doctrine` |
 | KB layout matches llm-wiki spec | `tests/unit/test_kb_layout.py` | AC-FUN-011..012 |
 | Gap lifecycle (Resolution required, listed) | `tests/unit/test_gaps_lifecycle.py` | AC-FUN-021 |
+| Relative markdown links resolve | `tests/unit/test_markdown_links.py` | AC-FUN-005 |
 
 ## Assumptions
 

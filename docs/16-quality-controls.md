@@ -19,15 +19,15 @@ The advisory half is `SECURITY.md`, `.github/CODEOWNERS`,
 ## Why
 
 - The workflows had no `permissions:` block, so they inherited the default
-  token scope (gap [16](gaps/16-quality-controls-not-adopted.md)).
+  token scope (gap [16](gaps/_archive/16-quality-controls-not-adopted.md)).
 - Every `uses:` pinned a mutable tag (`actions/checkout@v4`). A mutable tag can
-  be re-pointed to attacker code ([actions-hardening](../../kb/concepts/actions-hardening.md)).
+  be re-pointed to attacker code ([actions-hardening](../kb/concepts/actions-hardening.md)).
 - The tier jobs chained by `needs:` only. A red `unit` job *skips* `integration`
-  and `e2e`, and GitHub reads *skipped* as passing ([qc-test-tiers](../../kb/concepts/qc-test-tiers.md)).
+  and `e2e`, and GitHub reads *skipped* as passing ([qc-test-tiers](../kb/concepts/qc-test-tiers.md)).
 - There was no `SECURITY.md`, `CODEOWNERS`, dependabot config or PR template,
-  and `main` had no ruleset ([github-merge-gates](../../kb/concepts/github-merge-gates.md)).
+  and `main` had no ruleset ([github-merge-gates](../kb/concepts/github-merge-gates.md)).
 - A rule a machine cannot check is a hope. Each control lands as a pytest
-  assertion or a CI job, not as prose ([quality-controls](../../kb/concepts/quality-controls.md)).
+  assertion or a CI job, not as prose ([quality-controls](../kb/concepts/quality-controls.md)).
 
 ## How
 
@@ -157,7 +157,7 @@ force-push and deletion.
   The check is recorded here and in the PRD's *CI/CD Gate*.
 - **AC-QC-002:** keep the allowlist empty. When an entry is unavoidable, it
   carries a reason and a retire condition
-  ([actions-hardening](../../kb/concepts/actions-hardening.md)).
+  ([actions-hardening](../kb/concepts/actions-hardening.md)).
 
 ## Verdict
 

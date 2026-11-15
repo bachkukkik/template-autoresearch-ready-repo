@@ -242,6 +242,26 @@ def test_concurrent_jobs_cap_honors_env(tmp_path):
         assert main.MAX_CONCURRENT_JOBS >= 1  # constant-only fallback
 
 
+def test_workspace_paths_resolve_against_the_service_root(tmp_path):
+    """AC-SVC-006: RESEARCH_WORKSPACES_DIR resolves like RESEARCH_JOBS_DB.
+
+    A relative value anchors at the service root (``autoresearch/service``), so
+    the container's ``data/workspaces`` and a host shell's name the same
+    directory; a blank value is unset rather than ``Path('')`` — the cwd — which
+    would scatter ``<job_id>/`` into the tracked service tree.
+    """
+    service_root = REPO_ROOT / "autoresearch" / "service"
+    assert workspace.SERVICE_ROOT == service_root
+    assert workspace._service_path("data/workspaces") == service_root / "data" / "workspaces"
+    # An absolute value passes through.
+    assert workspace._service_path(tmp_path) == tmp_path
+
+    default = service_root / "data" / "workspaces"
+    assert workspace.DEFAULT_WORKSPACES_DIR.is_absolute()
+    if not os.environ.get("RESEARCH_WORKSPACES_DIR", "").strip():
+        assert workspace.DEFAULT_WORKSPACES_DIR == default
+
+
 def test_handlers_are_sync_def():
     """AC-MCP-037: SC4 async decision locked — every REST/MCP handler stays sync
     `def` (the threadpool + scheduler do the work; no coroutine handlers)."""

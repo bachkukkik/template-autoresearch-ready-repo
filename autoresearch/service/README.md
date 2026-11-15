@@ -64,11 +64,11 @@ Local CI before any PR: run the pre-PR chain stated in `AGENTS.md` §6 — never
 |---|---|---|
 | `AUTH_BEARER_TOKEN` | unset | Bearer token gating REST (except `/health`) and `/mcp`. Fail-closed: no token ⇒ deny. |
 | `AUTH_DISABLED` | `0` | `1` = skip auth (local dev only). |
-| `RESEARCH_JOBS_DB` | `autoresearch/service/data/jobs.db` | SQLite file backing the durable job store (WAL); a relative value resolves from the process cwd (compose sets `data/jobs.db`, i.e. `/app/data` in the container). Survives restarts. |
+| `RESEARCH_JOBS_DB` | `autoresearch/service/data/jobs.db` | SQLite file backing the durable job store (WAL). A **relative** value resolves against the service root (`autoresearch/service/`), never the process cwd, so a host run and the container name one store; a blank value is unset. Compose sets `/app/data/jobs.db`, the `service-data` volume. Survives a redeploy — see *Runtime state*. |
 | `RESEARCH_RUN_TIMEOUT` | `30` | Bound (seconds) on one engine verify run **and** one guard run — the job's whole time budget. |
 | `RESEARCH_WORKLOAD_DIR` | unset | Optional override of the bundled workload source (default: canonical `autoresearch/contract/`). A custom dir still runs through the same engine config. |
 | `RESEARCH_MAX_CONCURRENT_JOBS` | `4` | How many jobs run concurrently in one process (scheduler ThreadPoolExecutor cap). |
-| `RESEARCH_WORKSPACES_DIR` | `autoresearch/service/data/workspaces` | Root for **per-job run repos** (see Workspace layout; that dir is gitignored). |
+| `RESEARCH_WORKSPACES_DIR` | `autoresearch/service/data/workspaces` | Root for **per-job run repos** (see Workspace layout; that dir is gitignored). Relative values resolve against the service root like `RESEARCH_JOBS_DB`; compose sets `/app/data/workspaces`, inside the same volume. |
 | `RESEARCH_CORPUS_ROOT` | `kb/raw` (host) / `/kb-raw` (compose mount) | Root for `params.corpus.files` paths. Compose mounts `./kb/raw:/kb-raw:ro`. |
 | `RESEARCH_ALLOWED_AGENTS` | empty | Comma list of harness agents the API may drive: `claude`, `opencode`, `hermes`, `dsh`. Empty = only `replay`. `command` is **never** allowed over the API, listed or not. |
 
@@ -224,13 +224,42 @@ curl -s -X POST localhost:8000/api/v1/research -H "Authorization: Bearer $TOKEN"
 # poll GET /api/v1/research/<job_id> — both complete; results carry distinct topic + corpus stats
 ```
 
+## Runtime state
+
+One runtime-state home: `autoresearch/service/data/` on the host, `/app/data` in the
+container (the `service-data` named volume declared in the root `docker-compose.yml`).
+
+| Path | What it is | Tracked |
+|---|---|---|
+| `data/.gitkeep` | keeps the directory in a clone | yes |
+| `data/jobs.db` (+ `-wal` / `-shm`) | the SQLite job store (`jobs.JobStore`, WAL) | no |
+| `data/workspaces/<job_id>/` | one run repo per job (`workspace.provision_run_repo`) | no |
+
+- **Path resolution.** A *relative* `RESEARCH_JOBS_DB` / `RESEARCH_WORKSPACES_DIR`
+  resolves against the service root (`jobs._service_path`, `workspace._service_path`),
+  never the process cwd — one store, one home, wherever the process was started. The image
+  installs the packages non-editable (so the package lives in the venv), which is why
+  compose passes **absolute** `/app/data/…` values rather than relative ones.
+- **Persistence.** `/app/data` is a named volume: `docker compose up --build` replaces the
+  container and keeps the queue, `docker compose down -v` is what deletes it. It is
+  created root-owned because the image sets no `USER`.
+- **Recovery.** The store outlives a restart, the in-process scheduler does not, so the
+  lifespan calls `main.recover_interrupted_jobs` once, after the scheduler starts: `queued`
+  jobs are dispatched again, `running` ones are failed as interrupted and never re-run.
+  It assumes one process owns `jobs.db` — a second instance would fail the first one's live
+  jobs.
+
 ## Job lifecycle
 
 ```
 queued → running → completed | failed | cancelled | timeout
 ```
 
-- Durable in SQLite (WAL); jobs survive a service restart.
+- Durable in SQLite (WAL) **and** mounted on a named volume (`service-data:/app/data`), so
+  jobs survive a redeploy — `docker compose down -v` is what deletes them.
+- Startup reconciles what a stopped process left: a `queued` job is dispatched again, a
+  `running` one is failed with `interrupted: the service restarted while this job was
+  running` and never re-run (it may have had side effects).
 - Both families share the store; a run job's params carry `"kind": "run"`.
 - `idempotency_key` (optional, ≤200 chars): a repeat submit returns the
   existing job instead of creating a second.

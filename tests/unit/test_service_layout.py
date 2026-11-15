@@ -200,6 +200,97 @@ def _compose_service_restart(compose_text: str):
     return None
 
 
+def _service_block(compose_text: str, key: str, indent: int = 4):
+    """The lines of one key's block inside `services.service`, by indent.
+
+    Line-based and stdlib-only like the parser above: YAML is not imported
+    anywhere in the unit tier, and what these tests need is which keys are set
+    and at what depth, not a compose model.
+    """
+    lines = compose_text.splitlines()
+    service_at = next(
+        (
+            index
+            for index, line in enumerate(lines)
+            if line.strip() == "service:" and len(line) - len(line.lstrip()) == 2
+        ),
+        None,
+    )
+    if service_at is None:
+        return None
+    block, collecting = [], False
+    for line in lines[service_at + 1 :]:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        depth = len(line) - len(line.lstrip())
+        if depth <= 2:  # the service block ended
+            break
+        if depth == indent:
+            collecting = line.strip() == f"{key}:"
+            continue
+        if collecting:
+            block.append(line.strip())
+    return block
+
+
+def _compose_service_mounts(compose_text: str) -> list:
+    """`['./kb/raw:/kb-raw:ro', ...]` — the list items under `volumes:`."""
+    block = _service_block(compose_text, "volumes") or []
+    return [item[1:].strip() for item in block if item.startswith("- ")]
+
+
+def _compose_named_volumes(compose_text: str) -> list:
+    """Keys of the TOP-LEVEL `volumes:` block — the declared named volumes."""
+    names = []
+    collecting = False
+    for line in compose_text.splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        depth = len(line) - len(line.lstrip())
+        if depth == 0:
+            collecting = line.strip() == "volumes:"
+            continue
+        if collecting and depth == 2 and line.strip().endswith(":"):
+            names.append(line.strip().rstrip(":"))
+    return names
+
+
+def test_compose_mounts_the_runtime_state_on_a_named_volume():
+    """AC-SVC-008: the service's runtime state lives on a named volume.
+
+    Compose mounted the two read-only binds and nothing at `/app/data`, so
+    `jobs.db` sat in the image layer: every `up --build` replaced the container
+    and took the queue with it, while the README claimed restarts were
+    survived. The volume is what makes the store durable, so it is asserted
+    structurally — the mount, the top-level declaration that makes it a named
+    volume rather than an anonymous one, and the env defaults that point the
+    service at it.
+    """
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    assert "service-data:/app/data" in _compose_service_mounts(compose)
+    assert "service-data" in _compose_named_volumes(compose)
+    # The image installs non-editable, so the env defaults must be absolute —
+    # a relative value would anchor inside the venv, not at the mount.
+    assert "RESEARCH_JOBS_DB: ${RESEARCH_JOBS_DB:-/app/data/jobs.db}" in compose
+    assert "RESEARCH_WORKSPACES_DIR: ${RESEARCH_WORKSPACES_DIR:-/app/data/workspaces}" in compose
+
+    # Negative control: the pre-fix compose (binds only, no data mount, no
+    # top-level volumes block) is reported as unmounted, so the assertions
+    # above cannot pass on a commented-out or absent line.
+    without_volume = """services:
+  service:
+    environment:
+      RESEARCH_JOBS_DB: ${RESEARCH_JOBS_DB:-data/jobs.db}
+    volumes:
+      - ./kb/raw:/kb-raw:ro
+      # - service-data:/app/data
+    healthcheck:
+      interval: 5s
+"""
+    assert "service-data:/app/data" not in _compose_service_mounts(without_volume)
+    assert _compose_named_volumes(without_volume) == []
+
+
 def test_compose_service_restarts_unless_stopped():
     """AC-SVC-005: the service comes back after a Docker daemon restart, and is
     still kept down by `docker compose stop`."""

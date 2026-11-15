@@ -228,6 +228,44 @@ def test_db_path_fallback_is_service_data(tmp_path, monkeypatch):
         store.close()
 
 
+def test_a_relative_env_db_path_resolves_against_the_service_root(tmp_path, monkeypatch):
+    """AC-SVC-006: a *relative* RESEARCH_JOBS_DB is service-root-relative.
+
+    The container (`WORKDIR /app`) and a host shell are two working directories
+    for one config: resolving the env value against the process cwd wrote
+    `data/jobs.db` beside whichever directory the process started in — one job
+    store with two homes. The path is asserted, not opened, so the test never
+    writes into the tracked tree.
+    """
+    monkeypatch.setenv("RESEARCH_JOBS_DB", "data/jobs.db")
+    service_data = REPO_ROOT / "autoresearch" / "service" / "data" / "jobs.db"
+
+    other = tmp_path / "somewhere-else"
+    other.mkdir()
+    monkeypatch.chdir(tmp_path)
+    from_tmp = jobs._default_db_path()
+    monkeypatch.chdir(other)
+    assert jobs._default_db_path() == from_tmp  # cwd does not decide it
+    assert from_tmp == str(service_data)
+
+    # An absolute value still wins, untouched.
+    monkeypatch.setenv("RESEARCH_JOBS_DB", str(tmp_path / "mine.db"))
+    assert jobs._default_db_path() == str(tmp_path / "mine.db")
+
+
+def test_a_blank_env_db_path_is_unset_not_the_service_root(tmp_path, monkeypatch):
+    """AC-SVC-006: `RESEARCH_JOBS_DB=` (or whitespace) is unset.
+
+    Treated as a path, a blank value resolves to the service root itself, so the
+    store would land at `autoresearch/service/jobs.db` inside the tracked tree.
+    """
+    for blank in ("", "   "):
+        monkeypatch.setenv("RESEARCH_JOBS_DB", blank)
+        monkeypatch.chdir(tmp_path)
+        assert jobs._default_db_path() == jobs.DEFAULT_DB_PATH
+        assert jobs._default_db_path() != jobs.SERVICE_ROOT
+
+
 def test_concurrent_access_from_multiple_threads(tmp_path):
     """check_same_thread=False + lock: concurrent create/status/result is safe."""
     store = JobStore(str(tmp_path / "jobs.db"))

@@ -23,11 +23,15 @@ ALLOWED_TRANSITIONS = {
 
 TERMINAL_STATUSES = frozenset({"completed", "failed", "cancelled"})
 
-DEFAULT_DB_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "data",
-    "jobs.db",
-)
+# The column list every job read selects, in the order _row_to_job unpacks.
+_JOB_COLUMNS = "id, topic, params, status, error, result, created_at, updated_at"
+
+# The service root (the directory holding autoresearch_service/): runtime paths
+# resolve against it, so a host run from any cwd and the container agree on one
+# store. realpath (not abspath), so a symlinked checkout resolves like Path.resolve().
+SERVICE_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+DEFAULT_DB_PATH = os.path.join(SERVICE_ROOT, "data", "jobs.db")
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
@@ -49,9 +53,23 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _service_path(value: str) -> str:
+    """A relative path resolves against the service root, never the process cwd."""
+    return value if os.path.isabs(value) else os.path.join(SERVICE_ROOT, value)
+
+
 def _default_db_path() -> str:
-    """RESEARCH_JOBS_DB env var wins; otherwise autoresearch/service/data/jobs.db."""
-    return os.environ.get("RESEARCH_JOBS_DB") or DEFAULT_DB_PATH
+    """RESEARCH_JOBS_DB env var wins; otherwise <service-root>/data/jobs.db.
+
+    A *relative* RESEARCH_JOBS_DB is service-root-relative: a host run started
+    from the repo root and the container then name the same store, instead of
+    one writing ``data/jobs.db`` beside the cwd and the other writing it under
+    the service. A blank value (empty or whitespace-only) is unset, not a path —
+    otherwise it would resolve to the service root and scatter job dirs into the
+    tracked tree.
+    """
+    value = (os.environ.get("RESEARCH_JOBS_DB") or "").strip()
+    return _service_path(value or DEFAULT_DB_PATH)
 
 
 class JobStore:
@@ -120,8 +138,7 @@ class JobStore:
         """Return the job dict, or None when no such job exists."""
         with self._lock:
             row = self._conn.execute(
-                "SELECT id, topic, params, status, error, result,"
-                " created_at, updated_at FROM jobs WHERE id = ?",
+                f"SELECT {_JOB_COLUMNS} FROM jobs WHERE id = ?",
                 (job_id,),
             ).fetchone()
         return self._row_to_job(row)
@@ -153,6 +170,43 @@ class JobStore:
         assert job is not None  # status row existed above
         return job
 
+    def claim(self, job_id: str) -> bool:
+        """Atomically take a `queued` job for execution; False if it is taken.
+
+        One ``UPDATE ... WHERE id = ? AND status = 'queued'`` under the store
+        lock, so two dispatches of the same job cannot both win: exactly one
+        gets True, the other gets False and runs nothing. Losing that race is
+        not an error — unlike `set_status`, where running -> running stays an
+        illegal transition.
+        """
+        with self._lock:
+            changed = self._conn.execute(
+                "UPDATE jobs SET status = 'running', error = NULL, updated_at = ?"
+                " WHERE id = ? AND status = 'queued'",
+                (_now(), job_id),
+            ).rowcount
+            self._conn.commit()
+        return changed == 1
+
+    def jobs_with_status(self, status: str) -> list[dict]:
+        """Every job currently in `status`, oldest first — the restart scan.
+
+        Used at startup to find what a stopped process left behind: `queued`
+        jobs never ran, `running` ones were cut off mid-run.
+        """
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT {_JOB_COLUMNS} FROM jobs WHERE status = ?"
+                " ORDER BY created_at, id",
+                (status,),
+            ).fetchall()
+        found = []
+        for row in rows:
+            job = self._row_to_job(row)
+            assert job is not None  # selected rows exist
+            found.append(job)
+        return found
+
     def set_result(self, job_id: str, result: dict) -> dict:
         """Merge results into the job (later keys win); returns the updated job."""
         with self._lock:
@@ -179,8 +233,7 @@ class JobStore:
     def _get_by_idempotency_key(self, idempotency_key: str) -> dict | None:
         with self._lock:
             row = self._conn.execute(
-                "SELECT id, topic, params, status, error, result,"
-                " created_at, updated_at FROM jobs WHERE idempotency_key = ?",
+                f"SELECT {_JOB_COLUMNS} FROM jobs WHERE idempotency_key = ?",
                 (idempotency_key,),
             ).fetchone()
         return self._row_to_job(row)

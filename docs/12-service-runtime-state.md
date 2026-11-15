@@ -2,7 +2,7 @@
 
 ## What
 
-`service/data/` is the runtime-state root of the autoresearch service: a gitignored tree holding the SQLite job store (`service/data/jobs.db`) and one isolated workspace per job (`service/data/workspaces/<job_id>/`), whose only tracked content is the placeholder `service/data/.gitkeep`.
+`autoresearch/service/data/` is the runtime-state root of the autoresearch service: a gitignored tree holding the SQLite job store (`data/jobs.db`) and one isolated workspace per job (`data/workspaces/<job_id>/`), whose only tracked content is the placeholder `data/.gitkeep`. It is one home for that state — the same directory in every process, and `/app/data` in the container (see *T4* below).
 
 ## Why
 
@@ -18,9 +18,9 @@
 | Path | Produced by | Tracked |
 |---|---|---|
 | `service/data/.gitkeep` | the purge commit `7c5613a`, moved with the 2026-11-04 refactor | yes — the placeholder that keeps the directory in a clone |
-| `service/data/jobs.db` (plus `-wal` / `-shm` sidecars) | `service/src/jobs.py` (`JobStore`, WAL mode); path from `RESEARCH_JOBS_DB`; unset default resolves to `<service-root>/data/jobs.db`, and compose passes `data/jobs.db` (relative to WORKDIR `/app`) | no |
-| `service/data/workspaces/<job_id>/` | `provision_workspace` (`service/src/workspace.py`); root from `RESEARCH_WORKSPACES_DIR`, default `service/data/workspaces` | no |
-| `service/data/workspaces/<job_id>/<prepare.py,train.py,context.json,topic.txt>` (plus `corpus/…` when the job declares texts/files) | the provisioner copying the canonical `autoresearch/contract/` per job | no |
+| `autoresearch/service/data/jobs.db` (plus `-wal` / `-shm` sidecars) | `autoresearch/service/autoresearch_service/jobs.py` (`JobStore`, WAL mode); path from `RESEARCH_JOBS_DB`, a relative value resolving against the service root; unset default `<service-root>/data/jobs.db`; compose passes `/app/data/jobs.db` (the `service-data` volume) | no |
+| `autoresearch/service/data/workspaces/<job_id>/` | `provision_run_repo` (`autoresearch/service/autoresearch_service/workspace.py`); root from `RESEARCH_WORKSPACES_DIR` (relative values resolve against the service root), default `<service-root>/data/workspaces` | no |
+| `data/workspaces/<job_id>/repo/<prepare.py,train.py,context.json,topic.txt>` (plus `corpus/…` when the job declares texts/files) | the provisioner copying the canonical `autoresearch/contract/` per job, then committing it as the baseline | no |
 
 Lifecycle: the store and a job's workspace appear on the first run and are retained after the job reaches a terminal state. No TTL sweeper exists — `docs/05` and `docs/06` record the sweeper over the workspaces root as a documented upgrade path.
 
@@ -52,9 +52,44 @@ The original purge promoted repo-root `data/` to a derived tracked root, which h
 
 Commit `7c5613a` added the two placeholders (`data/.gitkeep`, `service/data/.gitkeep`) plus the two un-ignore lines — `git show --stat 7c5613a` reports 3 files, +2/-0. The 453 directories / 13 MB / Sep 5-21 activity window is the purge **scan**'s finding, recorded only in the commit message; the directories were untracked, so the count is not re-derivable from the repo. Each scanned directory held only the four provisioned files; none held a results log or durable state, so the next job rebuilds whatever it needs.
 
+### Path resolution, compose volume, startup recovery (2026-11-15)
+
+Three defects made "jobs survive a restart" false in three different ways. Each was measured
+before the fix, and each now has a test that fails without it.
+
+- **Path resolution.** `jobs.py` returned `RESEARCH_JOBS_DB` verbatim, so a *relative* value
+  resolved against the process working directory: the container (`WORKDIR /app`) wrote
+  `/app/data/jobs.db`, a host run started at the repo root wrote `<repo>/data/jobs.db`. The
+  *default* path was right, which is what hid it. `workspace.py` had the same shape for
+  `RESEARCH_WORKSPACES_DIR` plus a worse blank case: an exported-empty value became
+  `Path('')`, i.e. the cwd, scattering `<job_id>/` into the tracked tree. Both now go
+  through one helper per module (`_service_path()`): absolute passes through, relative
+  joins the service root (`autoresearch/service/`, from `realpath` / `Path.resolve()` so a
+  symlinked checkout agrees), blank is *unset*. The image installs the packages
+  **non-editable**, so in the container the package lives in the venv — compose therefore
+  passes absolute `/app/data/…` values, and the env override still wins.
+- **Compose volume.** `docker-compose.yml` mounted two read-only binds and nothing at
+  `/app/data`, so `jobs.db` lived in the image layer: `docker compose up --build` replaced
+  the container and took the queue with it, while the service README claimed restarts were
+  survived. The service mounts `service-data:/app/data` and the file declares the top-level
+  `volumes:` block that makes it named. `docker compose down -v` deletes it; it is created
+  root-owned because the image sets no `USER`.
+- **Startup recovery.** A durable store without reconciliation is a store of orphans:
+  `queued` rows had no dispatcher and `running` rows stayed `running` for ever. The lifespan
+  calls `main.recover_interrupted_jobs()` once, after the scheduler starts and inside the
+  `try` (a scheduler left running by a raising recovery makes the next start fail with
+  `SchedulerAlreadyRunningError` and hides the cause): `queued` jobs are re-dispatched
+  through `_dispatch()` — the path a new job takes, routed by the job's own `kind` — and
+  `running` ones are failed with `interrupted: the service restarted while this job was
+  running`, never re-run, because a cut-off run may already have written partial output.
+  Execution claims a job atomically (`JobStore.claim()`), so a repeat dispatch runs nothing
+  twice and logs no illegal `running -> running`. It assumes one process owns `jobs.db`.
+
 ## Verification
 
-Run from the repo root, 2026-11-04 (the current `service/data/` layout).
+Run from the repo root, 2026-11-04 (the then-current `service/data/` layout — the root moved
+to `autoresearch/service/data/` in PR #46 and the `.gitignore` line numbers have shifted
+since; the commands are kept as the record of that run).
 
 ```bash
 # 1. only the placeholder is tracked
@@ -120,6 +155,23 @@ FAILED tests/unit/test_verify_clone.py::test_real_repo_run_is_read_only
 3 failed, 119 passed, 1 warning in 4.11s
 ```
 
+Runtime-state checks (2026-11-15, the layout after PR #46):
+
+```bash
+$ python3 -m pytest tests/unit/test_job_store.py -q         # AC-SVC-006
+$ python3 -m pytest tests/unit/test_workspace.py -q         # AC-SVC-006
+$ python3 -m pytest tests/unit/test_startup_recovery.py -q  # AC-SVC-007
+$ docker compose config -q; echo $?                          # 0
+$ docker compose config | grep -A2 service-data              # source: service-data, target: /app/data
+```
+
+Mutation checks, each reverted after the run: deleting `recover_interrupted_jobs(_store)`
+from the lifespan fails two startup-recovery tests; returning the raw env value from
+`jobs._default_db_path()` fails both AC-SVC-006 resolver tests; making
+`workspace._service_path()` cwd-relative fails its test; dropping `service-data:/app/data`
+from compose fails AC-SVC-008, whose negative control proves a commented-out mount is not
+counted.
+
 ## What Works
 
 - The root ships a tracked placeholder: `git ls-files service/data/` returns exactly `service/data/.gitkeep`.
@@ -130,6 +182,13 @@ FAILED tests/unit/test_verify_clone.py::test_real_repo_run_is_read_only
 - The purge scan found 453 workspaces / 13 MB with nothing durable in any of them — the store and every workspace are regenerated by the next run, and no directory held a results log; the commit itself records only the two placeholders and the two un-ignore lines (3 files, +2/-0).
 - An idle service is visible as an absent `service/data/jobs.db`: the store is created by `JobStore` on first use, never committed.
 
+- Runtime paths resolve against the service root: a relative `RESEARCH_JOBS_DB` /
+  `RESEARCH_WORKSPACES_DIR` names the same file from any working directory, and a blank
+  value falls back to the default instead of the cwd (AC-SVC-006).
+- The store survives the second `up --build`: `/app/data` is the `service-data` named volume,
+  declared under the top-level `volumes:` block (AC-SVC-008).
+- A restart reconciles the queue: leftover `queued` jobs are dispatched again, leftover
+  `running` ones are failed as interrupted and never re-run (AC-SVC-007).
 ## What Fails
 
 - **The purge is a one-time cleanup, not a bound.** The repo's own test tiers refill the root against the default path: `python3 -m pytest tests/unit/test_routes.py` added one workspace and the integration tier added seven in one pass (measured workspace counts 6 → 7 and 7 → 14, when the root was repo-root `data/`). Nothing deletes a workspace after a terminal job, so growth resumes with use.
