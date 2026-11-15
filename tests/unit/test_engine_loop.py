@@ -1022,6 +1022,24 @@ def test_a_wall_that_cannot_fund_one_iteration_is_refused_loudly(tmp_path, capsy
     assert head(repo) == before
 
 
+def test_the_wall_refusal_states_the_count_it_enforces(tmp_path, capsys):
+    """AC-ENG-083c: the preflight quotes the reservation to a human, so its
+    noun agrees with the number — ``--repeats 1`` is a legal single arm, and
+    "1 repeats × verify" reads as broken arithmetic rather than a choice.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, DECREMENT.format(step=2))
+    assert init_run(repo, repeats=1) == 0  # 900 + 600 + 1 × 600 = 2100 s
+    capsys.readouterr()
+
+    assert run_cli(run_args(repo, script, extra=["--max-wall", "2000"])) == 2
+
+    err = capsys.readouterr().err
+    assert "reserves 2100s" in err
+    assert "1 repeat × verify" in err
+    assert "1 repeats" not in err
+
+
 def test_the_documented_ar_run_wall_funds_an_iteration(tmp_path, monkeypatch):
     """AC-ENG-083d: the shipped `/ar-run` command (``--max-wall 3600``) must run
     at least one iteration under the engine's default timeouts. At the old 900
@@ -1051,11 +1069,16 @@ def test_the_documented_ar_run_wall_funds_an_iteration(tmp_path, monkeypatch):
     assert stop_reason(repo) == "max_iterations"
 
 
-def test_the_wall_will_not_fund_an_iteration_it_cannot_finish(tmp_path, monkeypatch):
+def test_the_wall_will_not_fund_an_iteration_it_cannot_finish(tmp_path, monkeypatch, capsys):
     """AC-ENG-083: checked only at the top of the loop, the wall happily started
     a 750 s agent with 100 s left, and the wrapper's ``timeout`` then killed the
     engine mid-iteration — so the measurement, and any salvage of it, never
     happened. A bound may never kill the run it bounds (season 2, R1).
+
+    The stop event says ``max_wall`` for a script; the human reading the run
+    output also gets one line with the arithmetic behind the refusal (the
+    ``emit.note`` in ``loop._finish``), so "max_wall" is not a number to
+    recompute — the note names the iteration that was not started.
     """
     repo = make_target(tmp_path, value=10)
     script = write_agent(tmp_path, DECREMENT.format(step=2))
@@ -1065,6 +1088,7 @@ def test_the_wall_will_not_fund_an_iteration_it_cannot_finish(tmp_path, monkeypa
     before = head(repo)
     prompts = _capture_prompts(monkeypatch)
     assert _iteration_budget(repo, 1000.0, agent_timeout=750.0) == 800.0
+    capsys.readouterr()  # drop init's own banner
 
     _freeze_loop_clock(monkeypatch, started=0.0, then=900.0)
     assert run_cli(
@@ -1084,6 +1108,10 @@ def test_the_wall_will_not_fund_an_iteration_it_cannot_finish(tmp_path, monkeypa
     assert stop_reason(repo) == "max_wall"
     assert head(repo) == before
     assert ledger_mod.validate(read_events(repo)) == []
+
+    out = capsys.readouterr().out
+    assert "one iteration reserves 800s" in out      # the cfg-derived arithmetic
+    assert "not starting iteration 1" in out         # what was not funded
 
 
 def test_the_wall_funds_an_iteration_when_the_budget_is_there(tmp_path, monkeypatch):

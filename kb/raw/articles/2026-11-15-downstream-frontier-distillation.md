@@ -1,7 +1,7 @@
 ---
 source_url: https://github.com/vanilla-republic/vanilla-open-design-autoresearch
 ingested: 2026-11-15
-sha256: 6c3fa12a5588e4110154de48a9d883dbdbe0d0c461058dd6be0084fe2539667c
+sha256: 062ddd37801a984f8a562de759bf946e989aa91c246ff54767d8e05cad78a43d
 source_type: distillation
 kind: article
 title: "Downstream frontier distillation — the 42-PR league record: R28–R39, fair-competition invariants, fail-closed eval doctrine, run-record shape"
@@ -109,8 +109,9 @@ Stated as arithmetic, checkable per launch, none of them league-specific:
 7. **Rotation length = option count.** `n` legs → `n` rounds, off-diagonal for every
    `n ≥ 2` (#39).
 8. **A bound may never kill the run it bounds.** Before starting a unit of work, check the
-   remaining budget pays for it in full (agent timeout + tail); if not, stop on the wall
-   with a measured unit behind you (#29, `ITERATION_TAIL = 120`).
+   remaining budget pays for it in full (agent timeout + guard + repeats × verify); if not,
+   stop on the wall with a measured unit behind you (#29; this template derives that
+   reservation exactly, downstream's `ITERATION_TAIL = 120` under-reserves it).
 9. **The exit code decides nothing; the tree decides.** A timeout leaves a tree; commit
    it, guard it, measure it, judge it (#29).
 10. **State the same wall in every layer that enforces it.** Wrapper `timeout` and inner
@@ -225,11 +226,21 @@ non-zero answer:
   A dead tree that clears nothing reports `agent_error` **carrying** the metric it measured;
   scope/protected violations keep their own names, because a breach is about the tree, not
   the score. Season 19 iteration 2 timed out at 755 s and still landed 27 ids, 19 of them
-  from the dead call (#29).
-- `ITERATION_TAIL = 120` and `_wall_exhausted = elapsed ≥ max_wall or elapsed +
-  agent_timeout + ITERATION_TAIL ≥ max_wall`, used by both the loop top and the stop-reason
-  computation so refusal and reason are one predicate; `max_wall == 0` stays unlimited
-  (#29).
+  from the dead call (#29). Downstream stamps `salvaged: True` on those *rejections* too
+  (its `loop.py` sets it in the violation and `agent_error` branches); this template keeps
+  the flag to a `keep` — a reverted tree banked nothing, so calling it salvaged overstates
+  the round — and records the death on every dead outcome as `agent_exit_code` (T3; PRD 20
+  M3 divergence).
+- The reservation is the *exact* cost of one iteration, not a fixed tail:
+  `agent_timeout + guard_timeout + repeats × verify_timeout` (3300 s at 900 + 600 +
+  3 × 600), used by both the loop top and the stop-reason computation so refusal and
+  reason are one predicate; `max_wall == 0` stays unlimited, and a wall **at or below**
+  the reservation is a precondition error (exit 2) raised before the baseline, not a run
+  that measures and then exits 0 having done nothing. Downstream instead writes
+  `ITERATION_TAIL = 120` and `_wall_exhausted = elapsed ≥ max_wall or elapsed +
+  agent_timeout + ITERATION_TAIL ≥ max_wall` (#29) — the same two clauses, with a literal
+  tail that under-reserves a repeats-multiplied verify; this template derives the tail from
+  the run's own config because downstream parity is not required there (T3; PRD 20).
 - The reserve is restated once, as a literal: `ROUND_RESERVE = 120` is also hard-coded in
   `MAX_WALL = ROUND_WALL − 120` (`arena.py:153`), so the chain is derived except at that one
   point; `ROUND_WALL = 2·SEAT_WALL + ROUND_RESERVE`, `ROUND_START_BUDGET = ROUND_WALL + 600`,

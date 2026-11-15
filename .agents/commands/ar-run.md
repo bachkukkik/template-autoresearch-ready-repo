@@ -14,7 +14,7 @@ EXECUTE IMMEDIATELY. Bounded by default — never launch an unbounded run.
 | `--replay FILE` | A `--record` JSONL from an earlier run — no harness needed |
 | `--agent-cmd CMD` | `{prompt_file}` / `{repo}` substituted; **local throwaway targets only** |
 | `--max-iterations N` | Default small (`3`–`10`). Total, not per invocation |
-| `--max-wall S` | Seconds for this invocation. Always set one on a first run, and never below `3600` — one iteration reserves `agent_timeout + guard_timeout + repeats × verify_timeout` (3300 s at the defaults), so a smaller wall is refused in preflight |
+| `--max-wall S` | Seconds for this invocation. Always set one on a first run, and never below `3600` — one iteration reserves `agent_timeout + guard_timeout + repeats × verify_timeout` (3300 s at the defaults), and a wall **at or below** that reservation is refused in preflight (exit 2, naming the smallest usable wall). `3600` leaves headroom; a `3400` s wall is accepted |
 | `--plateau K` `--agent-timeout S` `--max-crashes C` `--record FILE` `--json` | Pass through |
 
 If `--agent` is missing, ask once. Do not default to `claude`.

@@ -237,6 +237,24 @@ def test_provenance_block_refuses_a_field_over_the_length_cap(profile):
     assert len(at_cap["model"]) == ledger_mod.MAX_PROVENANCE_FIELD
 
 
+def test_provenance_block_refuses_a_non_string_field(profile):
+    """AC-EVL-006: a non-string ``model_route`` is a *type* error, not a length
+    error — the refusal names the field and the type it got, so an operator is
+    not sent chasing 512 characters that were never there."""
+    with pytest.raises(ledger_mod.LedgerError) as caught:
+        ledger_mod.provenance_block(
+            model="m",
+            model_route=12345,
+            engine_version="0.1.0",
+            referee_version="0.3.2",
+            profile_path=profile,
+        )
+    message = str(caught.value)
+    assert "model_route is not a string" in message
+    assert "int" in message
+    assert "longer than" not in message
+
+
 def test_non_decision_outcomes_do_not_need_provenance():
     """AC-EVL-006: provenance attaches to decisions; a crash or a no-change
     trial is not a keep/discard and stays valid without a block."""
@@ -576,8 +594,8 @@ def test_the_cli_refuses_a_credential_bearing_model_before_it_writes_anything(
     assert support.init_run(repo) == 0
     head_before = support.head(repo)
 
-    # The sentinel is *interpolated*: a literal placeholder here made the leak
-    # assertions below vacuous, which is exactly what they exist to catch.
+    # The sentinel is *interpolated*: a literal placeholder here would make the
+    # leak assertions below vacuous, which is exactly what they exist to catch.
     bad_model = f"https://{LEAKED_SECRET}@gateway.example/v1"
     argv = support.run_args(
         repo, script, extra=["--model", bad_model, "--max-iterations", "1"]

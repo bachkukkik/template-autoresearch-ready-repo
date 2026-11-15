@@ -64,10 +64,16 @@ at t=900 s; the outer `timeout … 1800` then SIGKILLed it mid-call, so the meas
 ran — and any salvage of that work never fired either. A bound may never kill the run it
 bounds.
 
-- **Reserve the tail in the predicate:**
-  `elapsed + agent_timeout + ITERATION_TAIL >= max_wall` (`ITERATION_TAIL = 120` pays
-  guard/verify/decide). Use the *same* predicate at the loop top and for the stop reason, so
-  "refused" and "why it stopped" are one function; `max_wall == 0` stays unlimited.
+- **Reserve the tail in the predicate:** before starting an iteration, check that the
+  remaining budget pays for it in full — `elapsed + agent_timeout + guard_timeout +
+  repeats × verify_timeout >= max_wall` (3300 s at 900 + 600 + 3 × 600). The number is
+  derived from the run's own config, not a literal: downstream's `ITERATION_TAIL = 120`
+  paid guard/verify/decide and under-reserved a repeats-multiplied verify, so it was
+  replaced by the exact reservation (2026-11-15). Use the *same* predicate at the loop top
+  and for the stop reason, so "refused" and "why it stopped" are one function;
+  `max_wall == 0` stays unlimited. A wall **at or below** the reservation is a preflight
+  error (exit 2, naming the smallest usable wall) rather than a run that measures a
+  baseline, finds iteration 1 unaffordable and exits 0 having done nothing.
 - **Derive, but count the literals:** `ROUND_RESERVE 120`, `round = n·slot + reserve`
   (2,400 s for two 1,140 s seats), `MAX_WALL = round − 120` (`arena.py` literals the reserve,
   restated once), round-start budget `= round + 600`, and `cap × budget ≤ season wall`
@@ -88,9 +94,11 @@ bounds.
   refuses to fund an iteration, and stops on the wall with 0 iterations. A round that is
   arithmetically a one-seat round should read as one — in the record, not in the log only.
 
-The engine-side salvage that depends on this reservation is on [[deterministic-keep-gate]];
-the per-competitor slot allocation and the void-round rule are on
-[[fair-competition-invariants]]; where the refusal lands is [[run-record-contract]].
+The engine-side salvage that depends on this reservation is on [[deterministic-keep-gate]]
+— the template stamps `salvaged` on a `keep` only, because a reverted tree banked nothing,
+where downstream also sets the flag on a rejection; the per-competitor slot allocation and
+the void-round rule are on [[fair-competition-invariants]]; where the refusal lands is
+[[run-record-contract]].
 
 ## Dry run is a stop condition too
 

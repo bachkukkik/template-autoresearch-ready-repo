@@ -299,6 +299,17 @@ def _streak(trials: Sequence[dict], predicate) -> int:
     return count
 
 
+def _repeats_phrase(repeats: int) -> str:
+    """``3 repeats`` / ``1 repeat`` — a count and its noun agree.
+
+    ``--repeats 1`` is legal (a single arm), and the preflight and the wall note
+    both quote the reservation to a human: "1 repeats × verify" reads as a bug
+    in the arithmetic rather than a choice the operator made.
+    """
+    count = int(repeats)
+    return f"{count} repeat" if count == 1 else f"{count} repeats"
+
+
 def _iteration_reservation(cfg, opts: Options) -> float:
     """Seconds one iteration can still owe once the wall check has passed.
 
@@ -332,7 +343,7 @@ def _require_wall_funds_an_iteration(cfg, opts: Options) -> None:
         f"--max-wall {opts.max_wall:g}s cannot fund even "
         f"{MIN_FUNDED_ITERATIONS} iteration: one reserves {reservation:g}s "
         f"(agent timeout {opts.agent_timeout:g}s + guard {cfg.guard_timeout:g}s "
-        f"+ {cfg.repeats} repeats × verify {cfg.verify_timeout:g}s) — the "
+        f"+ {_repeats_phrase(cfg.repeats)} × verify {cfg.verify_timeout:g}s) — the "
         f"smallest usable wall is {minimum}s; pass --max-wall 0 for unlimited"
     )
 
@@ -947,7 +958,7 @@ def _finish(
             f"wall: {time.monotonic() - started:.0f}s of {opts.max_wall:g}s spent; "
             f"one iteration reserves {_iteration_reservation(cfg, opts):g}s "
             f"(agent {opts.agent_timeout:g}s + guard {cfg.guard_timeout:g}s + "
-            f"{cfg.repeats} × verify {cfg.verify_timeout:g}s) — not starting "
-            f"iteration {iteration + 1}"
+            f"{_repeats_phrase(cfg.repeats)} × verify {cfg.verify_timeout:g}s) — "
+            f"not starting iteration {iteration + 1}"
         )
     return 0

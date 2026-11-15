@@ -128,6 +128,14 @@ def provenance_block(
     later cost/token provenance can be layered on without a schema break.
     """
     for field, value in (("model", model), ("model_route", model_route)):
+        if not isinstance(value, str):
+            # A type error is not a length error: answering a `model_route=123`
+            # with "longer than 512 characters" names the wrong defect and sends
+            # the operator to the wrong field.
+            raise LedgerError(
+                f"{field} is not a string (got {type(value).__name__}) — "
+                f"record an identifier"
+            )
         if embeds_credentials(value):
             # The ledger is append-only: a secret written here can never be
             # edited out, only rotated away. Refuse it at the seam that builds
@@ -135,13 +143,13 @@ def provenance_block(
             raise LedgerError(
                 f"{field} embeds credentials — record the {field} without secrets"
             )
-    if not isinstance(model, str) or not model.strip():
+    if not model.strip():
         raise LedgerError(
             "model is empty — record a model identifier (or '<adapter>:default'); "
             "an empty field looks complete and names nothing"
         )
     for field, value in (("model", model), ("model_route", model_route)):
-        if not isinstance(value, str) or len(value) > MAX_PROVENANCE_FIELD:
+        if len(value) > MAX_PROVENANCE_FIELD:
             # Both fields are identifiers, and the block is the last place a
             # pasted payload can be refused instead of appended forever.
             raise LedgerError(

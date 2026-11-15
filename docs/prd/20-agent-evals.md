@@ -179,6 +179,14 @@ columns, not the set of outcomes). The frozen contract ledger under
   Deliberate divergence from the downstream engine, whose `ITERATION_TAIL =
   120` under-reserves a repeats × timeout verify; the template's arithmetic is
   exact and downstream parity is not required here.
+- [ASSUMPTION] **M3 divergence — `salvaged` marks a banked measurement, not a
+  dead agent.** Downstream also stamps `salvaged: True` on a dead *rejection*
+  (a scope/protected violation, `agent_error`); the template stamps it on a
+  `keep` only. That is the doctrine-faithful reading: a reverted tree banked
+  nothing, so calling it salvaged would overstate the round. The death is still
+  recorded — `agent_exit_code` rides along on every dead outcome — so nothing is
+  lost by withholding the flag; `tests/unit/test_engine_loop.py` pins both
+  halves (`salvaged` absent on `agent_error`, present on a salvaged keep).
 - The engine handles only `SIGINT`; an outer `SIGTERM`/`SIGKILL` cannot be
   salvaged. The wall reservation is the defence there, not a promise that a
   kill is safe.
