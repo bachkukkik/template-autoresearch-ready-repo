@@ -74,12 +74,9 @@ class Workload:
 
 _SPECS: dict[str, dict] = {
     "contract": {
-        # `-m train` rather than `train.py`: the engine protects every file named
-        # as a path token in verify/guard, and train.py is exactly the file the
-        # agent edits here — naming it as a path would revert every candidate as
-        # a protected violation. The module form runs the same file, prints the
-        # same `val_bpb:` summary, and leaves prepare.py (the evaluator) as the
-        # one protected file.
+        # `-m train`, not `train.py`: the engine protects every path token named
+        # in verify/guard and train.py is the file the agent edits, so naming it
+        # would revert every candidate — leaving prepare.py the one protected file.
         "verify": "python3 -m train",
         "guard": "python3 prepare.py",
         "metric_name": "val_bpb",

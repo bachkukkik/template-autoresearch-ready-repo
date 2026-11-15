@@ -205,10 +205,10 @@ def test_ac_pra_006_no_hardcoded_endpoint_model_or_credential():
 
 def test_ac_pra_007_env_example_documents_the_optional_block():
     text = _read(ENV_EXAMPLE)
-    assert re.search(r"^# ─── PR-Agent \(optional\)", text, re.M), (
-        ".env.example must carry a `# ─── PR-Agent (optional) ───` section so "
-        "`scripts/gen-env.py` copies its comments into `.env` and an agent reading "
-        "`.env` sees the feature (AC-PRA-007)"
+    assert "# PR-Agent (optional; CI reads its own GitHub vars/secrets" in text, (
+        ".env.example must mark its PR-Agent block with a comment naming CI as the "
+        "real source of those values, so `scripts/gen-env.py` copies it into `.env` "
+        "and an agent reading `.env` sees the feature (AC-PRA-007)"
     )
     values = {}
     for line in text.splitlines():

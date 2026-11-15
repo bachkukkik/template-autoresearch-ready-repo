@@ -23,10 +23,9 @@ def decide(
     if candidate is None or incumbent is None:
         return DISCARD
     floor = max(0.0, float(noise_floor))
-    # The floor is a fraction of the incumbent's *magnitude*: a negative metric
-    # must not flip the margin's sign, or every step toward zero would look
-    # like progress. At exactly 0 there is no relative scale, so the floor
-    # falls back to an absolute amount.
+    # The floor scales with the incumbent's *magnitude* so a negative metric
+    # cannot flip the margin's sign; at exactly 0 there is no relative scale,
+    # so the floor falls back to an absolute amount.
     margin = abs(float(incumbent)) * floor if incumbent != 0 else floor
     if direction == "lower":
         return KEEP if candidate < incumbent - margin else DISCARD

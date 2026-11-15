@@ -1,28 +1,21 @@
-# === Environment & Secrets ===
+# Secrets and credentials are local-only; only .example shapes are tracked —
+# plus the README that documents the directory (AGENTS.md §Security, secret-scan).
 .env
 .env.*
 !.env.example
 *.pem
 *.key
 *.p12
-
-# Live credentials directory — AGENTS.md §Security calls for a *gitignored*
-# credentials dir; this is it. Real webhook specs, service-account JSON, tokens.
-# Only `.example` shapes are ever tracked — plus the README that documents the
-# directory — which is what ci.yml's secret-scan job asserts.
 .credentials/*
 !.credentials/*.example
 !.credentials/*.example.*
-# the tracked README explains the directory and points at example.json.example
 !.credentials/README.md
 
-# === Node.js ===
 node_modules/
 dist/
 build/
 *.local
 
-# === Python ===
 __pycache__/
 *.pyc
 .venv/
@@ -31,10 +24,8 @@ venv/
 .pytest_cache/
 .mypy_cache/
 
-# === Docker ===
 docker-compose.override.yml
 
-# === IDE & OS ===
 .vscode/
 .idea/
 *.swp
@@ -43,37 +34,25 @@ docker-compose.override.yml
 .DS_Store
 Thumbs.db
 
-# === Logs ===
 *.log
 logs/
-
-# === Test artifacts ===
 test-results/
 coverage/
 .coverage
 htmlcov/
 
-# === Autoresearch loop ===
-# upstream leaves the results log untracked (program.md §Logging results)
+# Run logs, the date-stamped loop output and the service's SQLite store stay
+# untracked; the narrowed pattern keeps autoresearch/{contract,engine,README.md}
+# and each directory's .gitkeep tracked.
 results.tsv
-# The vendored .agents/skills/autoresearch skill writes each run's logs to
-# autoresearch/{subcommand}-{YYMMDD}-{HHMM}/. The pattern is narrowed to that
-# date stamp so the tracked engine root (contract/, engine/, README.md) under
-# autoresearch/ stays tracked.
 autoresearch/*-[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]/
-
-# === Runtime SQLite job store + per-job workspaces ===
-# the service writes its jobs DB to autoresearch/service/data/jobs.db
-# (RESEARCH_JOBS_DB default resolves under autoresearch/service/; /app/data in
-# the container)
 autoresearch/service/data/*
 !autoresearch/service/data/.gitkeep
 
-# === Agent scratch space ===
 scratchpads/*
 !scratchpads/.gitkeep
 
-# === Harness-local dirs — the symlinks into .agents/ are tracked, runtime state is not ===
+# Harness-local runtime state; the symlinks into .agents/ stay tracked.
 .claude/*
 !.claude/skills
 !.claude/plugins
@@ -82,29 +61,12 @@ scratchpads/*
 .opencode/*
 !.opencode/commands
 
-# === The doctrine is TRACKED — do not add ignores for any of these ===
-# AGENTS.md, PRD.md, docs/, kb/, tests/, .agents/, .github/ and the harness symlinks
-# are versioned artifacts, not local scaffolding (AGENTS.md funnel rule 10). kb/ in
-# particular is funnel stage 2-3: kb/raw/ is immutable source material and the layer-2
-# pages ground every PRD — unused material is archived to kb/_archive/, never deleted,
-# never ignored.
-#
-# Ignoring any of them empties the funnel for every agent working from a fresh clone,
-# and leaves the tracked .claude/* symlinks dangling once .agents/ stops being
-# committed. The `doctrine` job in .github/workflows/ci.yml fails the build if it
-# happens, so a local override here will not go unnoticed.
+# The doctrine is TRACKED (AGENTS.md funnel rule 10): never ignore AGENTS.md,
+# PRD.md, docs/, kb/, tests/, .agents/, .github/ — ci.yml's `doctrine` job
+# fails the build if any of them is ignored.
 
-# === codegraph local index (local SQLite artifact) ===
-# Ignore the whole directory — upstream's rule. codegraph writes its own .gitignore,
-# SQLite database and daemon files inside; nothing under .codegraph/ is tracked.
+# codegraph and graphify artifacts are local-only; a directory rule beats
+# enumerating them (the next artifact version would add untracked noise). To
+# track the graph, un-ignore graphify-out/graph.json and add its merge driver.
 .codegraph/
-
-# === graphify knowledge graph ===
-# Default: the graph is LOCAL — untracked, rebuilt on demand. Ignore the whole
-# directory by rule rather than enumerating artifacts: a run leaves a root marker,
-# detect/ast/semantic/chunk files, caches and, across a version bump, date-stamped
-# pre-upgrade backup directories. Enumerating them guarantees the next artifact
-# version adds untracked noise and tempts a blanket `git add`.
 graphify-out/*
-# Tracking the graph? Un-ignore it AND register the merge driver in .gitattributes:
-#   !graphify-out/graph.json

@@ -575,10 +575,9 @@ def run(cfg, adapter, ledger: ledger_mod.Ledger, opts: Options, emit: Emitter) -
         try:
             _baseline(cfg, ledger, state, emit)
         except KeyboardInterrupt:
-            # Ctrl-C before there is a baseline. There is no incumbent to
-            # restore and nothing worth recording: a stop event without a
-            # baseline would make the ledger unreplayable, so the run ends with
-            # an empty history and the next invocation measures again.
+            # Ctrl-C before any baseline: no incumbent to restore, and a stop
+            # event without a baseline would make the ledger unreplayable, so
+            # nothing is recorded and the next invocation measures again.
             emit.note("interrupted during the baseline — nothing was recorded")
             return 0
         incumbent = state.incumbent
@@ -602,10 +601,9 @@ def run(cfg, adapter, ledger: ledger_mod.Ledger, opts: Options, emit: Emitter) -
         )
     config_mod.require_clean(cfg.repo, what="working tree")
 
-    # A stopped run that is started again is a *resumed* run: the resume event
-    # supersedes the final stop (see ledger.validate) instead of leaving the
-    # ledger with two stops and no seam. Written only once every precondition
-    # has passed, so a refused invocation does not touch the history.
+    # Starting a stopped run again *resumes* it: the resume event supersedes the
+    # final stop (see ledger.validate) and is written only after every
+    # precondition passed, so a refused invocation never touches the history.
     _resume(cfg, ledger, events, state, emit)
 
     iteration = state.next_iteration
@@ -628,9 +626,8 @@ def run(cfg, adapter, ledger: ledger_mod.Ledger, opts: Options, emit: Emitter) -
             trial["log_tail"] = _cap(str(trial.get("log_tail") or ""))
             last_log = trial["log_tail"] or last_log
             if trial.get("outcome") in PROMPT_FAILURE_OUTCOMES and last_log:
-                # What the agent is told next depends on why this one failed:
-                # an agent error carries its own output, a guard failure the
-                # guard's, a crash the verify's. Silently dropping it made the
+                # The next attempt is told *why* this one failed — the agent's
+                # own output, the guard's, or the verify's; dropping it made the
                 # next attempt repeat the same mistake.
                 last_failure = last_log
             event = ledger.append({"type": "trial", **trial})

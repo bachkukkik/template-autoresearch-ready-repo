@@ -59,10 +59,8 @@ class Ledger:
         with open(self.path, "r", encoding="utf-8") as handle:
             lines = handle.readlines()
         # The final non-empty line may be a torn append (the process died
-        # mid-write). Refusing to read the ledger at all wedged the run forever,
-        # so that one line is dropped with a warning; every earlier line must
-        # still parse, because a corrupt line with events after it is a real
-        # ledger error rather than a half-written tail.
+        # mid-write): drop that one line with a warning, but every earlier line
+        # must still parse — a corrupt line followed by events is a real error.
         last_content = max(
             (index for index, line in enumerate(lines, start=1) if line.strip()),
             default=0,
@@ -178,10 +176,9 @@ def validate(events: Sequence[Dict]) -> List[str]:
             problems.append("baseline event has no 'commit'")
 
     stops = [e for e in events if e.get("type") == "stop"]
-    # A stop closes one segment of the run. Continuing a stopped run appends a
-    # `resume`, so the ledger is a sequence of segments and the single-final-stop
-    # rule becomes: at most one stop per segment, a stop is only ever followed by
-    # a resume (or by nothing), and only the last segment may be left open.
+    # A stop closes one segment; continuing a stopped run appends a `resume`, so
+    # the rule becomes: at most one stop per segment, a stop followed only by a
+    # resume (or nothing), and only the last segment may be left open.
     segment = 1
     stops_in_segment = 0
     previous_type = None
