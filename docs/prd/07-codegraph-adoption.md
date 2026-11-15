@@ -80,11 +80,13 @@ anonymous, default-on, opt-out; no live credentials anywhere in the wiring.
 - **SC5** — **Test selection via `codegraph affected`.** `git diff --name-only |
   codegraph affected --stdin` maps changed files to the test files that cover them,
   so a change targets its own tier instead of running everything. A test-file glob
-  is required on this layout (`-f 'tests/**/*.py'`). _Verify:_
-  `tests/integration/test_codegraph_live.py` (AC-CG-202 — **opt-in**, same
-  preflight; asserts a test-file glob maps a changed source file to its test, and
-  that the default filter maps nothing). See *Assumptions* for the filter
-  requirement.
+  (`-f 'tests/**/*.py'`) is the version-independent way to get that mapping and is
+  required up to codegraph 1.6.0; from 1.6.2 the default filter maps Python tests
+  too. _Verify:_ `tests/integration/test_codegraph_live.py` (AC-CG-202 —
+  **opt-in**, same preflight; asserts the `tests/*.py` glob maps a changed source
+  file to its test, and that the default filter returns nothing on <=1.6.0 or
+  exactly that test on >=1.6.2 — never a wrong file). See *Assumptions* for the
+  version boundary.
 
 - **SC6** — **Telemetry opt-out.** Any CI or scripted codegraph run sets
   `DO_NOT_TRACK=1`, so the anonymous rollups (default-on) are off — off means off.
@@ -125,17 +127,22 @@ anonymous, default-on, opt-out; no live credentials anywhere in the wiring.
   behind the `require_tool` preflight — and never invokes the `codegraph` binary. The
   live half sits in the integration tier and is opt-in, so the `unit` tier's verdict
   never moves onto the host. `[ASSUMPTION]`
-- `codegraph affected --stdin` maps **nothing by default** on this repo's Python
-  layout: the default test-file filter does not match `tests/*.py`, so `echo
-  autoresearch/service/autoresearch_service/runner.py | codegraph affected --stdin` prints "No test files affected
-  by the changed files." **A test-file glob fixes it** — `echo
-  autoresearch/contract/prepare.py | codegraph affected --stdin -f
-  'tests/**/*.py' -q` prints
+- `codegraph affected --stdin` maps **nothing by default up to 1.6.0** on this
+  repo's Python layout: the default test-file filter does not match `tests/*.py`, so
+  `echo autoresearch/service/autoresearch_service/runner.py | codegraph affected
+  --stdin` prints "No test files affected by the changed files." **A test-file glob
+  fixes it** — `echo autoresearch/contract/prepare.py | codegraph affected --stdin
+  -f 'tests/**/*.py' -q` prints
   `tests/unit/test_domain_hooks.py`, and `autoresearch/service/autoresearch_service/main.py` prints
-  `tests/unit/test_routes.py` + `tests/unit/test_workspace.py`. SC5 therefore
-  requires `-f <glob>`, and AC-CG-202 asserts both halves (the glob maps, the
-  default stays empty). Test selection is also available from the
-  `codegraph_explore` blast radius. `[ASSUMPTION]`
+  `tests/unit/test_routes.py` + `tests/unit/test_workspace.py`. From **1.6.2** the
+  default filter maps Python tests as well: on 2026-11-15,
+  `echo autoresearch/service/autoresearch_service/main.py | codegraph affected
+  --stdin -q` prints `tests/unit/test_routes.py`, `test_runner.py`,
+  `test_service_engine.py` and `test_workspace.py`, where 1.6.0 prints nothing. The
+  glob therefore stays the version-independent way (required on <=1.6.0, still
+  recommended on 1.6.2), and AC-CG-202 asserts the glob half exactly plus a
+  version-tolerant default half (`[]` or exactly the covering test). Test selection
+  is also available from the `codegraph_explore` blast radius. `[ASSUMPTION]`
 - The index is a **per-clone artifact**: a fresh clone has no `.codegraph/` at all
   until `codegraph install` + `codegraph init`; codegraph then writes its own
   `.codegraph/.gitignore` (a `*` + `!.gitignore` pair) on validating commands. The

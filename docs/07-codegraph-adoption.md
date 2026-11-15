@@ -33,7 +33,7 @@ codegraph init                     # once per clone: builds .codegraph/ (ignored
 | CLI twins (no MCP client) | `codegraph explore\|node\|callers\|callees\|impact\|query\|affected` |
 | Index | `.codegraph/` SQLite (WAL), local, ignored wholesale — nothing under it is tracked |
 | Fresh session | `codegraph sync` before trusting the graph (resident watcher otherwise auto-syncs) |
-| Test selection | `git diff --name-only \| codegraph affected --stdin -f 'tests/**/*.py'` (a test glob is required here — see *What Fails*) |
+| Test selection | `git diff --name-only \| codegraph affected --stdin -f 'tests/**/*.py'` (the glob is version-independent — required on codegraph <=1.6.0, while 1.6.2 maps Python tests by default; see *What Fails*) |
 | Telemetry | anonymous rollups, default ON, opt out with `DO_NOT_TRACK=1` (or `CODEGRAPH_TELEMETRY=0`) |
 
 Harness wiring is per harness (Hermes `$HERMES_HOME/config.yaml` `mcp_servers` +
@@ -128,6 +128,31 @@ PATH=<dir-with-a-python3-and-no-codegraph>:/usr/bin:/bin python3 -m pytest \
 # 2 skipped  ("ambient tool 'codegraph' is not on PATH (shutil.which)")
 ```
 
+**2026-11-15 observation — two binaries, one contract.** The host carries
+`~/.npm-global/bin/codegraph` (1.6.0) and `/usr/local/bin/codegraph` (1.6.2, first on
+`PATH`, so the one pytest resolves). A hermetic `src/` + `tests/` fixture and this
+repo, measured against both:
+
+```bash
+# hermetic fixture: src/__init__.py, src/m.py, tests/test_m.py, tests/unit/test_n.py
+# changed file: src/m.py
+codegraph affected --stdin -j                    # 1.6.0: [] | 1.6.2: [tests/test_m.py, tests/unit/test_n.py]
+codegraph affected --stdin -j -f 'tests/*.py'    # 1.6.0: [tests/test_m.py] | 1.6.2: [tests/test_m.py]
+codegraph affected --stdin -j -f 'tests/**/*.py' # 1.6.0: [tests/unit/test_n.py] | 1.6.2: same
+
+# this repo, default filter, DO_NOT_TRACK=1
+echo autoresearch/service/autoresearch_service/main.py | codegraph affected --stdin -q
+# 1.6.2 -> tests/unit/test_routes.py, test_runner.py, test_service_engine.py, test_workspace.py
+# 1.6.0 -> no output ("No test files affected by the changed files.")
+
+python3 -m pytest tests/integration/test_codegraph_live.py -q   # 2 passed under each binary
+```
+
+The default filter therefore maps Python tests from 1.6.2, and the two globs return
+the same files on both versions. AC-CG-202 keeps the `-f 'tests/*.py'` half as the
+version-independent contract and accepts `[]` (<=1.6.0) or exactly
+`[tests/test_m.py]` (>=1.6.2) for the default half — a wrong file fails either way.
+
 ## What Works
 
 - **One-tool MCP surface, live:** `tools/list` over `codegraph serve --mcp` returns
@@ -156,13 +181,20 @@ PATH=<dir-with-a-python3-and-no-codegraph>:/usr/bin:/bin python3 -m pytest \
   git project through `codegraph init` → `status` → `sync` → `query` and
   `affected --stdin -f 'tests/*.py'`. It skips, naming the tool, where `codegraph` is
   absent, so the CI runners report skips and never a red tier.
+- **The default `affected` filter maps Python tests on 1.6.2:** `echo
+  autoresearch/service/autoresearch_service/main.py | codegraph affected --stdin -q`
+  lists `tests/unit/test_routes.py`, `test_runner.py`, `test_service_engine.py` and
+  `test_workspace.py` under `/usr/local/bin/codegraph` 1.6.2, where 1.6.0 on the same
+  tree lists nothing (measured 2026-11-15).
 
 ## What Fails
 
-- **`codegraph affected` maps nothing with its default filter:** `echo
-  service/src/runner.py | codegraph affected --stdin` returns "No test files affected
-  by the changed files." on this Python layout, even though the call edges exist.
-  A test-file glob (`-f 'tests/**/*.py'`) is what maps a changed file to its tests.
+- **`codegraph affected` maps nothing with its default filter (codegraph <=1.6.0):**
+  `echo service/src/runner.py | codegraph affected --stdin` returns "No test files
+  affected by the changed files." on this Python layout, even though the call edges
+  exist. A test-file glob (`-f 'tests/**/*.py'`) is what maps a changed file to its
+  tests. Superseded on codegraph 1.6.2 (2026-11-15), whose default filter maps Python
+  tests — the record above stands for <=1.6.0.
 - **The index is per-clone:** a fresh clone has no `.codegraph/` until
   `codegraph install` + `codegraph init`; `codegraph status` flags pending changes
   and the graph cannot be trusted before `codegraph sync`.
@@ -175,11 +207,13 @@ PATH=<dir-with-a-python3-and-no-codegraph>:/usr/bin:/bin python3 -m pytest \
 
 ## Resolution
 
-- **`codegraph affected` maps nothing with its default filter:** pass a test glob —
+- **`codegraph affected` maps nothing with its default filter (codegraph <=1.6.0):**
+  pass a test glob —
   `codegraph affected --stdin -f 'tests/**/*.py'` maps `autoresearch/contract/prepare.py` to
   `tests/unit/test_domain_hooks.py` and `service/src/main.py` to
-  `tests/unit/test_routes.py` + `tests/unit/test_workspace.py`. The default filter
-  stays a limitation, so always give the recipient tier a glob.
+  `tests/unit/test_routes.py` + `tests/unit/test_workspace.py`. The glob stays the
+  version-independent way and is required up to 1.6.0; on 1.6.2 the default filter also
+  maps, so either form works there.
 - **The index is per-clone:** run `codegraph install` then `codegraph init`, and
   `codegraph sync` in a fresh session — both are stated in `AGENTS.md` `## codegraph`
   and the root `README.md`.
@@ -199,5 +233,5 @@ surface is pinned by the hermetic unit test `tests/unit/test_codegraph_adoption.
 (AC-CG-001..006), and SC4/SC5 by the opt-in integration test
 `tests/integration/test_codegraph_live.py` (AC-CG-201..202), which skips wherever the
 Node tool is absent. Two seams stay open: `codegraph affected` needs an explicit
-test-file glob on this layout, and no CI job exercises the live calls — read the doc
-for the mechanism and those seams.
+test-file glob up to 1.6.0 (1.6.2 maps Python tests by default), and no CI job
+exercises the live calls — read the doc for the mechanism and those seams.
