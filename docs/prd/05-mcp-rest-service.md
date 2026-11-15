@@ -65,7 +65,9 @@ execution; security stack introduced fully.
   401; `/health` stays unauthenticated by design (FastMCP custom route).
   _Verify:_ `tests/integration/test_auth.py` (AC-MCP-221..223),
   `tests/unit/test_auth.py` (AC-MCP-041..043 — the fail-closed core:
-  `verify_token`, unset-token denial, `AUTH_DISABLED=1`).
+  `verify_token`, unset-token denial, `AUTH_DISABLED=1`),
+  `tests/unit/test_conftest_env.py` (AC-MCP-046 — no inherited `AUTH_*` reaches
+  a spawned service, so the integration tier's posture is the one it declares).
 - **SC7** — The service is `uv`-managed: sources + `Dockerfile` live in
   `autoresearch/service/`, and since PRD-20 they ship from ONE
   `autoresearch/pyproject.toml` + `uv.lock` as the `[service]` extra; the image
@@ -93,6 +95,7 @@ execution; security stack introduced fully.
 | Sandboxed runner, no code-exec tool | `tests/unit/test_runner.py` | AC-MCP-021..023 |
 | Bearer auth on REST + MCP, /health open | `tests/integration/test_auth.py` | AC-MCP-221..223 |
 | Auth core fail-closed (token, unset, disabled) | `tests/unit/test_auth.py` | AC-MCP-041..043 |
+| Spawned service env inherits no `AUTH_*` | `tests/unit/test_conftest_env.py` | AC-MCP-046 |
 | uv-managed container healthy via compose | `tests/e2e/service.bats` | AC-MCP-101..103 |
 
 ## Assumptions

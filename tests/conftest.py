@@ -108,9 +108,22 @@ _SERVICE_VENV_BIN = os.path.join(_SERVICE_ROOT, ".venv", "bin")
 _SERVICE_IMPORTS = "import fastapi, fastmcp, uvicorn, autoresearch"
 
 
+# Auth settings are NOT inherited: the in-process unit modules set AUTH_DISABLED
+# at import time and a developer shell may carry a token, so a copied value would
+# silently flip the spawned service's posture. Only the caller's overrides apply.
+_INHERITED_AUTH_KEYS = ("AUTH_DISABLED", "AUTH_BEARER_TOKEN")
+
+
 def service_subprocess_env(**overrides):
-    """Return the environment for a spawned service process (no venv required)."""
+    """Return the environment for a spawned service process (no venv required).
+
+    An inherited ``AUTH_DISABLED`` / ``AUTH_BEARER_TOKEN`` is dropped so the
+    caller alone decides the service's auth posture — otherwise the value leaks
+    across tiers in one pytest process and an auth-enabled spawn serves open.
+    """
     env = dict(os.environ)
+    for key in _INHERITED_AUTH_KEYS:
+        env.pop(key, None)
     inherited = env.get("PYTHONPATH")
     env["PYTHONPATH"] = (
         _SERVICE_PYTHONPATH + os.pathsep + inherited if inherited else _SERVICE_PYTHONPATH
