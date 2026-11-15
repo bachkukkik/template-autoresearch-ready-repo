@@ -149,19 +149,20 @@ def test_sync_brings_a_stale_index_current_then_query_finds_the_new_symbol(cg_pr
 
 def test_affected_maps_a_changed_source_file_to_its_test(cg_project):
     """AC-CG-202 (SC5): `codegraph affected --stdin` maps a changed source file to
-    the test that covers it — given a test-file glob.
+    the test that covers it.
 
-    The default filter matches nothing on this Python layout, so the SC is met
-    through `-f <glob>` and both halves are asserted here: the glob maps the file,
-    and the default filter is documented-empty (never a silent false negative).
+    The `-f 'tests/*.py'` glob is the version-independent contract and is asserted
+    exactly. The default filter maps nothing up to codegraph 1.6.0 and the covering
+    test from 1.6.2, so that half accepts either answer — and no other file.
     """
     project, exe = cg_project
 
     default = _run([exe, "affected", "--stdin", "--json"], project, stdin=f"{SOURCE}\n")
     assert default.returncode == 0, default.stderr
-    assert json.loads(default.stdout)["affectedTests"] == [], (
-        "the DEFAULT filter is expected to map nothing on a Python layout — if this "
-        "now maps the test, the `-f` glob in the PRD-07 SC5 note is stale"
+    mapped = json.loads(default.stdout)["affectedTests"]
+    assert mapped in ([], [TEST_FILE]), (
+        "the DEFAULT filter must map nothing (codegraph <=1.6.0) or exactly the "
+        f"covering test (>=1.6.2) — never another file, got: {mapped}"
     )
 
     filtered = _run(
