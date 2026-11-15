@@ -1,4 +1,4 @@
-"""Dual-exposure autoresearch service, re-founded on the engine (PRD-20 SC1-SC4).
+"""Dual-exposure autoresearch service, re-founded on the engine (PRD-24 SC1-SC4).
 
 One ASGI app serves REST under ``/api/v1`` and MCP streamable HTTP at ``/mcp``
 from the same FastAPI/FastMCP process: each operation handler is defined once and
@@ -18,7 +18,7 @@ Two operation families:
     numeric ``val_bpb``. Execution is one engine measurement of the bundled
     ``contract`` workload.
 ``run_*`` / ``doctor``
-    PRD-20: a full keep/discard loop over a bundled workload driven by an
+    PRD-24: a full keep/discard loop over a bundled workload driven by an
     allowlisted agent (``replay`` by default), its report, and an inventory of
     what this instance can run.
 
@@ -66,7 +66,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 # PRD-06: cap on concurrently executing jobs (scheduler thread pool).
 MAX_CONCURRENT_JOBS = max(1, int(os.environ.get("RESEARCH_MAX_CONCURRENT_JOBS", "4")))
 
-# The workload a research_* job measures: the bundled toy contract (PRD-20 SC3).
+# The workload a research_* job measures: the bundled toy contract (PRD-24 SC3).
 RESEARCH_WORKLOAD = "contract"
 
 # Per-endpoint MCP tool flags: True means the operation is ALSO exposed as an
@@ -107,7 +107,7 @@ class ResearchRequest(BaseModel):
 
 
 class RunRequest(BaseModel):
-    """Body of POST /api/v1/runs (PRD-20 SC3/SC4)."""
+    """Body of POST /api/v1/runs (PRD-24 SC3/SC4)."""
 
     workload: str = RESEARCH_WORKLOAD
     agent: str = policy.REPLAY
@@ -163,7 +163,7 @@ def research_cancel(job_id: str) -> dict:
     return _cancel(job_id)
 
 
-# -- run operations (PRD-20) -------------------------------------------------
+# -- run operations (PRD-24) -------------------------------------------------
 
 
 def run_start(

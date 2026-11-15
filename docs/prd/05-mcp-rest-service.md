@@ -69,7 +69,7 @@ execution; security stack introduced fully.
   `tests/unit/test_conftest_env.py` (AC-MCP-046 — no inherited `AUTH_*` reaches
   a spawned service, so the integration tier's posture is the one it declares).
 - **SC7** — The service is `uv`-managed: sources + `Dockerfile` live in
-  `autoresearch/service/`, and since PRD-20 they ship from ONE
+  `autoresearch/service/`, and since PRD-24 they ship from ONE
   `autoresearch/pyproject.toml` + `uv.lock` as the `[service]` extra; the image
   installs with `uv sync --locked --extra service` and the container
   starts with `uv run --no-sync --no-dev uvicorn` (no runtime re-sync — a

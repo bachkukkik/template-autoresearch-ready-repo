@@ -1,4 +1,4 @@
-"""Unit tier — engine-backed operations on REST and MCP (PRD-20 SC3/SC4).
+"""Unit tier — engine-backed operations on REST and MCP (PRD-24 SC3/SC4).
 
 IDs: AC-SVC-010..016 (dual registration, replay run, report, refusals, research
 via the engine, per-job repo, cancel) and AC-SVC-020..024 (agent allowlist,

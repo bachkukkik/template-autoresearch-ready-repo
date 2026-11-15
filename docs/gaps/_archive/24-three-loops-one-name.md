@@ -1,4 +1,4 @@
-# 20 — Three loops under one name; the service cannot reach the engine
+# 24 — Three loops under one name; the service cannot reach the engine
 
 **Layers:** prd ↔ code
 **Status:** resolved
@@ -21,7 +21,7 @@ reaches a different one.
   imports nothing from `autoresearch/engine/`.
 - `autoresearch/engine/autoresearch/cli.py` exposes `init/run/status/report/doctor`; no
   module under `autoresearch/service/` references it.
-- Packaging is unified as of the PRD-20 W1 layout move (`autoresearch/pyproject.toml`
+- Packaging is unified as of the PRD-24 W1 layout move (`autoresearch/pyproject.toml`
   ships `autoresearch` + `autoresearch_service`), but only the packaging: the service
   still carries its own loop and metric parser.
 
@@ -33,7 +33,7 @@ demonstrable from this template.
 
 ## Resolution
 
-Code change + tests — PRD-20 (`docs/prd/20-autoresearch-as-a-service.md`), delivered in
+Code change + tests — PRD-24 (`docs/prd/24-autoresearch-as-a-service.md`), delivered in
 four waves on `feat/autoresearch-as-a-service`:
 
 1. **W1 one package.** `service/` folded into `autoresearch/service/`; engine, contract
@@ -53,7 +53,7 @@ four waves on `feat/autoresearch-as-a-service`:
    `.agents/skills/autoresearch-engine/SKILL.md` drives the engine CLI
    (`AC-HRN-019..020`).
 
-Reality is recorded in [docs/20](../../20-autoresearch-as-a-service.md): unit 353 passed,
+Reality is recorded in [docs/24](../../24-autoresearch-as-a-service.md): unit 353 passed,
 integration 26 passed, `verify-clone.sh` 33 checks passed, one image, and a live temp
 container showing a CLI replay run, `research_*` `val_bpb 3.795531`, a `run_*` engine
 summary, `report` 200, and 9 MCP tools with `command` refused.

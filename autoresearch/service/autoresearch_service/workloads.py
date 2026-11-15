@@ -1,4 +1,4 @@
-"""The workloads the service may execute, and where they live (PRD-20 SC2/SC4).
+"""The workloads the service may execute, and where they live (PRD-24 SC2/SC4).
 
 A workload is **bundled**: the caller names one and the service copies it into a
 per-job repo. No request field is a directory, so a caller can never point the

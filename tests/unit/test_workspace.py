@@ -2,7 +2,7 @@
 
 IDs: AC-MCP-031..037 — spec: docs/prd/06-multi-topic-concurrent-service.md.
 
-Retargeted (PRD-20 W2): provisioning now produces a *git repo* per job and the
+Retargeted (PRD-24 W2): provisioning now produces a *git repo* per job and the
 loop is the engine's, so each ID pins the same behaviour on the engine-backed
 path — a disjoint ``<job_id>/repo`` per job, corpus delivery, the report fields,
 concurrent measurements, the scheduler cap, and sync handlers.

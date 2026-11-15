@@ -1,4 +1,4 @@
-# PRD 20 — AutoResearch as a Service: One Engine, Four Surfaces
+# PRD 24 — AutoResearch as a Service: One Engine, Four Surfaces
 
 > Intent: one codebase drives the autoresearch loop from every surface an adopter
 > reaches for — **agent mode** (slash commands / skill), **CLI**, **REST API** and
@@ -8,7 +8,7 @@
 > [headless-harness-invocation](../../kb/concepts/headless-harness-invocation.md),
 > [autoresearch-engines-real-world](../../kb/comparisons/autoresearch-engines-real-world.md);
 > builds on PRD-05 (REST + MCP service), PRD-06 (multi-topic service) and PRD-17 (engine).
-> Gap: [20-three-loops-one-name](../gaps/20-three-loops-one-name.md).
+> Gap: [24-three-loops-one-name](../gaps/_archive/24-three-loops-one-name.md).
 
 ## Context
 
@@ -63,7 +63,7 @@ stays as a documented, separate methodology); multi-host job distribution.
 - **SC6 — Demonstrated live.** From a clean pull and a `docker compose up`, one bundled
   workload is driven through each surface (CLI, REST, MCP, a slash command) with recorded
   commands and outputs.
-  _Verify:_ `docs/20-autoresearch-as-a-service.md` (empirical; commands reproduced there).
+  _Verify:_ `docs/24-autoresearch-as-a-service.md` (empirical; commands reproduced there).
 
 ## Test Mapping
 

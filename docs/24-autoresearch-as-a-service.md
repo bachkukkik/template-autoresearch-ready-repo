@@ -1,4 +1,10 @@
-# 20 — Autoresearch as a Service
+# 24 — Autoresearch as a Service
+
+> **Renumber note — 2026-11-15.** This doc and its PRD were numbered **20** until today.
+> The downstream repo's numbering wins (its PRD 20 is *agent-evals*), so as-a-service moves
+> to **24** and frees 20–23 for the PRD/doc slots this repo is about to fill. Recorded
+> command lines below keep their original `PRD-20` labels — they transcribe a 2026-11-10 run
+> and were not re-run. See [PRD 24](prd/24-autoresearch-as-a-service.md).
 
 ## What
 
@@ -9,8 +15,8 @@ engine CLI, REST and MCP.
 
 ## Why
 
-- Before PRD-20 the repo carried three loops under one name (gap
-  [20](../gaps/_archive/20-three-loops-one-name.md)): `service/` ran the toy `val_bpb`
+- Before PRD-24 the repo carried three loops under one name (gap
+  [24](gaps/_archive/24-three-loops-one-name.md)): `service/` ran the toy `val_bpb`
   contract through its own `runner.py`, the engine was reachable only from a CLI, and the
   vendored skill was a prompt loop with neither.
 - A service is only "the same loop" if every surface reaches the engine's keep/discard,
@@ -58,7 +64,7 @@ empty; FastAPI, uvicorn, FastMCP, APScheduler and pydantic live behind the `serv
 | Family | Operations | Execution |
 |---|---|---|
 | `research_*` (PRD-05/06 contract kept) | `research_start`, `research_status`, `research_results`, `research_cancel` | **one** engine measurement of the bundled `contract` workload |
-| `run_*` / `doctor` (PRD-20) | `run_start`, `run_status`, `run_report`, `run_cancel`, `doctor` | a full engine keep/discard loop over a bundled workload |
+| `run_*` / `doctor` (PRD-24) | `run_start`, `run_status`, `run_report`, `run_cancel`, `doctor` | a full engine keep/discard loop over a bundled workload |
 
 Each operation is one Python handler, registered both as a REST route and as an MCP tool of
 the same name. A job returns an id immediately and is polled to a terminal status; its
@@ -311,7 +317,7 @@ docker rm -f ar-w4
   the report, but shows no improvement.
 - **`research_*` no longer researches the corpus.** The operation measures the bundled
   contract once and returns `val_bpb` with the topic as a label; `params.corpus` is
-  recorded as stats, and corpus content does not move the metric (PRD-20 records this as an
+  recorded as stats, and corpus content does not move the metric (PRD-24 records this as an
   `[ASSUMPTION]`).
 - **A slash-command invocation is not in this record.** Only command *resolution* was
   re-verified (symlinks above); no harness was driven through `/ar-run` in this session, so

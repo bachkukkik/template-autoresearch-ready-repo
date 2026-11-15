@@ -1,4 +1,4 @@
-"""Unit tier — one package, one lock, one loop (PRD-20 SC1/SC2).
+"""Unit tier — one package, one lock, one loop (PRD-24 SC1/SC2).
 
 IDs: AC-SVC-001..005.
 
@@ -31,7 +31,7 @@ def test_one_distribution_ships_both_packages():
     service and the `service` extra."""
     assert not (REPO_ROOT / "service").exists(), (
         "a root service/ directory exists — the service ships from "
-        "autoresearch/service/ under autoresearch/pyproject.toml (PRD-20 SC1)"
+        "autoresearch/service/ under autoresearch/pyproject.toml (PRD-24 SC1)"
     )
     pyproject = tomllib.loads((AUTORESEARCH / "pyproject.toml").read_text(encoding="utf-8"))
 

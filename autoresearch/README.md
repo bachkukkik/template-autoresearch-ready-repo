@@ -73,5 +73,5 @@ The commands live once in `.agents/commands/` and are symlinked from
 - [contract/examples/README.md](contract/examples/README.md) — five worked examples,
   including the NLTK 3.9.1 ex5 under a four-stage guard.
 - [service/README.md](service/README.md) — REST/MCP surface, env vars, per-job workspaces.
-- [../docs/20-autoresearch-as-a-service.md](../docs/20-autoresearch-as-a-service.md) —
+- [../docs/24-autoresearch-as-a-service.md](../docs/24-autoresearch-as-a-service.md) —
   the empirical record: what was verified on each surface and what still fails.

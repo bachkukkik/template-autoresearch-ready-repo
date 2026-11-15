@@ -1,4 +1,4 @@
-"""Per-job run repos for the engine-backed service (PRD-06 SC1/SC2, PRD-20 SC4).
+"""Per-job run repos for the engine-backed service (PRD-06 SC1/SC2, PRD-24 SC4).
 
 Every job — a ``research_*`` baseline measurement or a full ``run_*`` loop — gets
 its own repository at ``<workspaces_root>/<job_id>/repo``: a copy of a *bundled*
@@ -108,7 +108,7 @@ def provision_run_repo(
 ) -> Path:
     """Copy a bundled workload into a committed, engine-configured repo.
 
-    Layout (PRD-20 SC4 — one repo per job, always under the workspaces root)::
+    Layout (PRD-24 SC4 — one repo per job, always under the workspaces root)::
 
         <workspaces_root>/<job_id>/
           repo/                      <- the job's git repo (the engine drives it)

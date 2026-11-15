@@ -35,7 +35,7 @@ Two operation families:
 | Family | Operations | Execution |
 |---|---|---|
 | `research_*` (PRD-05/06) | `research_start`, `research_status`, `research_results`, `research_cancel` | **one** engine measurement of the bundled `contract` workload |
-| `run_*` / `doctor` (PRD-20) | `run_start`, `run_status`, `run_report`, `run_cancel`, `doctor` | a full engine keep/discard loop over a bundled workload |
+| `run_*` / `doctor` (PRD-24) | `run_start`, `run_status`, `run_report`, `run_cancel`, `doctor` | a full engine keep/discard loop over a bundled workload |
 
 ## Quick start
 
