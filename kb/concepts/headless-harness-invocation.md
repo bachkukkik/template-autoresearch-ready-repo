@@ -1,7 +1,7 @@
 ---
 title: Headless Harness Invocation
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-11-15
 type: concept
 tags: [agentic, integration]
 sources: [raw/articles/2026-10-28-autoresearch-real-world-engines.md]
@@ -77,5 +77,7 @@ benchmark answer" hack.
 
 - [[harness-portability]] — the entry-file and skill-root half of the same seam.
 - [[script-owned-keep-revert]] — the loop that calls the adapter.
+- [[unattended-loop-recipe]] — the unattended caller: what must hold before this argv fires,
+  and how the launcher/guards are tracked instead of living in one profile.
 - [[verify-guard-contract]] — what the adapter's edit is measured by.
 - [[autoresearch-engines-real-world]] — the 15-system comparison.

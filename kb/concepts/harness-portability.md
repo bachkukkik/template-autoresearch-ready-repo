@@ -1,7 +1,7 @@
 ---
 title: Harness Portability
 created: 2026-10-16
-updated: 2026-10-28
+updated: 2026-11-15
 type: concept
 tags: [agentic, architecture]
 sources: [raw/articles/2026-10-16-autoresearch-oss-landscape.md, raw/articles/2026-09-26-autoresearch-methodology-registration.md, raw/articles/2026-10-28-autoresearch-real-world-engines.md]
@@ -65,3 +65,5 @@ the skill's `SKILL.md` — a missing mechanism never waives a gate.
 - [[autoresearch-engines-real-world]] — the 2026-10-28 study; its portability finding is that
   a single-harness loop with vendor flags in its spine (evo, GEPA, pi) is a rewrite to port,
   while CORAL's `agent/builtin/` four-adapter shape is the reference seam.
+- [[unattended-loop-recipe]] — the same rule one layer out: a schedule that starts research
+  and lives only inside one harness's profile is not portable either.

@@ -1,10 +1,10 @@
 ---
 title: Loop Stop Conditions
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-11-15
 type: concept
 tags: [autoresearch, research-method]
-sources: [raw/articles/2026-10-28-autoresearch-real-world-engines.md]
+sources: [raw/articles/2026-10-28-autoresearch-real-world-engines.md, raw/articles/2026-11-15-downstream-frontier-distillation.md]
 confidence: high
 ---
 
@@ -56,6 +56,42 @@ zero. CORAL's version is `streak_for_epsilon`: consecutive attempts whose improv
 an epsilon, which escalates the prompt from reflect → consolidate → pivot rather than stopping.
 GEPA's is patience over a window, exposed as `--plateau N`.
 
+## The wall is arithmetic, not a check at the top (2026-11-15)
+
+A backstop checked only at the top of an iteration **funds work it cannot finish**. The
+downstream engine, run with `--max-wall 1680` and `--agent-timeout 750`, started a 750 s call
+at t=900 s; the outer `timeout … 1800` then SIGKILLed it mid-call, so the measurement never
+ran — and any salvage of that work never fired either. A bound may never kill the run it
+bounds.
+
+- **Reserve the tail in the predicate:**
+  `elapsed + agent_timeout + ITERATION_TAIL >= max_wall` (`ITERATION_TAIL = 120` pays
+  guard/verify/decide). Use the *same* predicate at the loop top and for the stop reason, so
+  "refused" and "why it stopped" are one function; `max_wall == 0` stays unlimited.
+- **Derive, but count the literals:** `ROUND_RESERVE 120`, `round = n·slot + reserve`
+  (2,400 s for two 1,140 s seats), `MAX_WALL = round − 120` (`arena.py` literals the reserve,
+  restated once), round-start budget `= round + 600`, and `cap × budget ≤ season wall`
+  (7 × 3,000 s ≤ 21,600 s) — one derived chain with one literal to keep in step.
+- **State the same wall in every layer that enforces it.** The wrapper's `timeout` and the
+  inner `--max-wall` are one number, located structurally, and an argv carrying neither is a
+  hard error: "an unbounded engine under a bounded seat is the bug, not a fallback". The
+  first repair rewrote only the `timeout` argument, so an engine inside a 780 s seat still
+  believed it owned 1,680 s and was killed from above; restating it in both places was a
+  second PR.
+- **Price the wall at the round, not at the worker.** A wrapper giving each worker a fresh
+  full budget multiplies the cap by the worker count — two seats made a 3,600 s round against
+  an 1,800 s cap, measured 2,915 s.
+- **A worker below its floor of usefulness is not launched.** Record *not served* with an
+  out-of-band exit code (`199` — no wrapper, shell or signal returns it), so a declined launch
+  is never read as a timeout (124), a refusal (126) or a signal kill.
+- **Leave the arithmetic honest.** With an 1,800 s round and a 750 s call, a 780 s seat starts,
+  refuses to fund an iteration, and stops on the wall with 0 iterations. A round that is
+  arithmetically a one-seat round should read as one — in the record, not in the log only.
+
+The engine-side salvage that depends on this reservation is on [[deterministic-keep-gate]];
+the per-competitor slot allocation and the void-round rule are on
+[[fair-competition-invariants]]; where the refusal lands is [[run-record-contract]].
+
 ## Dry run is a stop condition too
 
 Two of the three dry-run shapes are really "stop before spending":
@@ -85,4 +121,5 @@ budget this composes with.
 - [[verify-guard-contract]] — what the stop conditions are evaluated against.
 - [[script-owned-keep-revert]] — the component that enforces them.
 - [[deterministic-keep-gate]] — the per-iteration decision, versus the per-run stop.
+- [[unattended-loop-recipe]] — who fires the loop when a human is not there, and the guards that stop it firing twice.
 - [[autoresearch-engines-real-world]] — the 15-system evidence.
