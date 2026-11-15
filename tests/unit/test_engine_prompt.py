@@ -95,6 +95,106 @@ def test_prompt_lists_dead_ends_once_each():
     assert "- decrement" not in dead_ends
 
 
+def test_prompt_separates_an_inconclusive_trial_from_a_dead_end():
+    """AC-ENG-073b: ``inconclusive`` means the change was real but smaller than
+    the measurement noise. Filing it under "dead ends, do not repeat" tells the
+    agent to abandon a direction that was moving the metric; it is listed
+    separately as unproven, with the instruction that makes it actionable.
+    """
+    trials = [
+        {"iteration": 1, "outcome": "inconclusive", "metric": 9.8,
+         "description": "shave the value by 0.2"},
+        {"iteration": 2, "outcome": "discard", "metric": 11.0,
+         "description": "increment the value"},
+    ]
+    text = prompt_mod.build_prompt(make_cfg(), make_state(trials=trials))
+
+    unproven = text.split("Inconclusive")[1].split("Dead ends")[0]
+    assert "- shave the value by 0.2" in unproven
+    assert "larger change" in unproven
+
+    dead_ends = text.split("Dead ends — do not repeat")[1]
+    assert "- shave the value by 0.2" not in dead_ends
+    assert "- increment the value" in dead_ends
+
+
+def _filed(outcome, count, prefix):
+    """``count`` unique descriptions filed under ``outcome``."""
+    return [
+        {
+            "iteration": index,
+            "outcome": outcome,
+            "metric": 9.0,
+            "description": f"{prefix} {index}",
+        }
+        for index in range(1, count + 1)
+    ]
+
+
+def _bullets(text, title):
+    """The bullet rows of one prompt section, up to the next section.
+
+    An absent section has no bullets — the prompt drops an empty one — so a
+    missing title is ``[]`` rather than an IndexError.
+    """
+    if title not in text:
+        return []
+    body = text.split(title, 1)[1].split("\n## ", 1)[0]
+    return [line for line in body.splitlines() if line.startswith("- ")]
+
+
+def test_the_dead_end_list_is_capped_even_without_inconclusive_trials():
+    """AC-ENG-073: the cap is *per section*. A run of 25 discards has no
+    inconclusive trial to balance it, so a cap phrased as "both lists are full"
+    never fires and the prompt grows with the run — 25 dead ends where HEAD
+    printed 10. The dead-end section alone must stop at ``DEAD_ENDS_SHOWN``.
+    """
+    text = prompt_mod.build_prompt(
+        make_cfg(), make_state(trials=_filed("discard", 25, "discard"))
+    )
+
+    assert len(_bullets(text, "Dead ends — do not repeat")) == prompt_mod.DEAD_ENDS_SHOWN
+
+
+def test_each_section_is_capped_independently():
+    """AC-ENG-073: a mixed run caps both lists at their own limit — neither
+    section is starved and neither grows past ``DEAD_ENDS_SHOWN``.
+    """
+    trials = _filed("discard", 15, "discard") + _filed("inconclusive", 15, "unproven")
+    text = prompt_mod.build_prompt(make_cfg(), make_state(trials=trials))
+
+    assert len(_bullets(text, "Dead ends — do not repeat")) == prompt_mod.DEAD_ENDS_SHOWN
+    assert len(_bullets(text, "Inconclusive")) == prompt_mod.DEAD_ENDS_SHOWN
+
+
+def test_a_description_seen_twice_files_under_its_latest_outcome():
+    """AC-ENG-073: one description, one section. The walk is newest-first, so the
+    first sighting is the most recent outcome and every older trial carrying the
+    same description is skipped — a change that was a dead end and later came
+    back inconclusive must not be listed as both.
+    """
+    cases = (
+        # (earlier outcome, later outcome, the section it must land in)
+        ("discard", "inconclusive", "Inconclusive"),
+        ("inconclusive", "discard", "Dead ends — do not repeat"),
+    )
+    for earlier, later, section in cases:
+        trials = [
+            {"iteration": 1, "outcome": earlier, "metric": 9.9, "description": "shave the value"},
+            {"iteration": 2, "outcome": later, "metric": 9.8, "description": "shave the value"},
+        ]
+        text = prompt_mod.build_prompt(make_cfg(), make_state(trials=trials))
+
+        filed = [
+            line
+            for title in ("Inconclusive", "Dead ends — do not repeat")
+            for line in _bullets(text, title)
+            if "shave the value" in line
+        ]
+        assert len(filed) == 1, (earlier, later)
+        assert len(_bullets(text, section)) == 1, (earlier, later)
+
+
 def test_prompt_has_no_failure_section_without_a_failure():
     """AC-ENG-074: an empty log is not a section — the prompt does not invite the
     agent to read a blank code block."""

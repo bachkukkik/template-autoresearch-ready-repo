@@ -1,6 +1,6 @@
 [project]
 name = "autoresearch"
-version = "0.1.0"
+version = "0.2.0"
 description = "The autoresearch loop: stdlib engine, canonical contract, REST + MCP service"
 requires-python = ">=3.11"
 dependencies = []

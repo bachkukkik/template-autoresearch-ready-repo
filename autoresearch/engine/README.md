@@ -10,9 +10,14 @@ creative without ever owning the history of your repository.
 * `verify` prints the metric — that number is the only thing that can win.
 * `guard` must exit 0 — a candidate that breaks behaviour never gets a score.
 * `scope` and `protected` files bound what an agent may touch.
-* `noise_floor`, `repeats` and a median stop jitter from counting as progress.
-* Four bounded stops plus a dry run mean a run cannot wander.
-* Every outcome is appended to a replay-validated ledger.
+* `repeats` (3 by default), a median and a **margin** — `max(noise_floor,
+  1.96 x SE)` — stop jitter from counting as progress; a delta inside the
+  margin is `inconclusive`, reverted and claimed as nothing (PRD 20).
+* Four bounded stops plus a dry run mean a run cannot wander; the wall reserves
+  the iteration's own cost, so it never funds work it cannot finish.
+* Every outcome is appended to a replay-validated ledger, and every keep/discard
+  records the provenance it was decided under (model, route, versions, profile
+  digest, timestamp).
 
 Stdlib only, Python >= 3.11. Nothing to install.
 
@@ -63,8 +68,8 @@ autoresearch/engine/bin/autoresearch init \
 | `--scope PREFIX` | required, repeatable | Repo-relative path prefix the agent may edit. No globs. Must exist, and must not be the repo root (`.`): a revert would then clean every untracked file. |
 | `--guard CMD` | none | Must exit 0 for a candidate to be scorable. |
 | `--target X` | none | Stop once the metric reaches it (inclusive). |
-| `--noise-floor REL` | `0.01` | A candidate must beat the incumbent by this fraction to be kept. |
-| `--repeats N` | `1` | Verify runs per candidate; the median is the metric. |
+| `--noise-floor REL` | `0.01` | Floor, as a fraction of `|incumbent|`, that a candidate must beat. The applied threshold is the wider of this and `1.96 x SE` — the recorded `margin`. |
+| `--repeats N` | `3` | Verify runs per candidate; the median is the metric and `N` drives the margin. `1` is allowed and honest (`honest: false`, floor only). |
 | `--verify-timeout S` | `600` | Bound on one verify run. On expiry the process group is killed, the pipe drain is bounded, and the pipes are closed — a forked helper that inherited stdout cannot extend it. |
 | `--guard-timeout S` | `600` | Same bound for one guard run. |
 | `--protect PATH` | — | Extra protected file (repeatable). |
@@ -97,7 +102,7 @@ autoresearch/engine/bin/autoresearch run --agent claude --model claude-sonnet-4-
 | `--record FILE` | — | Append `{iteration, description, patch}` per iteration so the run is replayable. |
 | `--max-iterations N` | `10` | Hard iteration bound (total, not per invocation). |
 | `--plateau K` | `5` | Stop after K consecutive non-keeps. |
-| `--max-wall S` | `0` (unlimited) | Wall-clock budget for this invocation. |
+| `--max-wall S` | `0` (unlimited) | Wall-clock budget for this invocation. A wall must exceed one iteration's reservation (`agent_timeout + guard_timeout + repeats × verify_timeout`, 3300 s at the defaults), so a smaller one is refused in preflight (exit 2) instead of measuring a baseline it cannot iterate on. |
 | `--agent-timeout S` | `900` | Hard bound on one agent run; a timeout kills the process group. |
 | `--max-crashes C` | `3` | Stop after C consecutive `crash`/`agent_error` outcomes. |
 | `--dry-run` | off | Validate everything, print the exact argv, run no agent, commit nothing, write no events. |
@@ -193,6 +198,37 @@ val_bpb: 0.9123           # (b)
 
 The **last** matching line wins, so a script may log a header value and then the
 final one. A run with `--repeats N > 1` uses the median of N values.
+
+## The margin, the third verdict, and provenance (PRD 20)
+
+A keep must beat the **margin**, not the raw floor:
+
+```
+margin = max(|incumbent| * noise_floor, 1.96 * 1.2533 * sqrt(s1^2/n1 + s2^2/n2))
+```
+
+`1.2533` is the median's consistency factor (`sqrt(pi/2)`) — the point estimates
+are medians. With fewer than two repeats on either side there is no sample, so
+the margin is the floor alone and the measurement reports `honest: false`,
+`spread: null`.
+
+A candidate whose delta lands *inside* the margin is `inconclusive`: reverted
+exactly like a discard, counted as a non-keep by `--plateau`, never moved into
+the incumbent, and named as "retry only with a larger change" in the next
+prompt — because it is the one rejection that is not a dead end.
+
+Each keep/discard event carries a `provenance` block (`model`, `model_route`,
+`engine_version`, `referee_version`, `profile_sha256`, `timestamp`), where the
+referee version is `verify:` + the first 12 hex of `sha256(verify command)`.
+`--model` and any route carrying URL userinfo (`https://TOKEN@host`) are
+refused before anything is written: the ledger is append-only, so a secret in it
+could only be rotated. `status --require-provenance` replays a ledger and exits
+`3` if a decision lacks the block; without the flag a pre-PRD-20 ledger still
+validates.
+
+A replay also re-checks any *recorded* `margin`: a keep whose improvement does
+not exceed the margin it claims is a violation, so a plausible fabricated margin
+cannot validate.
 
 ## Security notes
 

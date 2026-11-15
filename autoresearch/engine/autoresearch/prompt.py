@@ -12,6 +12,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional, Sequence
 
+from . import decide as decide_mod
+
 TRIALS_SHOWN = 8
 DEAD_ENDS_SHOWN = 10
 FAILURE_LOG_LINES = 40
@@ -94,15 +96,42 @@ def build_prompt(cfg, state: PromptState) -> str:
     else:
         lines += _section("Recent trials", ["(none yet — this is the first attempt)"])
 
-    dead_ends = []
+    dead_ends: List[str] = []
+    unproven: List[str] = []
+    filed = set()
     for trial in reversed(state.trials):
-        if trial.get("outcome") == "keep":
+        if len(dead_ends) >= DEAD_ENDS_SHOWN and len(unproven) >= DEAD_ENDS_SHOWN:
+            break
+        # An inconclusive run is not a dead end: the change moved the metric and
+        # only failed to clear the noise, so "do not repeat it" would abandon a
+        # working direction. It gets its own list with the actionable advice.
+        outcome = trial.get("outcome")
+        if outcome == "keep":
             continue
         description = (trial.get("description") or "").strip()
-        if description and description not in dead_ends:
-            dead_ends.append(description)
-        if len(dead_ends) >= DEAD_ENDS_SHOWN:
-            break
+        if not description:
+            continue
+        # One description, one section: newest-first, so the first sighting is
+        # that description's latest outcome; a change that was a dead end and
+        # came back inconclusive is not listed as both.
+        if description in filed:
+            continue
+        bucket = unproven if outcome == decide_mod.INCONCLUSIVE else dead_ends
+        # Each section carries its own cap: a run with no inconclusive trials
+        # would never fill the other list, so a single "both are full" test let
+        # a long string of discards grow the prompt without bound.
+        if len(bucket) >= DEAD_ENDS_SHOWN:
+            continue
+        bucket.append(description)
+        filed.add(description)
+    if unproven:
+        lines += _section(
+            "Inconclusive — unproven, retry only with a larger change",
+            [
+                f"- {description}: improvement smaller than the measurement noise"
+                for description in unproven
+            ],
+        )
     if dead_ends:
         lines += _section("Dead ends — do not repeat", [f"- {d}" for d in dead_ends])
 

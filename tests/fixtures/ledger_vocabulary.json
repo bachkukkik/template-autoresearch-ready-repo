@@ -1,0 +1,25 @@
+{
+  "outcomes": [
+    "keep",
+    "discard",
+    "inconclusive",
+    "guard_failed",
+    "crash",
+    "no_change",
+    "scope_violation",
+    "protected_violation",
+    "agent_error"
+  ],
+  "decision_outcomes": [
+    "keep",
+    "discard"
+  ],
+  "provenance_fields": [
+    "model",
+    "model_route",
+    "engine_version",
+    "referee_version",
+    "profile_sha256",
+    "timestamp"
+  ]
+}

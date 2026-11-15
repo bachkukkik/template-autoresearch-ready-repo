@@ -97,3 +97,6 @@ record and add the new decision on top: the history is the point.
    does not refresh it; re-running the verification commands does.
 4. **A `stale`, `broken` or `retired` verdict is a required read** before touching the
    code it covers — that is the point of this file.
+5. **A PRD whose stage-6 doc is not yet written carries the pending note in `PRD.md`
+   only — no placeholder row here.** The index lists docs that exist; a row for a doc
+   that does not is the same lie as a doc with no row (rule 1).

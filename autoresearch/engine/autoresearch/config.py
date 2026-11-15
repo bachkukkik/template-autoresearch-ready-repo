@@ -39,7 +39,10 @@ LOCK_FILE = "lock"
 GITIGNORE_BODY = "*\n"
 
 DEFAULT_NOISE_FLOOR = 0.01
-DEFAULT_REPEATS = 1
+#: Three repeats by default (PRD 20 SC-evl-1): below two there is no sample, so
+#: the dispersion gate is dormant while the docs claim it is live. ``--repeats 1``
+#: stays honest (``honest: false``) and decides by the floor, as before.
+DEFAULT_REPEATS = 3
 DEFAULT_VERIFY_TIMEOUT = 600.0
 DEFAULT_GUARD_TIMEOUT = 600.0
 DIRECTIONS = ("lower", "higher")

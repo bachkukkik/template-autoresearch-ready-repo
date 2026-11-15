@@ -8,8 +8,11 @@ wrapper) that can be pointed at **any** git repository. You register a run with
 `init` (a verify command that prints the metric, a guard command that must keep
 passing, the scope the agent may edit, protected files, a noise floor, repeats),
 and `run` then loops: an agent harness proposes an edit, the engine commits it,
-runs guard and verify itself, keeps the commit only if the guard passed and the
-metric improved beyond the noise floor, and otherwise hard-reverts. `status`
+runs guard and verify itself, and keeps the commit only if the guard passed and the
+metric beat the incumbent by more than the measured margin — `max(noise floor,
+1.96·SE)` over the repeats. Inside that margin the trial is recorded
+`inconclusive`; a worse candidate is `discard`, and either is hard-reverted. Only a
+`keep` moves the incumbent. `status`
 replay-validates the ledger; `report` writes an evidence-linked markdown
 summary; `doctor` checks the four harness installations.
 

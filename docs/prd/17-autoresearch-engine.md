@@ -72,12 +72,16 @@ ex1–ex4 stay as they are (PRD-02 / PRD-11) — the engine is additive.
   non-keep path reverts through one helper that restores the incumbent and removes the
   agent's untracked files, never touching `.autoresearch/`.
   _Verify:_ `tests/unit/test_engine_loop.py` (AC-ENG-050..059, 077..079).
-- **SC3 — The evaluator decides, with a noise floor.** `decide` keeps only a strict
+- **SC3 — The evaluator decides, with a measured margin.** `decide` keeps only a strict
   improvement beyond a relative noise floor, using the incumbent's magnitude (correct for
-  zero and negative metrics); the metric is parsed from `METRIC name=value`, `name: value`
-  or a bare final float; verify/guard run with secret-named variables scrubbed.
+  zero and negative metrics); the loop gates on the wider `margin` — `max(floor, 1.96 × SE
+  of the difference of the two medians, with the median's 1.2533 factor)` — and records it
+  with the dispersion it came from, a delta inside it being `inconclusive` (PRD 20 SC-evl-2).
+  The metric is parsed from `METRIC name=value`, `name: value` or a bare final float;
+  verify/guard run with secret-named variables scrubbed.
   _Verify:_ `tests/unit/test_engine_decide.py` (AC-ENG-010..012),
-  `tests/unit/test_engine_measure.py` (AC-ENG-001..005).
+  `tests/unit/test_engine_measure.py` (AC-ENG-001..005),
+  `tests/unit/test_eval_statistics.py` (AC-EVL-003, AC-EVL-004).
 - **SC4 — Bounded by default.** Stops: `target`, `plateau` (K consecutive non-keeps),
   `max_iterations` (default 10), `max_wall`, `max_crashes`, `interrupted` (Ctrl-C,
   including during the baseline, records nothing half-written).
@@ -102,7 +106,7 @@ ex1–ex4 stay as they are (PRD-02 / PRD-11) — the engine is additive.
 - **SC8 — The agent learns from the loop.** The prompt carries the program, goal, metric
   state, scope, protected files, the one-change/no-git/`CHANGE:` rules, the last 8 trials,
   dead ends, and the tail (≤ 40 lines) of the last failure.
-  _Verify:_ `tests/unit/test_engine_prompt.py` (AC-ENG-070..076).
+  _Verify:_ `tests/unit/test_engine_prompt.py` (AC-ENG-070..076, 073b).
 - **SC9 — Evidence-linked report.** `report` writes markdown whose EVIDENCE section gives,
   for every keep, the commit, the metric and a reproduce command, plus `results.tsv`.
   _Verify:_ `tests/unit/test_engine_report.py` (AC-ENG-060..064).
@@ -120,6 +124,27 @@ ex1–ex4 stay as they are (PRD-02 / PRD-11) — the engine is additive.
   gain) is recorded with its commands.
   _Verify:_ `docs/17-autoresearch-engine.md` (*Verification*: per-harness run commands and
   ledgers) — empirical, not a CI test; harness credentials are host state.
+- **SC12 — A dead agent's tree is still a candidate.** A timeout (exit 124) or any non-zero
+  exit no longer reverts the tree unread: the tree an agent leaves behind is committed,
+  guarded, measured and judged like a live one's, and a keep the agent never got to report
+  is banked with `salvaged: true` and its `agent_exit_code`. A dead tree that clears nothing
+  is reported `agent_error` **carrying** the metric it measured, and its `agent_exit_code`,
+  but no `salvaged` — that marker claims a measurement recovered *and banked*, and only a
+  keep banks one; a scope or protected-file breach keeps its own outcome name (the death does
+  not launder it). A live keep carries no salvage marker.
+  _Verify:_ `tests/unit/test_engine_loop.py` (AC-ENG-082..082e).
+- **SC13 — The wall funds a whole iteration or starts none.** The wall check reserves the
+  iteration's own cost — `agent_timeout + guard_timeout + repeats × verify_timeout` (3300 s at
+  the shipped defaults) — at both the loop top and the stop reason, so a wall-bound run stops
+  with a measured, decided iteration behind it instead of being killed mid-call by the
+  wrapper's `timeout` (which would destroy the measurement, and any salvage of it), and the
+  stop prints the arithmetic in one line. A wall that cannot fund even one iteration is
+  refused in preflight (exit 2, naming the smallest usable wall) rather than measuring a
+  baseline and exiting 0 having done nothing; the shipped `/ar-run` default of 3600 s funds
+  one iteration under the default timeouts. `--max-wall 0` stays unlimited. Known limit: the
+  engine handles `SIGINT` only; an outer `SIGTERM` cannot be salvaged — the reservation is the
+  defence.
+  _Verify:_ `tests/unit/test_engine_loop.py` (AC-ENG-083..083d).
 
 ## Test Mapping
 
@@ -131,8 +156,9 @@ ex1–ex4 stay as they are (PRD-02 / PRD-11) — the engine is additive.
 | exact argv for claude/opencode/hermes/dsh/command; replay | `tests/unit/test_engine_adapters.py` | AC-ENG-030..033 |
 | init preconditions, protected hashes, `--force` validates before archiving | `tests/unit/test_engine_config.py` | AC-ENG-040..045 |
 | iteration outcomes, unified revert, stops, dry-run, Ctrl-C, missing binary | `tests/unit/test_engine_loop.py` | AC-ENG-050..059, 077..079 |
+| salvage a dead agent's tree; the wall reservation and its preflight refusal | `tests/unit/test_engine_loop.py` | AC-ENG-082..082e, 083..083d |
 | report EVIDENCE + results.tsv; status summary | `tests/unit/test_engine_report.py` | AC-ENG-060..064 |
-| prompt contents incl. failure tail | `tests/unit/test_engine_prompt.py` | AC-ENG-070..076 |
+| prompt contents incl. failure tail | `tests/unit/test_engine_prompt.py` | AC-ENG-070..076, 073b |
 | end-to-end init→run→status→report; record→replay; dry-run; missing binary | `tests/integration/test_engine_loop.py` | AC-ENG-201..203 |
 | ex5 guard passes pristine, fails mutants and the SystemExit / monkeypatch / surface-deletion attacks; bench charges import; tree stays clean with bytecode on | `tests/unit/test_examples_ex5.py` | AC-EXA-040..050 |
 | four-harness live ex5 runs | `docs/17-autoresearch-engine.md` (empirical) | — |

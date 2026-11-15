@@ -58,7 +58,7 @@ autoresearch/engine/bin/autoresearch init --repo . ... --force
 ```bash
 # 1. a local harness, small bound, record for replay
 autoresearch/engine/bin/autoresearch run --agent claude --model claude-sonnet-4-5 \
-  --max-iterations 5 --max-wall 900 --record .autoresearch/replay.jsonl
+  --max-iterations 5 --max-wall 3600 --record .autoresearch/replay.jsonl
 
 # 2. replay a recorded run anywhere, no harness installed: needs a --record JSONL
 autoresearch/engine/bin/autoresearch run --agent replay --replay .autoresearch/replay.jsonl
