@@ -1,7 +1,9 @@
-"""Unit tier — durable SQLite job store. IDs: AC-MCP-011..014.
+"""Unit tier — durable SQLite job store. IDs: AC-MCP-011..014, AC-SVC-006.
 
 Contract (PRD-05 SC4): job-id/poll over a durable SQLite store that survives a
 service restart, with idempotent dispatch via an explicit idempotency_key.
+AC-SVC-006 (PRD-24 SC7) pins the store's path: a relative RESEARCH_JOBS_DB
+resolves against the service root, and a blank one is unset, never the root.
 """
 import os
 import threading
@@ -264,6 +266,29 @@ def test_a_blank_env_db_path_is_unset_not_the_service_root(tmp_path, monkeypatch
         monkeypatch.chdir(tmp_path)
         assert jobs._default_db_path() == jobs.DEFAULT_DB_PATH
         assert jobs._default_db_path() != jobs.SERVICE_ROOT
+
+
+def test_claim_takes_a_queued_job_exactly_once(tmp_path):
+    """claim(): True for a queued job once, False for a taken or unknown id.
+
+    Dispatch is idempotent only because of this one guarded UPDATE: the second
+    caller gets False and runs nothing, and losing that race is not an error —
+    unlike `set_status`, where `running -> running` is an illegal transition.
+    """
+    store = JobStore(str(tmp_path / "claim.db"))
+    try:
+        job_id = store.create_job("claimable", {})["id"]
+
+        assert store.claim(job_id) is True
+        assert store.get_job(job_id)["status"] == "running"
+        assert store.claim(job_id) is False  # already taken
+        assert store.claim("no-such-job") is False  # unknown id
+
+        store.set_status(job_id, "completed")
+        assert store.claim(job_id) is False  # terminal is not claimable
+        assert store.get_job(job_id)["status"] == "completed"  # and is untouched
+    finally:
+        store.close()
 
 
 def test_concurrent_access_from_multiple_threads(tmp_path):

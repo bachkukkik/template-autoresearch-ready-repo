@@ -1,6 +1,6 @@
-"""Unit tier — one package, one lock, one loop (PRD-24 SC1/SC2).
+"""Unit tier — one package, one lock, one loop (PRD-24 SC1/SC2/SC7).
 
-IDs: AC-SVC-001..005.
+IDs: AC-SVC-001..005, AC-SVC-008.
 
 - AC-SVC-001 (SC1) — there is no `service/` at the repo root, and
   `autoresearch/pyproject.toml` ships BOTH top-level packages from one
@@ -13,6 +13,9 @@ IDs: AC-SVC-001..005.
 - AC-SVC-005 (SC1) — the compose service carries `restart: unless-stopped`, so
   it comes back after a Docker daemon restart; `docker compose stop` still keeps
   it down. A synthetic compose text without the key is reported.
+- AC-SVC-008 (SC7) — the runtime state is mounted on the named `service-data`
+  volume and the env defaults point into it; a synthetic compose text with the
+  mount commented out is reported as unmounted.
 
 Read-only and stdlib-only: the claims are checked, not the prose.
 """

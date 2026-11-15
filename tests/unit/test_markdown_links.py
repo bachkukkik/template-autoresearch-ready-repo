@@ -27,12 +27,24 @@ fenced code blocks, inline code spans, `http(s)://` / `mailto:` / `ftp:` /
 `data:` targets, and pure `#anchor` links. **Anchors are not validated** — only
 the path is — so a heading may be renamed without breaking this test.
 
-Deliberately NOT handled — a link in one of these forms goes unchecked rather
-than reported: reference-style links (`[text][ref]` plus a `[ref]: path`
-definition), an image nested in a link (`[![alt](img.png)](target)`), an
-angle-bracket path that contains spaces (`[text](<a b.md>)`), and a
-single-quoted title (`[text](path 'title')`). A path quoted in a code span is
-never checked either — do not rely on this gate for those.
+Deliberately NOT handled — a link in one of these forms goes unchecked, or is
+compared literally instead of decoded:
+
+- reference-style links (`[text][ref]` plus a `[ref]: path` definition);
+- the **outer** target of an image inside a link — in
+  `[![alt](img.png)](target.png)` the inner `img.png` is checked, `target.png`
+  is not;
+- an angle-bracket path that contains spaces (`[text](<a b.md>)`);
+- a single-quoted title (`[text](path 'title')`);
+- percent-encoded paths — `[text](a%20b.md)` is compared against the literal
+  `a%20b.md`, never decoded to `a b.md`;
+- a `?query` suffix — only `#anchor` is stripped, so `[text](page.md?v=1)` is
+  reported as a missing file;
+- a link-like string inside a 4-space indented code block — only ``` / ~~~
+  fences are recognised, so indented code is scanned as prose.
+
+A path quoted in a code span is never checked either — do not rely on this gate
+for any of the forms above.
 
 Hermetic: file reads and one `git ls-files`, run only when `root` is itself a
 checkout (`.git` present) and falling back to a directory walk otherwise, so a

@@ -33,11 +33,8 @@ services:
       # autoresearch/contract/ directly (single source of truth; no vendored
       # copy in the image).
       - ./autoresearch/contract:/app/contract:ro
-      # Runtime state — jobs.db (WAL) + one repo per job. A NAMED volume, so
-      # `docker compose up --build` replaces the container and keeps the store;
-      # without it /app/data is image-layer and every redeploy loses the queue.
-      # `docker compose down -v` is what deletes it (and it is created
-      # root-owned, because the image sets no USER).
+      # Runtime state (jobs.db in WAL + one repo per job) on a NAMED volume, so
+      # `up --build` keeps the queue; only `docker compose down -v` deletes it.
       - service-data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]

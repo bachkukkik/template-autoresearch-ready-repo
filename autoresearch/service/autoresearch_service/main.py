@@ -36,6 +36,7 @@ no code-execution tool, and an agent allowlist (``policy``) that fails closed.
 """
 
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -62,6 +63,8 @@ from .workspace import (
 )
 
 PORT = int(os.environ.get("PORT", "8000"))
+
+logger = logging.getLogger(__name__)
 
 # PRD-06: cap on concurrently executing jobs (scheduler thread pool).
 MAX_CONCURRENT_JOBS = max(1, int(os.environ.get("RESEARCH_MAX_CONCURRENT_JOBS", "4")))
@@ -146,6 +149,7 @@ def research_start(
     params = params or {}
     # Fail fast on missing corpus files (PRD-06 SC5): ValueError -> 400/tool error.
     validate_corpus_files(corpus_spec_from_params(params))
+    _job_target(params)  # an unknown kind is refused before a job row exists
     job = _store.create_job(topic, params, idempotency_key=idempotency_key)
     if job["status"] == "queued":  # an idempotent replay returns the existing job
         _dispatch(job)
@@ -417,6 +421,21 @@ def _engine_summary(repo: Path) -> dict | None:
     }
 
 
+def _job_target(params: dict | None):
+    """The executor a job's own ``kind`` names; an unknown kind is refused.
+
+    Research jobs carry no ``kind``; ``run_*`` params are stamped
+    ``"kind": "run"`` by ``policy.validate_run_request``. Anything else is a
+    caller mistake, so it raises instead of silently running a measurement.
+    """
+    kind = (params or {}).get("kind")
+    if kind is None:
+        return _execute_research
+    if kind == "run":
+        return _execute_run
+    raise ValueError(f"unknown job kind: {kind!r} — expected no kind or 'run'")
+
+
 def _dispatch(job: dict) -> None:
     """Queue a stored job on the scheduler — the ONE dispatch path.
 
@@ -426,8 +445,12 @@ def _dispatch(job: dict) -> None:
     carry ``"kind": "run"``); each executor claims the job atomically, so a
     duplicate dispatch runs nothing twice.
     """
-    target = _execute_run if job["params"].get("kind") == "run" else _execute_research
-    assert _scheduler is not None, "dispatch before create_app() would drop the job"
+    target = _job_target(job["params"])
+    if _scheduler is None:
+        raise RuntimeError(
+            "dispatch needs a scheduler: call create_app() first "
+            "(a job dispatched before it would sit `queued` for ever)"
+        )
     _scheduler.add_job(target, args=[job["id"]])
 
 
@@ -449,7 +472,13 @@ def recover_interrupted_jobs(store) -> dict:
     requeued = store.jobs_with_status("queued")
     for job in requeued:
         _dispatch(job)
-    return {"requeued": len(requeued), "interrupted": len(interrupted)}
+    counts = {"requeued": len(requeued), "interrupted": len(interrupted)}
+    logger.info(
+        "startup recovery: requeued %d, interrupted %d",
+        counts["requeued"],
+        counts["interrupted"],
+    )
+    return counts
 
 
 # Register the flagged operations as MCP tools (same handler objects).

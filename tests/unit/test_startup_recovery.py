@@ -13,6 +13,7 @@ level, so a throwaway ``RESEARCH_JOBS_DB`` is pointed at a temp dir BEFORE the
 import (the pattern in ``test_workspace.py``). The scheduler is replaced by a
 recorder, so no research ever runs.
 """
+import logging
 import os
 import tempfile
 import threading
@@ -113,6 +114,46 @@ def test_startup_on_a_fresh_store_has_nothing_to_recover(tmp_path, monkeypatch):
             assert scheduler.dispatched == []
             assert store.jobs_with_status("queued") == []
             assert store.jobs_with_status("running") == []
+    finally:
+        store.close()
+
+
+def test_recovery_logs_the_counts_it_returns(tmp_path, monkeypatch, caplog):
+    """AC-SVC-007: the counts recovery returns are also emitted once.
+
+    The caller ignored the return value, so a restart that re-queued jobs or
+    failed interrupted ones was invisible in the service log.
+    """
+    store = JobStore(str(tmp_path / "counts.db"))
+    scheduler = _RecordingScheduler()
+    try:
+        _seed(store)
+        _install(monkeypatch, store, scheduler)
+        with caplog.at_level(logging.INFO, logger="autoresearch_service.main"):
+            counts = main.recover_interrupted_jobs(store)
+        assert counts == {"requeued": 2, "interrupted": 1}
+        assert "startup recovery: requeued 2, interrupted 1" in caplog.text
+    finally:
+        store.close()
+
+
+def test_an_unknown_job_kind_is_refused(tmp_path, monkeypatch):
+    """An unrecognised `kind` raises; it must never fall back to research.
+
+    A silent fallback ran the research executor on a job whose params it did not
+    understand. `research_start` refuses the same value before a row exists, so
+    no `queued` orphan is left for the next startup to dispatch.
+    """
+    store = JobStore(str(tmp_path / "kind.db"))
+    scheduler = _RecordingScheduler()
+    _install(monkeypatch, store, scheduler)
+    try:
+        with pytest.raises(ValueError, match="unknown job kind"):
+            main._dispatch({"id": "unknown-kind", "params": {"kind": "sweep"}})
+        with pytest.raises(ValueError, match="unknown job kind"):
+            main.research_start("refused", {"kind": "sweep"})
+        assert store.jobs_with_status("queued") == []  # no orphan row
+        assert scheduler.dispatched == []  # and nothing was scheduled
     finally:
         store.close()
 
