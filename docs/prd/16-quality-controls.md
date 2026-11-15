@@ -67,6 +67,34 @@ a CI job, not prose (the 80/20 codification rule).
   assertion or a CI job (meta-assertion over the test module). _Verify:_
   `tests/unit/test_quality_controls.py` (AC-QC-012). ✅ implemented 2026-10-16
 
+### SC13 — potato-pyramid gate: three deterministic foundations
+
+Prose rules do not survive a model with a fresh context; executable rules do. The
+inverse-pyramid doctrine
+([2026-11-11-all-code-is-slop-except-mine-lauren-tan](../../kb/raw/transcripts/2026-11-11-all-code-is-slop-except-mine-lauren-tan.txt),
+Lauren Tan) names the three foundations an agent cannot talk its way past — **codebase
+constraints → static analysis → verification** — and `scripts/audit_pyramid.py` (stdlib
+only, no dependency) turns them into one gate over `autoresearch/engine/`,
+`autoresearch/service/`, `scripts/` plus the two config surfaces `.env.example` and
+`.gitignore`. Exit code is the verdict; the same 80/20 codification rule as SC1–SC12
+applies.
+
+- **SC13a — codebase constraints (layer 1).** No `shell=True`; no bare `except:`; no
+  dynamic `eval`/`exec`; no `requests` call without `timeout=`. Each banned shape is a
+  structural escape hatch, not a style preference. _Verify:_
+  `tests/unit/test_audit_pyramid.py` (AC-PYR-001, AC-PYR-002). ✅ implemented 2026-11-15
+- **SC13b — static analysis (layer 2).** Per-file comment ratio ≤ 20 %; ≤ 3 consecutive
+  comment lines; a `TODO` needs a ticket id; no commented-out code. Enforced on **every**
+  scanned file however small, `.env.example` and `.gitignore` included. _Verify:_
+  `tests/unit/test_audit_pyramid.py` (AC-PYR-005, AC-PYR-007). ✅ implemented 2026-11-15
+- **SC13c — verification (layer 3).** Every module stem under the three source roots is
+  named under `tests/`, so an unverifiable module cannot land; `--json` reports rule ids
+  and totals so another tool can read the gate. _Verify:_
+  `tests/unit/test_audit_pyramid.py` (AC-PYR-003, AC-PYR-006). ✅ implemented 2026-11-15
+- **SC13d — the gate holds on this repo.** The CLI run against the checked-out tree exits 0
+  from inside the unit tier, so the doctrine cannot drift from the code it governs.
+  _Verify:_ `tests/unit/test_audit_pyramid.py` (AC-PYR-004). ✅ implemented 2026-11-15
+
 **Not adopted (peer data says no):** gitleaks/trufflehog jobs (GitHub's free native secret
 scanning covers public repos; the existing `secret-scan` job covers the generic-shape
 class it misses); required approvals ≥ 1 (unsatisfiable for one maintainer); merge queue
@@ -81,6 +109,10 @@ class it misses); required approvals ≥ 1 (unsatisfiable for one maintainer); m
 | Aggregate gate + workflow linter present and wired | `tests/unit/test_quality_controls.py` + `qc-gate`, `zizmor` jobs | AC-QC-009..010 |
 | `main` ruleset | `gh api …/rulesets` (post-merge, platform setting) | AC-QC-011 |
 | Controls are codified, not prose | `tests/unit/test_quality_controls.py` | AC-QC-012 |
+| Potato-pyramid gate: the three foundations fire on known slop, a clean tree stays green | `tests/unit/test_audit_pyramid.py` | AC-PYR-001..002 |
+| Comment budget: per-file ratio, consecutive-run exactness, tiny-file coverage | `tests/unit/test_audit_pyramid.py` | AC-PYR-005, AC-PYR-007 |
+| `--json` contract is stable and real-repo totals include the config surfaces | `tests/unit/test_audit_pyramid.py` | AC-PYR-003, AC-PYR-006 |
+| The gate holds on this repo (CLI exits 0 from the unit tier) | `tests/unit/test_audit_pyramid.py` | AC-PYR-004 |
 
 ## Assumptions
 
@@ -100,3 +132,9 @@ template already ships the same controls green.
 
 The `unit` job runs `tests/unit/test_quality_controls.py`. The `qc-gate` aggregate job is
 the single required check on `main`. No PR merges with a red test.
+
+The `unit` job also runs `tests/unit/test_audit_pyramid.py`, whose
+`test_pyramid_real_repo_gate` (AC-PYR-004) drives `python3 scripts/audit_pyramid.py` against
+the checked-out tree. The potato-pyramid gate is therefore a **unit-tier** gate, not a
+separate workflow: a PR that reintroduces `shell=True`, an over-budget comment block or an
+unlinked module fails `unit`, and `qc-gate` (SC9) refuses it.

@@ -121,9 +121,8 @@ class RunRequest(BaseModel):
 
 
 # -- runtime state ----------------------------------------------------------
-# Module-level singletons populated by create_app(); the operation handlers
-# read them lazily so the MCP tool registry (captured at import time) works
-# against the app instance that create_app() builds.
+# Module-level singletons set by create_app(); handlers read them lazily so the
+# MCP registry (captured at import) works against that app instance.
 _store = None
 _scheduler = None
 

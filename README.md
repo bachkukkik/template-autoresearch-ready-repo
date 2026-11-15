@@ -88,6 +88,9 @@ python3 scripts/gen-env.py --update     # .env.new carrying this deployment's va
 
 # STE-style prose audit (the output-medium doctrine's rung-1 gate) — docs/15-ste-audit.md
 python3 scripts/audit-ste.py            # default: docs/*.md + README.md, 80% threshold
+
+# Potato-pyramid gate (3 deterministic foundations) — PRD 16, AC-PYR-001..007
+python3 scripts/audit_pyramid.py        # codebase constraints + comment budget + test linkage
 ```
 
 ## PR-Agent (optional but dormant) — see AGENTS.md §pr-agent
@@ -143,7 +146,7 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 │   ├── queries/           # Filed query results
 │   └── _archive/          # Superseded material (never deleted)
 ├── docs/                  # Three doc layers — intent, gaps, verified reality
-├── scripts/               # Repo helpers: verify-clone.sh, gen-env.py, audit-ste.py, local-ci.sh
+├── scripts/               # Repo helpers: verify-clone.sh, gen-env.py, audit-ste.py, audit_pyramid.py, local-ci.sh
 ├── tests/                 # Three-tier test suite — each tier has a runner AND a CI job
 ├── scratchpads/           # Agent scratch space (gitignored)
 └── .github/
@@ -206,6 +209,15 @@ pollute the working tree.
 | `render-verify` | [Karpathy's output-medium post](https://x.com/karpathy/status/2105819303471976479) | §7 glue — render → parse verification, never by looking |
 | `explainer-video` | [Karpathy's output-medium post](https://x.com/karpathy/status/2105819303471976479) | §7 rung 4 — HTML → MP4 via HyperFrames; needs `/dev/shm` ≥ 256 MB |
 | `pm` | https://github.com/phuryn/pm-skills | **Caveat** — a Claude Code plugin bundle (`.claude-plugin/marketplace.json` + `commands/`), not a plain `SKILL.md` skill; install through that mechanism or lift the `commands/*.md` you need (`write-prd`, `test-scenarios`, `triage-requests`, …) by hand |
+| `correct` | https://github.com/cursor/plugins/tree/main/pstack/skills/correct (MIT) | Plain skill — a single `SKILL.md`. Correction → deterministic-check loop (pyramid layer 1) |
+| `cli-for-agents` | https://github.com/cursor/plugins/tree/main/cli-for-agent/skills/cli-for-agents (MIT) | Plain skill — a single `SKILL.md`. Agent-friendly CLI design (pyramid layer 1) |
+| `principle-type-system-discipline` | https://github.com/cursor/plugins/tree/main/pstack/skills/principle-type-system-discipline (MIT) | Plain skill — a single `SKILL.md`. Types constrain an agent by construction (layers 1–2) |
+| `no-comments` | https://github.com/cursor/plugins/tree/main/pstack/skills/no-comments (MIT) | Plain skill — `SKILL.md` + `references/comment-sicko.md` persona. Comment suppression (layer 2) |
+| `blast-radius` | https://github.com/cursor/plugins/tree/main/pstack/skills/blast-radius (MIT) | Plain skill — a single `SKILL.md`. Prove safety by running the code, not by asserting it (layers 2–3) |
+| `create-verification-skill` | https://github.com/cursor/plugins/tree/main/pstack/skills/create-verification-skill (MIT) | Plain skill — `SKILL.md` + `references/feature-map-example/`. Runtime verification + feature map (layer 3) |
+| `maintain-verification-skill` | https://github.com/cursor/plugins/tree/main/pstack/skills/maintain-verification-skill (MIT) | Plain skill — a single `SKILL.md`. Keeps a verification skill honest as the code moves (layer 3) |
+| `create-formal-verification-skill` | https://github.com/cursor/plugins/tree/main/pstack/skills/create-formal-verification-skill (MIT) | Plain skill — a single `SKILL.md`. TLA+/formal verification skill authoring (layer 3) |
+| `maintain-formal-verification-skill` | https://github.com/cursor/plugins/tree/main/pstack/skills/maintain-formal-verification-skill (MIT) | Plain skill — a single `SKILL.md`. Keeps a formal spec in step with the code (layer 3) |
 
 The `/goal` phase → skill mapping:
 
@@ -222,6 +234,15 @@ The `/goal` phase → skill mapping:
 The output-medium doctrine (`AGENTS.md` §7) adds the consumer-side skills: `simple-english`
 (rung 2), `diagrams` (rung 3), `render-verify`, and `explainer-video` (rung 5).
 
+The nine `potato-pyramid` rows above are ported from
+[cursor/plugins](https://github.com/cursor/plugins) (MIT, Lauren "poteto" Tan's `pstack` +
+`cli-for-agent`) and adapted to harness-neutral conventions: `Task` sub-agents become the
+harness's delegation mechanism (`AGENTS.md` § *Harness Adapter*), `.cursor/skills/` paths
+become `.agents/skills/`, and frontmatter carries `license: MIT` + `source:`. Together they
+carry the three deterministic foundations of the inverse pyramid (codebase → static analysis
+→ verification); `scripts/audit_pyramid.py` is the machine gate for the same three layers and
+runs in the unit tier (`AC-PYR-001..007`, [PRD 16](docs/prd/16-quality-controls.md)).
+
 ## Status
 
 - [x] Skeleton doctrine (funnel, harness adapter, CI gates)
@@ -233,5 +254,6 @@ The output-medium doctrine (`AGENTS.md` §7) adds the consumer-side skills: `sim
 - [x] Output-medium doctrine — `AGENTS.md` §7 (prose → controlled English → diagram → HTML → explainer video) + `kb/` grounding + `AC-OM-*` / `AC-CTX-*` tripwires
 - [x] `scripts/gen-env.py` (`--fresh` byte copy / `--update` value-carry, no clobber) + `AC-GEN-001..005`
 - [x] `scripts/audit-ste.py` (the "80% to ASD-STE100" prose gate) + `AC-STE-001..003`; repo docs measured at 99.0% within-limit (1544/1559, 2026-10-16)
+- [x] `scripts/audit_pyramid.py` (the potato-pyramid 3-foundations gate: codebase constraints, comment budget, test linkage) + `AC-PYR-001..007` — runs in the unit tier, PRD 16
 
 <!-- pr-agent smoke test: verifies the optional AI reviewer fires on a real PR -->

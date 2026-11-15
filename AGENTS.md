@@ -199,7 +199,7 @@ Report each step's *Done when* before the next; a surfacing problem re-enters D1
 
 ### 1. Mandated Skills
 
-Load on EVERY task: `karpathy-guidelines`, `security-best-practices`, `webapp-testing`, `coding-agents-docs-guideline` (docs — stage 6), `llm-wiki` (stage 3, its only writer), `root-cause`, `yeet` (git), `opencode-plan-build-orchestrator` (coding). A mandated skill resolves wherever the harness provides it (host-level `~/.hermes/skills/`, `~/.claude/skills/`, `~/.config/opencode/skills/`; repo-scoped `.agents/skills/`; or its `SKILL.md` inlined — rule 8): a missing tool never waives the gate.
+Load on EVERY task: `karpathy-guidelines`, `security-best-practices`, `webapp-testing`, `coding-agents-docs-guideline` (docs — stage 6), `llm-wiki` (stage 3, its only writer), `root-cause`, `yeet` (git), `opencode-plan-build-orchestrator` (coding), the potato-pyramid set (9 skills — `README.md` § *Skills*). A mandated skill resolves wherever the harness provides it (host-level `~/.hermes/skills/`, `~/.claude/skills/`, `~/.config/opencode/skills/`; repo-scoped `.agents/skills/`; or its `SKILL.md` inlined — rule 8): a missing tool never waives the gate.
 
 ### 2–3. Delegation & Code Quality
 
@@ -208,7 +208,7 @@ Load on EVERY task: `karpathy-guidelines`, `security-best-practices`, `webapp-te
 
 ### 4. Verification
 
-After any change: `docker compose build && docker compose up -d`; `docker compose ps`; `bash tests/run.sh --with-e2e`; `git diff --cached | grep -iE '(api_key|secret|token|password)' || echo Clean`. → `README.md`
+After any change: `docker compose build && docker compose up -d`; `docker compose ps`; `bash tests/run.sh --with-e2e`; `python3 scripts/audit_pyramid.py` (3-foundations gate); `git diff --cached | grep -iE '(api_key|secret|token|password)' || echo Clean`. → `README.md`
 
 ### 5. PRD → Test → CI Pattern
 
