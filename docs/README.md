@@ -13,6 +13,7 @@
 
 | # | Topic | Verdict | Updated | Covers | PRD | Gaps |
 |---|-------|---------|---------|--------|-----|------|
+| 21 | [Agent Evals](21-agent-evals.md) | works | 2026-11-16 | The engine's evaluation layer in `autoresearch/engine/autoresearch/{measure,decide,ledger,loop,cli,prompt,config}.py`: `Measurement` dispersion (`repeats`/`spread`/`honest`, derived in `__post_init__`), `standard_error_of_difference()` with `MEDIAN_CONSISTENCY = 1.2533`, `margin()` = `max(floor, 1.96 × SE)` and `decide_with_margin()` with the third `inconclusive` verdict, `DEFAULT_REPEATS = 3`, six-field `provenance` on every keep/discard (with the `--model` userinfo refusal and the opt-in `status --require-provenance` gate), replay re-checking the recorded `margin`, the salvage and wall-reservation behaviour it shares with PRD 17 (`AC-ENG-082..082e`, `083..083d`); `tests/unit/test_eval_statistics.py` (`AC-EVL-001..004`), `tests/unit/test_eval_provenance.py` (`AC-EVL-006..007`), `tests/unit/test_engine_ledger.py` (`AC-EVL-005`), `tests/integration/test_eval_loop_stats.py` (`AC-EVL-202`), `tests/unit/test_engine_loop.py` (`AC-ENG-050..059`, `082..082e`, `083..083d`), `tests/integration/test_objective_record_replay.py` (`AC-OBJ-201`, `AC-REC-201`); `scripts/legacy_grid.py` (the tracked brute force the record quotes) | [20-agent-evals](prd/20-agent-evals.md) | — |
 | 24 | [Autoresearch as a Service](24-autoresearch-as-a-service.md) | works | 2026-11-10 | `autoresearch/pyproject.toml` + one `uv.lock` (one distribution: the stdlib `autoresearch` engine + `autoresearch_service` behind the `service` extra), `autoresearch/service/autoresearch_service/{policy,jobs,workloads,workspace,main}.py` (`run_start`/`run_status`/`run_report`/`run_cancel`/`doctor` dual-registered on `/api/v1/runs*` and as MCP tools at `/mcp`; `research_*` served by one engine baseline measurement of the bundled `contract` workload), the `RESEARCH_ALLOWED_AGENTS` allowlist (`replay` default, `command` refused), `.agents/commands/ar-{init,run,status,report}.md` + `.agents/skills/autoresearch-engine/SKILL.md`, `tests/unit/test_service_{layout,engine,readme}.py` (`AC-SVC-*`), `tests/unit/test_harness_neutrality.py` (`AC-HRN-019..020`) | [24-autoresearch-as-a-service](prd/24-autoresearch-as-a-service.md) | [24-three-loops-one-name](gaps/_archive/24-three-loops-one-name.md) (resolved, archived 2026-11-10) |
 | 19 | [PR-Agent Live Adoption](19-pr-agent-live-adoption.md) | works | 2026-11-04 | `.github/workflows/pr-agent.yml` (opt-in gate), repo variables/secrets (`PR_AGENT_ENABLED`, `OPENAI_BASE_URL`, `OPENAI_DEFAULT_MODEL`, `OPENAI_API_KEY`), `.pr_agent.toml` (`custom_model_max_tokens`, `fallback_models`), `tests/unit/test_pr_agent_adoption.py` (`AC-PRA-001..009`); live cycle verified on PR #40 (job green 49 s, reviewer-guide + suggestions comments) | [18-pr-agent-adoption](prd/18-pr-agent-adoption.md) | — |
 | 18 | [Root Layout Refactor](18-root-layout-refactor.md) | works | 2026-11-04 | Root `contract/` + `engine/` grouped under `autoresearch/`; root `data/` folded into `service/data/`; `ops/` retired (`AC-OPS-001..010`, `tests/unit/test_ops_sync.py`, `ops-drift` job); tracked roots 14 → 11 (`AC-FUN-002`, `DOCTRINE_ROOTS`, README tree, `scripts/verify-clone.sh`) | — (layout change; intent recorded in the [PRD.md](../PRD.md) 2.3.0 changelog row) | — |
@@ -50,6 +51,16 @@ Row 24 (renumbered from 20 on 2026-11-15 — downstream numbering wins) was veri
 tests/unit -q` → 353 passed, `python3 -m pytest tests/integration -q` → 26 passed,
 `bash scripts/verify-clone.sh` → `RESULT: PASSED — 33 check(s) passed`, `docker compose
 build` green, and one temp container exercised all four surfaces (see its *Verification*).
+
+Row 21 (agent evals) was verified 2026-11-16 on `docs/agent-evals-record` at `bf33243`:
+`python3 -m pytest tests/unit -q` → 584 passed, `bash tests/run.sh` → `RESULT: PASSED`
+(584 unit + 45 integration; e2e skipped), and every SC was re-verified against a
+throwaway checkout at `--repeats 3/1` — a 2.0 improvement recorded `inconclusive`
+against a 2.0057 margin, a 4.0 improvement kept with its dispersion, provenance
+and null cost fields, a salvaged dead-agent keep, a `--max-wall 2000` refusal at
+exit 2, the tracked `scripts/legacy_grid.py` grid (3,584 one-repeat points, 0 keep
+mismatches, plus a 13,824-pair honest sweep at 0 keeps the legacy rule would have
+refused), and a pre-port ledger that replays valid. See its *Verification*.
 
 `09` is `partial`, not `works`: the file is delivered whole under the cap, but this repo
 cannot preserve its contract regions byte-for-byte (the four protected regions total
@@ -92,7 +103,13 @@ record and add the new decision on top: the history is the point.
    topic, so an agent can walk intent → gap → reality by number alone. Numbers are
    never reused: a withdrawn gap leaves a tombstone
    (`docs/gaps/_archive/NN-<slug>.md`, `Status: withdrawn`, one-line reason) rather
-   than returning the number to circulation.
+   than returning the number to circulation. **Amendment:** a downstream-pinned
+   stage-6 number wins when a downstream doc number for the same topic is already
+   canonical — `docs/21` is the agent-evals record whose PRD is `20`, because
+   vanilla-open-design's doc 21 is that record; `docs/20` was free here and
+   consistency with downstream was chosen over a gap-free numbering run. Same
+   precedent as `09` → PRD 03 and `12` → PRD 05, which also carry a doc number
+   their PRD does not.
 3. **`Updated` is the last *verification* date**, not the last text edit. Editing prose
    does not refresh it; re-running the verification commands does.
 4. **A `stale`, `broken` or `retired` verdict is a required read** before touching the

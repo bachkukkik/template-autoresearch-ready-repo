@@ -22,8 +22,10 @@
 > `init` / `run` / `status` / `report` exactly as a human would. The one additive engine
 > change is the round marker — a file a run writes and removes, so a schedule can see a
 > detached run it did not start.
-> **Stage 6:** `docs/21-unattended-loop-recipe.md` — **pending**; it is written from a
-> live install, not from this plan.
+> **Stage 6:** `docs/25-unattended-loop-recipe.md` — **pending**; it is written from a
+> live install, not from this plan. (`docs/21` is the agent-evals record: downstream
+> numbering fixes PRD 20's record at 21, so this PRD's record takes the next free
+> number.)
 
 ## Context
 
