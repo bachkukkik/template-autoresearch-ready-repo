@@ -1,0 +1,58 @@
+Autoresearch — overnight run.
+Repo (the measured checkout; this session was opened here): ${repo}
+Engine (one CLI for every operation): ${engine}
+Target profile: ${target_profile}
+State directory (the run's ledger and records): ${state_dir}
+
+## How to act — every operation is a declared engine command
+Work from the repo root. The engine's exit codes are the contract — 0 stopped, 1 an
+objective record is invalid, 2 a configuration or precondition error, 3 a ledger that
+does not replay — so never retry a 2 or a 3 without fixing what it names.
+
+- `${engine} doctor` — the harness binaries the engine can see. Run it first; quote it if one is missing.
+- `${engine} objective validate` — every problem in the tracked objective record, in one pass, before anything runs.
+- `${engine} objective resolve --leg <name>` — the init arguments one priced leg implies.
+- `${engine} init --repo . --objective autoresearch/objective/registry.json --objective-leg <name> --scope <path> --state-dir ${state_dir}` — initialise the run from that leg. `--scope` is repeatable and required.
+- `${engine} run --repo . --agent <adapter> --max-iterations ${max_iterations} --max-wall ${max_wall_seconds} --state-dir ${state_dir}` — the keep/discard loop (`--max-wall` takes **seconds**; ${max_wall_seconds} s is the config's ${max_wall_minutes} minutes × 60). Test the argv with `--dry-run` before the real one.
+- `${engine} status --repo . --state-dir ${state_dir}` — replay-validate the ledger and summarise the run. A red ledger stops the session.
+- `${engine} report --repo . --record --state-dir ${state_dir}`, then `${engine} report --check --state-dir ${state_dir}` — write the close record, then prove it re-renders byte for byte.
+- `${engine} profile <name> --repo <path>` — one declared target profile as a dry plan; it never initialises a run.
+
+A command that is not in this list is not a command: add it to the engine with a test,
+by a pull request, first. Never hand-edit the ledger, the run config or the record —
+they are generated, and a hand-edited one stops replaying.
+
+## Where the loop stands (rendered ${fired_at})
+Objective — the active leg, from autoresearch/objective/registry.json:
+${objective_line}
+
+Engine status:
+${engine_status}
+
+Last close record:
+${last_record}
+
+Engine doctor:
+${engine_doctor}
+
+Engine commands advertised right now: ${catalog}
+
+## This run's contract
+1. Work inside the scope the run config names; a change outside it cannot win, and a
+   protected file that moved voids the round.
+2. Keep the run bounded: at most ${max_iterations} iterations and ${max_wall_minutes}
+   minutes of wall clock. A run over budget is not extended; it is recorded as it stopped.
+3. Let the loop stop itself — plateau, budget, crashes are stop reasons, not
+   suggestions. Do not restart a stopped run to keep going: a resumed run is a new
+   decision with a new reading, not a longer one.
+4. Before the first change, read the last close record above. Its verdict says whether
+   the metric moved because the work moved it (improved) or because the instrument
+   moved under it (displaced). A displaced record is a repair job, not a baseline.
+5. Close the run: `report --record`, then `report --check`. Leave the record and the
+   ledger in the state directory, and state the verdict in one paragraph: what moved,
+   by how much, against which floor.
+6. If the run cannot start (missing adapter, unreadable objective), stop and report the
+   exit code and its line. A silent no-op is worse than a failed run.
+
+## Charter (adopter-supplied)
+${charter}

@@ -1,10 +1,10 @@
 ---
 title: Unattended Loop Recipe
 created: 2026-11-15
-updated: 2026-11-15
+updated: 2026-11-16
 type: concept
 tags: [autoresearch, agentic, ops]
-sources: [raw/articles/2026-11-15-downstream-frontier-distillation.md]
+sources: [raw/articles/2026-11-15-downstream-frontier-distillation.md, raw/articles/2026-11-16-unattended-loop-recipe-implemented.md, raw/articles/2026-11-16-process-scan-correction.md]
 confidence: medium
 ---
 
@@ -43,6 +43,11 @@ the scheduler's own listing, and `--dry-run` that renders the plan and returns *
 guard**. Values resolve `DEFAULTS ← <script stem>.config.json ← config.json ← env`; the stem
 rule lets N recipes share one `scripts/` dir.
 
+The schema is closed and reported in one pass: a missing required key, a `files` value that is
+not a bare filename, a `script` that is not one of the installed files, a listed source that is
+absent, a `config_renames` that is not an old→new string map. A recipe that would install
+nothing is refused before anything is copied.
+
 ## Root resolution — never `$HOME`
 
 Inside a harness-spawned process `$HOME` is a *per-profile* home, so a plausible empty tree
@@ -60,21 +65,40 @@ mutation — a command that exits 0 without changing state is a failure.
 
 ## Guard ladder — every guard fails closed
 
-Skip a tick rather than write twice:
+Skip a tick rather than write twice, in this order:
 
-1. `--dry-run` returns before every guard.
-2. Outside `[start, end)` on the configured offset → exit 0, no log line.
+1. `--dry-run` returns before every guard (it starts nothing, so it can duplicate nothing).
+2. Outside `[start, end)` in the configured **zone** → exit 0, no output, no log line. Wrap
+   (`22 → 6`) and equal hours are defined, and an unknown zone raises instead of falling back
+   to UTC: a window that silently moves fires at the wrong hour.
 3. An unreadable session API → log `api-error … not firing blind`, exit 0.
 4. **Session liveness** — a streaming or recently-touched session of the *target* profile
    blocks. Check **all** sessions plus an idle floor: a worker between tool calls reports
    `agent_running=false`, so checking only the last recorded session id fires a duplicate
    session into a live one.
-5. **Detached-process marker** — a live round blocks. A round is a detached tree invisible to
-   the session API, so this guard is the only bar to a second writer; and it must match the
-   **argv shape actually used**, because global flags sit between script and subcommand:
-   `(?:arena\.py|registry\.py\s+league)\b.*\sround(?:\s|$)` behind a deliberately broad
-   `pgrep` prefilter, with `--dry-run` counted as in flight. The naive
-   `pgrep -af "arena.py round"` returned nothing during a real round — it failed open `[S]`.
+5. **Live-run marker** — the run writes it, the guard reads it, and this is the first
+   detached-run signal. A dedicated marker beats a process scan on every axis: the process may
+   be detached and invisible to the session API, its argv may carry flags the pattern did not
+   anticipate, and `pgrep` may be absent. The reader is **broad-then-specific**: does a marker
+   exist at all, then is its pid alive? A pid that is gone is a finished run and does not
+   block; a marker that cannot be parsed blocks, because a guard that cannot read its signal
+   must not read it as clear.
+6. **Process scan** — a second, independent signal, never the first. `pgrep -af autoresearch`
+   is a prefilter only; the pattern that decides must match the **argv shape actually
+   used**, because global flags sit between the program and `run`. This repo's pattern is
+   `ROUND_PATTERN = (?:^|[\s/])autoresearch(?:\.py)?\b(?:\s+[^\s]+)*\s+run(?:\s|$)`, and a
+   **dry run is not a round in flight**: it returns at once and leaves no marker, so
+   nothing counts it. The naive literal `pgrep -af "autoresearch run"` still fails on a
+   flagged argv — that was the downstream failure `[S]` (PR #40), and a test pins the
+   literal's failure before the clever pattern ships.
+
+   Downstream's own spelling (`arena\.py|registry\.py\s+league`, with `--dry-run` counted
+   as in flight) is one harness's, not the doctrine.
+   ^[raw/articles/2026-11-16-process-scan-correction.md]
+
+The doctrine that survives the port: never let a scan-first guard be the only bar, and prove the
+naive form fails *before* shipping the clever one. A test that pins "the literal pattern does not
+match this argv" is the red-proof; without it the guard can only be reviewed, not known.
 
 ## Prompt rendered at fire time
 
@@ -108,6 +132,38 @@ which is a [[harness-portability]] question; the invoked agent entry point is
 [[headless-harness-invocation]].
 
 ^[raw/articles/2026-11-15-downstream-frontier-distillation.md]
+
+## Implemented in this repo
+
+PRD 21 ships the mechanism, not only the pattern (code capture:
+[2026-11-16-unattended-loop-recipe-implemented](../../raw/articles/2026-11-16-unattended-loop-recipe-implemented.md)).
+
+| Piece | Home | Rule it carries |
+|-------|------|-----------------|
+| recipe | `autoresearch/supervisor/overnight/` | job definition + the exact files the scheduler runs + an adopter charter |
+| schema | `autoresearch/supervisor/schema.py` | closed field list; every defect in one pass |
+| installer | `autoresearch/supervisor/install.py` | `copy2`, merge order, renames first, listing decides, dry run inert |
+| operator loop | `autoresearch/supervisor/control.py` | `status` read-only; `pause`/`resume` re-read and fail if the state did not move |
+| ladder | `autoresearch/supervisor/guards.py` | window, busy session, marker, process scan — each pure and fail-closed |
+| binding | `autoresearch/supervisor/hermes_binding.py` | the one scheduler: listing parser, argv, profile layout, session calls |
+| prompt | `autoresearch/supervisor/overnight/prompt.tmpl.txt` + `launch.py` | rendered from the objective's active leg, the engine's status/doctor/catalog, the last verdict, the charter |
+| marker | `autoresearch/engine/autoresearch/marker.py` | a run announces itself at start and removes the marker at exit |
+
+Three divergences from the downstream shape, each deliberate:
+
+1. **`overnight-loop`, not `arena-overnight`.** This repo has no league: the prompt names the
+   objective's active leg and the engine's own commands, and the charter is a template section
+   the adopter fills rather than a verbatim user message. Nothing about seasons, referees or
+   the captain economy travels.
+2. **The marker replaces the pgrep guard's role.** Downstream's own record calls the scan
+   "brittle by nature — exactly how PR #40 happened"; the documented fix (a pidfile the run
+   writes) is now the first signal, and the scan is the fallback.
+3. **`zoneinfo`, not a fixed UTC offset.** A fixed offset is exact for one city and an hour
+   wrong for a DST zone part of the year; adopters are worldwide.
+
+What is still not claimed: no live scheduler has fired this recipe here. The ladder is proved
+against a stubbed session API and the marker against the real engine, so the record reads
+`pending`, not `works` — the same habit the downstream record needed a day to earn.
 
 ## Related
 
