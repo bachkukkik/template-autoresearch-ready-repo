@@ -19,8 +19,10 @@
 > [2026-11-15 downstream frontier distillation](../../kb/raw/articles/2026-11-15-downstream-frontier-distillation.md).
 > **Builds on:** PRD 17 (engine). It does not change that PRD's contracts; it
 > tightens what a keep is allowed to mean.
-> **Stage 6:** `docs/21-agent-evals.md` — **pending**; it is written from a
-> verification run, not from this plan.
+> **Stage 6:** [`docs/21-agent-evals.md`](../21-agent-evals.md) — **written 2026-11-16**
+> from a verification run, not from this plan; verdict `works`, with the limits that
+> run found (no live model drove the layer, replay trusts the recorded margin's
+> value) recorded there.
 
 ## Context
 

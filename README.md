@@ -180,7 +180,7 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 │   ├── queries/           # Filed query results
 │   └── _archive/          # Superseded material (never deleted)
 ├── docs/                  # Three doc layers — intent, gaps, verified reality
-├── scripts/               # Repo helpers: verify-clone.sh, gen-env.py, audit-ste.py, audit_pyramid.py, local-ci.sh
+├── scripts/               # Repo helpers: verify-clone.sh, gen-env.py, audit-ste.py, audit_pyramid.py, legacy_grid.py, local-ci.sh
 ├── tests/                 # Three-tier test suite — each tier has a runner AND a CI job
 ├── scratchpads/           # Agent scratch space (gitignored)
 └── .github/

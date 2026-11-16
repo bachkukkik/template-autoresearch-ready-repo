@@ -8,6 +8,7 @@ SC-evl-2 also fixes the floor reading: ``NOISE_FLOOR_MODE = 'absolute'`` by
 default, with ``mode='relative'`` preserving the engine's pre-PRD-20 meaning.
 """
 import statistics
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -351,6 +352,15 @@ def test_single_repeat_only_diverges_inside_the_floor_where_nothing_is_claimed()
         decide_with_margin(_single(10.0), _single(10.0), "lower", 0.01, mode="relative")
         == INCONCLUSIVE
     )
+    # The exhaustive form of this claim is a tracked script, so the figure a
+    # document quotes is one `python3 scripts/legacy_grid.py` re-derives.
+    grid = Path(__file__).resolve().parents[2] / "scripts" / "legacy_grid.py"
+    result = subprocess.run(
+        [sys.executable, str(grid)], capture_output=True, text=True, timeout=300
+    )
+    assert result.returncode == 0, result.stderr
+    assert "keeps the margin added: 0" in result.stdout
+    assert "keeps the margin lost : 0" in result.stdout
 
 
 def test_the_incumbent_measurement_is_rebuilt_from_the_ledgers_values():
