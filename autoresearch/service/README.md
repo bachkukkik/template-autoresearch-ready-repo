@@ -87,10 +87,12 @@ Local CI before any PR: run the pre-PR chain stated in `AGENTS.md` §6 — never
 | DELETE | `/api/v1/runs/{job_id}` | — | job dict (`cancelled` if queued/running) |
 | GET | `/api/v1/doctor` | — | allowed agents, harness binaries, bundled workloads |
 
-Errors: `401` (auth), `400` (bad body, **missing corpus file**, unknown
-workload, refused agent, malformed/oversized replay records — all fail fast,
-before a job exists), `404` (unknown job). All non-`/health` routes require
-the bearer token from `AUTH_BEARER_TOKEN` in an `Authorization` header.
+Errors: `401` (auth), `400` (bad body, **missing corpus file** or one escaping
+the corpus root — absolute, `..` segment, empty/whitespace, backslash
+separators, or resolving outside the root — unknown workload, refused agent,
+malformed/oversized replay records — all fail fast, before a job exists),
+`404` (unknown job). All non-`/health` routes require the bearer token from
+`AUTH_BEARER_TOKEN` in an `Authorization` header.
 
 A run's `engine` summary is the engine's own view of the ledger:
 `{metric_name, direction, baseline_metric, incumbent_metric, trials, outcomes,
@@ -207,8 +209,9 @@ the scheduler queue.
 - `texts` — inline `{title, content}` pairs; always available, no filesystem
   dependency.
 - `files` — paths **relative to `RESEARCH_CORPUS_ROOT`** (compose: the repo's
-  `kb/raw/` mounted read-only at `/kb-raw`). Missing files are rejected at
-  submit with `400`, never discovered mid-run.
+  `kb/raw/` mounted read-only at `/kb-raw`). A missing file, or a path that is
+  absolute, holds `..`, is empty/whitespace, uses `\` or resolves outside the
+  root, is rejected at submit with `400`, never discovered mid-run.
 
 Example — user1 researches topic A from one transcript while user2 researches
 topic B from another:

@@ -1,4 +1,4 @@
-"""Integration tier — concurrent multi-topic research over the live service. IDs: AC-MCP-231..233.
+"""Integration tier — concurrent multi-topic research over the live service. IDs: AC-MCP-231..234.
 
 One module-scoped subprocess running the actual service (uvicorn via
 ``autoresearch_service.main``) on PORT 18001 with bearer auth enabled (AUTH_BEARER_TOKEN),
@@ -203,3 +203,24 @@ def test_missing_corpus_file_fails_fast_with_400(service):
     status, body = _post_research("doomed topic", files=[missing])
     assert status == 400
     assert body.get("detail") == f"corpus file not found: {missing}"
+
+
+@pytest.mark.parametrize(
+    ("bad", "rule"),
+    [
+        ("../secret.txt", "'..'"),
+        ("a/../../secret.txt", "'..'"),
+        ("/etc/passwd", "relative to the corpus root"),
+        ("", "empty"),
+    ],
+)
+def test_corpus_path_traversal_rejected_with_400(service, bad, rule):
+    """AC-MCP-234 (SC5 containment): a corpus path that escapes the corpus root
+    is a 400 at submit — absolute, '..' segment or empty — never queued and
+    never read outside RESEARCH_CORPUS_ROOT."""
+    status, body = _post_research("traversal topic", files=[bad])
+    assert status == 400
+    detail = body.get("detail", "")
+    assert rule in detail
+    if bad:
+        assert bad in detail  # the refused path is named

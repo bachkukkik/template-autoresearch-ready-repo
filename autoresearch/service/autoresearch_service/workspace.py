@@ -101,11 +101,36 @@ def corpus_spec_from_params(params: dict | None) -> CorpusSpec:
     )
 
 
+def _contained_corpus_path(path: str, root: Path) -> Path:
+    """Resolve one corpus-relative path, refusing anything outside ``root``.
+
+    A corpus file is a non-empty, '/'-separated path relative to the corpus
+    root that resolves inside it (PRD-06 SC5): absolute paths, ``..`` segments,
+    backslash separators and symlink escapes are each refused with one clear
+    error naming the path and the rule.
+    """
+    text = path if isinstance(path, str) else str(path)
+    if not text.strip():
+        raise ValueError("corpus file path is empty")
+    if "\\" in text:
+        raise ValueError(f"corpus file path must use '/' separators: {text}")
+    candidate = Path(text)
+    if candidate.is_absolute():
+        raise ValueError(f"corpus file path must be relative to the corpus root: {text}")
+    if ".." in candidate.parts:
+        raise ValueError(f"corpus file path must not contain '..': {text}")
+    resolved = (root / candidate).resolve()
+    if not resolved.is_relative_to(root.resolve()):
+        raise ValueError(f"corpus file path resolves outside the corpus root: {text}")
+    return resolved
+
+
 def validate_corpus_files(spec: CorpusSpec, corpus_root: Path | None = None) -> None:
-    """Fail fast (PRD-06 SC5): every referenced corpus file must exist."""
+    """Fail fast (PRD-06 SC5): every referenced corpus file must exist inside the
+    corpus root — a path that escapes it is refused before any read."""
     root = Path(corpus_root) if corpus_root else DEFAULT_CORPUS_ROOT
     for path in spec.files:
-        if not (root / path).is_file():
+        if not _contained_corpus_path(path, root).is_file():
             raise ValueError(f"corpus file not found: {path}")
 
 
@@ -193,11 +218,17 @@ def _write_research_inputs(
         out = corpus_dir / "texts" / "{:02d}-{}.txt".format(i, slug)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(doc.get("content") or "", encoding="utf-8")
-    # Corpus files -> corpus/files/<relative path>, parents preserved.
+    # Corpus files -> corpus/files/<relative path>, parents preserved. The
+    # destination boundary is corpus/files/ itself, not the corpus root the
+    # source check already guarded (issue #54 — never trust the caller).
     for path in spec.files:
-        out = corpus_dir / "files" / path
+        src = _contained_corpus_path(path, corpus_root)
+        files_dir = corpus_dir / "files"
+        out = files_dir / path
+        if not out.resolve().is_relative_to(files_dir.resolve()):
+            raise ValueError(f"corpus file path escapes the workspace: {path}")
         out.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(corpus_root / path, out)
+        shutil.copy2(src, out)
 
 
 def _commit_baseline(repo: Path) -> None:
