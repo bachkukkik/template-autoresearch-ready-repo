@@ -35,7 +35,7 @@ import tokenize
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SCAN_DIRS = ("autoresearch/engine", "autoresearch/service", "scripts")
+SCAN_DIRS = ("autoresearch/engine", "autoresearch/service", "autoresearch/target", "scripts")
 
 BANNED = (
     ("SHELL-TRUE", re.compile(r"\bshell\s*=\s*True")),

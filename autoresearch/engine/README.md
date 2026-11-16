@@ -41,7 +41,7 @@ instead of the engine. The wrapper already passes `-P`.
 
 | Command | What it does |
 |---|---|
-| `init` | Validates the target repo, hashes the protected files, writes `.autoresearch/run.json`. |
+| `init` | Validates the target repo, hashes the protected files, writes `run.json` in the state dir (default `.autoresearch/`). |
 | `run` | Runs iterations until a stop condition: agent → scope → protected → commit → guard → verify → keep\|revert. |
 | `status` | Replay-validates `events.jsonl` and prints the run summary. |
 | `report` | Writes `report.md` (with an EVIDENCE section) and `results.tsv`. |
@@ -62,6 +62,7 @@ autoresearch/engine/bin/autoresearch init \
 | Flag | Default | Meaning |
 |---|---|---|
 | `--repo PATH` | `.` | Target repo. Must be a git repo on a named branch with a clean tree. |
+| `--state-dir PATH` | `<repo>/.autoresearch` | Where `run.json`, the ledger and the report live. Accepted by `init`, `run`, `status` and `report`; the absolute path is recorded in `run.json` so a round can keep its state in the harness and leave the measured checkout untouched. |
 | `--verify CMD` | required | Prints the metric (`METRIC name=1.5`, `name: 1.5`, or a bare final float). |
 | `--metric-name NAME` | required | The token `parse_metric` looks for. |
 | `--direction {lower,higher}` | required | Which way is better. |
@@ -75,7 +76,7 @@ autoresearch/engine/bin/autoresearch init \
 | `--protect PATH` | — | Extra protected file (repeatable). |
 | `--program FILE` | — | Standing instructions copied into every prompt. |
 | `--goal TEXT` | — | One-line goal copied into every prompt and the report. |
-| `--force` | off | Archive the existing run to `.autoresearch/archive/<ts>/` and start over. |
+| `--force` | off | Archive the existing run to `<state dir>/archive/<ts>/` and start over. |
 
 Protected files default to every file named as a path token in `--verify` and
 `--guard` that exists in the repo, so `... --verify "python3 score.py"` protects
@@ -172,8 +173,12 @@ invocation simply measures the baseline again.
 
 ## Files
 
-Everything lives under `<repo>/.autoresearch/`, which ignores itself via its own
-`.gitignore` (`*`) so the loop never dirties the tree it measures.
+Everything lives under `<repo>/.autoresearch/` by default; `--state-dir PATH` (on
+`init`, `run`, `status`, `report`) puts that directory anywhere — a harness scoring
+another checkout keeps its state and its prompt file here, so the measured tree is never
+written to, and `run.json`'s `state_dir` is how a later command finds it. The directory
+ignores itself via its own `.gitignore` (`*`) so the loop never dirties the tree it
+measures.
 
 | File | Written by | Contents |
 |---|---|---|

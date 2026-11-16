@@ -155,7 +155,7 @@ def test_a_binary_that_vanishes_after_the_preflight_is_an_agent_error(tmp_path, 
 
     from autoresearch import adapters as adapters_mod
 
-    def vanished(self, prompt, repo_path, timeout, iteration=1):
+    def vanished(self, prompt, repo_path, timeout, iteration=1, state=None):
         raise FileNotFoundError(2, "No such file or directory", "agent")
 
     monkeypatch.setattr(adapters_mod.Adapter, "run", vanished)
@@ -285,9 +285,9 @@ def _capture_prompts(monkeypatch):
     prompts = []
     original = adapters_mod.Adapter.run
 
-    def spy(self, prompt, repo_path, timeout, iteration=1):
+    def spy(self, prompt, repo_path, timeout, iteration=1, state=None):
         prompts.append(prompt)
-        return original(self, prompt, repo_path, timeout, iteration=iteration)
+        return original(self, prompt, repo_path, timeout, iteration=iteration, state=state)
 
     monkeypatch.setattr(adapters_mod.Adapter, "run", spy)
     return prompts

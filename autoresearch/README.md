@@ -13,6 +13,8 @@ autoresearch/
 │   ├── bin/autoresearch  # CLI wrapper (no PYTHONPATH needed)
 │   └── autoresearch/     # stdlib-only loop: cli, config, loop, measure, ledger, adapters, report
 ├── contract/             # program.md / prepare.py / train.py + examples/ (the bundled workload)
+├── target/               # target-profile contract (PRD 22): relativity split + evaluator guard
+├── targets/              # declared target profiles, one `<name>.json` each (PRD 22)
 └── service/
     ├── Dockerfile        # build context is this directory
     ├── README.md         # the service runbook (routes, env vars, workspace layout)
@@ -35,6 +37,31 @@ autoresearch/engine/bin/autoresearch run --repo <repo> --agent claude --max-iter
 autoresearch/engine/bin/autoresearch status --repo <repo>
 autoresearch/engine/bin/autoresearch report --repo <repo>
 ```
+
+Every command that reads or writes run state — `init`, `run`, `status`, `report` — takes
+`--state-dir PATH`. Without it the engine keeps using `<repo>/.autoresearch` exactly as
+before, so an existing run replays unchanged; with it the state (and the `command`
+adapter's prompt file) lives somewhere else and the measured tree is never written to.
+
+## Run it — target profile
+
+```bash
+autoresearch/engine/bin/autoresearch profile example --repo <checkout>
+autoresearch/engine/bin/autoresearch profile example --repo <checkout> --json
+```
+
+Validates the declared profile `autoresearch/targets/example.json` and prints the engine
+`init` it implies — a plan, never a run. Every path key declares its relativity in the
+profile's `$comment`: `engine`/`referee`/`guard_command`/`runs_dir` resolve here, the
+rest resolve in the checkout. The plan passes `--state-dir <runs_dir>/state`, so a
+round's `run.json`, ledger and report live in the harness and the measured checkout gets
+no `.autoresearch` at all; `run`/`status`/`report` take the same `--state-dir` (its
+absolute path is recorded in `run.json`). `--json` emits `{name, profile, target, argv}`
+instead of one command line. `import_runs.py` copies an external run ledger into the
+profile's runs directory (`--dry-run`, clobber refusal); it resolves that directory
+through the same validator. The contract and its four lessons are
+[PRD 22](../docs/prd/22-target-profile.md); the example profile's `referee` names a path
+that must exist at round time, because this repo ships no scoring layer (PRD 20).
 
 ## Run it — service
 

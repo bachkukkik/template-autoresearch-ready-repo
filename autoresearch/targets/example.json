@@ -1,0 +1,43 @@
+{
+  "$comment": [
+    "Relativity is part of the contract (PRD 22): every path key says what it is relative to.",
+    "  harness-relative — resolved in THIS repo, whatever checkout is measured:",
+    "    engine (the loop a round runs), referee (the evaluator), guard_command",
+    "    (its hard gate; a template — {referee} is this repo's evaluator, {target} the",
+    "    measured checkout), runs_dir (the state and the records a round leaves; the",
+    "    plan hands it to the engine as `--state-dir <runs_dir>/state`, so the",
+    "    measured checkout receives no `.autoresearch`).",
+    "  target-relative — resolved inside the checkout a round names:",
+    "    program, scopes, protected, docker_free_tier, e2e_dir, context_dir, dockerfile,",
+    "    fresh_script, guard_steps, fresh_instruction, arena_test_files.",
+    "  Declarative, neither: name, metric_name, direction.",
+    "A key whose honest value is empty ships empty ([] or \"\"), never deleted: a deleted",
+    "optional key is refused by name, because no reader can tell it from a typo.",
+    "This is a STUB for a generic Python repo: referee must name your evaluator, live",
+    "outside the measured checkout and exist at round time — the template ships no",
+    "scoring layer (PRD 20).",
+    "The evaluator prints one `METRIC <metric_name>=<value>` line for --target-repo."
+  ],
+  "name": "example",
+  "engine": "autoresearch/engine/bin/autoresearch",
+  "referee": "autoresearch/target/referee.py",
+  "guard_command": "python3 {referee} --target-repo {target} guard",
+  "runs_dir": "autoresearch/runs/example",
+  "metric_name": "tests_passed",
+  "direction": "higher",
+  "program": "program.md",
+  "scopes": {
+    "better": ["src"],
+    "cheaper": ["src"],
+    "faster": ["src"]
+  },
+  "protected": [],
+  "docker_free_tier": "",
+  "e2e_dir": "",
+  "context_dir": "",
+  "dockerfile": "",
+  "fresh_script": "",
+  "guard_steps": [],
+  "fresh_instruction": "",
+  "arena_test_files": []
+}

@@ -417,7 +417,7 @@ def _provenance(cfg, adapter) -> Dict[str, str]:
         model_route=_model_route(adapter),
         engine_version=__version__,
         referee_version=_referee_version(cfg),
-        profile_path=config_mod.run_json_path(cfg.repo),
+        profile_path=config_mod.run_json_path(cfg.repo, cfg.state),
     )
 
 
@@ -526,7 +526,9 @@ def _one_iteration(
     before_agent = set(gitops.status_paths(repo))
     ignored_before = gitops.ignored_snapshot(repo, cfg.scope)
     try:
-        result = adapter.run(prompt, repo, opts.agent_timeout, iteration=iteration)
+        result = adapter.run(
+            prompt, repo, opts.agent_timeout, iteration=iteration, state=cfg.state_dir
+        )
     except (FileNotFoundError, PermissionError) as exc:
         # The preflight passed but the executable was gone (or not executable)
         # when the fork happened. That is still an outcome, not a traceback.
@@ -745,9 +747,9 @@ def _dry_run(cfg, adapter, state: State, opts: Options, emit: Emitter) -> int:
             trials=state.trials,
         ),
     )
-    argv = adapter.argv(prompt, cfg.repo)
+    argv = adapter.argv(prompt, cfg.repo, state=cfg.state_dir)
     placeholder = f"<prompt: {len(prompt)} chars>"
-    prompt_file = str(adapter.prompt_path(cfg.repo))
+    prompt_file = str(adapter.prompt_path(cfg.repo, cfg.state_dir))
     shown = [
         placeholder if token in (prompt, prompt_file) else token for token in argv
     ]

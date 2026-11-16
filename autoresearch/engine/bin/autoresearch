@@ -5,8 +5,20 @@
 # `-P` keeps the working directory off sys.path: `python3 -m` would otherwise
 # import a repo-local autoresearch.py (or autoresearch/ package) instead of the
 # engine whenever the wrapper is run from inside a project.
+#
+# `profile <name>` is the target-profile contract (PRD 22): it validates a declared
+# profile and prints the engine plan, resolving harness keys here and target keys in
+# the measured checkout. It never initialises a run and never writes to the target.
 set -euo pipefail
 
-ENGINE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+AUTORESEARCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ENGINE_DIR="$AUTORESEARCH_DIR/engine"
+TARGET_CLI="$AUTORESEARCH_DIR/target/cli.py"
+
+if [ "${1:-}" = "profile" ]; then
+  shift
+  exec python3 "$TARGET_CLI" "$@"
+fi
+
 export PYTHONPATH="$ENGINE_DIR${PYTHONPATH:+:$PYTHONPATH}"
 exec python3 -P -m autoresearch "$@"

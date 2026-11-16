@@ -110,8 +110,10 @@ class Adapter:
 
     # -- argv ----------------------------------------------------------------
 
-    def prompt_path(self, repo: os.PathLike | str) -> Path:
-        return Path(repo) / gitops.STATE_DIR / "prompt.txt"
+    def prompt_path(self, repo: os.PathLike | str, state: os.PathLike | str | None = None) -> Path:
+        """Where the ``command`` adapter's prompt file lives: the state dir, never the tree."""
+        root = Path(state) if state else Path(repo) / gitops.STATE_DIR
+        return root / "prompt.txt"
 
     def argv(
         self,
@@ -119,6 +121,7 @@ class Adapter:
         repo: os.PathLike | str,
         model: Optional[str] = None,
         extra: Optional[Sequence[str]] = None,
+        state: os.PathLike | str | None = None,
     ) -> List[str]:
         """The exact argv this harness is invoked with."""
         model = self.model if model is None else model
@@ -157,7 +160,7 @@ class Adapter:
             return ["dsh", "--profile", "headless"] + extra + [prompt]
 
         if self.name == "command":
-            prompt_file = str(self.prompt_path(repo))
+            prompt_file = str(self.prompt_path(repo, state))
             tokens = shlex.split(self.agent_cmd or "")
             return [
                 token.replace("{prompt_file}", prompt_file).replace("{repo}", repo)
@@ -196,16 +199,17 @@ class Adapter:
         repo: os.PathLike | str,
         timeout: float,
         iteration: int = 1,
+        state: os.PathLike | str | None = None,
     ) -> AgentResult:
         if self.name == "replay":
             return self._run_replay(repo, timeout, iteration)
 
         if self.name == "command":
-            path = self.prompt_path(repo)
+            path = self.prompt_path(repo, state)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(prompt, encoding="utf-8")
 
-        argv = self.argv(prompt, repo)
+        argv = self.argv(prompt, repo, state=state)
         started = time.monotonic()
         proc = subprocess.Popen(
             argv,

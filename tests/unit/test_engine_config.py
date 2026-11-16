@@ -1,4 +1,4 @@
-"""``init`` — validation, protected hashes and the immutable run.json. IDs: AC-ENG-040..045."""
+"""``init`` — validation, protected hashes and the immutable run.json. IDs: AC-ENG-040..046."""
 import sys
 from pathlib import Path
 
@@ -31,6 +31,28 @@ def test_init_writes_run_json_and_a_self_ignoring_state_dir(tmp_path):
     assert (state / ".gitignore").read_text() == "*\n"
     assert state / "run.json" in list(state.iterdir())
     assert git(repo, "status", "--porcelain").stdout == ""
+
+
+def test_state_dir_override_keeps_the_run_out_of_the_checkout(tmp_path, capsys):
+    """AC-ENG-046: --state-dir moves run.json and every later lookup; the default stays."""
+    repo = make_target(tmp_path)
+    state = tmp_path / "harness-state"
+    assert init_run(repo, extra=["--state-dir", str(state)]) == 0
+    assert not (repo / ".autoresearch").exists()
+    assert (state / ".gitignore").read_text(encoding="utf-8") == "*\n"
+    assert git(repo, "status", "--porcelain").stdout == ""
+
+    cfg = config_mod.load(repo, state)
+    assert cfg.state == str(state.resolve())
+    assert cfg.state_dir == state.resolve()
+    assert Path(cfg.events_path).parent == state.resolve()
+
+    # Default behaviour and an old run.json (no state_dir key) both still load.
+    legacy = make_target(tmp_path, name="legacy")
+    assert init_run(legacy) == 0
+    assert (legacy / ".autoresearch" / "run.json").is_file()
+    assert config_mod.load(legacy).state is None
+    assert config_mod.load(legacy).state_dir == legacy / ".autoresearch"
 
 
 def test_default_protected_covers_the_measurement_and_the_guard(tmp_path):
