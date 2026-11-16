@@ -114,6 +114,8 @@ def render_markdown(cfg, events: Sequence[dict]) -> str:
     lines.append(f"- verify: `{cfg.verify}`")
     lines.append(f"- guard: `{cfg.guard}`" if cfg.guard else "- guard: _(none)_")
     lines.append(f"- metric: `{cfg.metric_name}` ({cfg.direction} is better)")
+    if getattr(cfg, "objective_id", None):
+        lines.append(f"- objective: `{cfg.objective_id}` (leg `{cfg.objective_leg}`)")
     lines.append(f"- target: {_fmt(cfg.target) if cfg.target is not None else '_(none)_'}")
     lines.append(f"- noise floor: {cfg.noise_floor:g}")
     lines.append(f"- repeats: {cfg.repeats}")

@@ -1,0 +1,38 @@
+{
+  "$comment": [
+    "A tracked record of WHAT a run optimises (PRD 22, SC-obj-1..8).",
+    "The engine still measures one metric per init: `autoresearch objective resolve`",
+    "prints the --verify/--metric-name/--direction/--repeats/--noise-floor arguments",
+    "a leg implies, and one leg at weight 1.0 is the degenerate case, not a special one.",
+    "Reasons are owed by a fork (parent is not null) and by a retired or archived record.",
+    "best/floor are optional: with both present, a leg at its floor is refused in a rotation.",
+    "baseline is optional and validated: commit, then declared = credited + uncovered."
+  ],
+  "objectives": [
+    {
+      "id": "template-val-bpb",
+      "parent": null,
+      "status": "active",
+      "legs": [
+        {
+          "name": "val_bpb",
+          "direction": "lower",
+          "unit": "bits/byte",
+          "command": "python3 train.py",
+          "repeats": 3,
+          "noise_floor": 0.01,
+          "guard": "python3 prepare.py"
+        }
+      ],
+      "weights": {
+        "val_bpb": 1.0
+      },
+      "rotation": [
+        "val_bpb"
+      ],
+      "seasons": [],
+      "rounds": [],
+      "reason": "the single-metric degenerate case: one leg at weight 1.0, feeding the engine's RunConfig metric_name/direction"
+    }
+  ]
+}

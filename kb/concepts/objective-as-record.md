@@ -1,10 +1,10 @@
 ---
 title: Objective as Record
 created: 2026-11-15
-updated: 2026-11-15
+updated: 2026-11-16
 type: concept
 tags: [autoresearch, research-method, data-model]
-sources: [raw/articles/2026-11-15-downstream-frontier-distillation.md]
+sources: [raw/articles/2026-11-15-downstream-frontier-distillation.md, raw/articles/2026-11-16-objective-and-run-records.md]
 confidence: medium
 ---
 
@@ -83,11 +83,43 @@ of [[better-cheaper-faster-metrics]]; the floor-leg schedule rule is on
 
 ## In this repo
 
-The template's ledger already records a baseline with its commit; this page is the shape to
-**extend**, not a second store. Single `metric_name`/`direction` on a run config is the
-degenerate case: it dies at its floor and cannot describe what to optimise next.
+**Implemented** (PRD 22 Part B). The record is `autoresearch/objective/registry.json`, read
+and validated by `autoresearch/engine/autoresearch/objective.py`; it is the shape this page
+describes, fitted to a single-metric engine:
+
+- **Legs are full entries, not registry keys.** Each leg carries seven of the nine fields
+  of the contract in one place (`name · direction · unit · command · repeats ·
+  noise_floor · guard`, with `exploit`/`cheat_probe` deliberately dropped — the template
+  ships no scoring layer to probe). `weights` stays a separate map, so one leg at weight
+  1.0 is the degenerate case and not a special schema. `init --objective` resolves the
+  active leg into the engine's
+  `--verify/--metric-name/--direction/--repeats/--noise-floor`; a multi-leg objective
+  needs `--objective-leg` named, because choosing one silently would substitute one half
+  of the objective for another.
+- **The validator returns every contradiction** (`objective validate`, exit 1) and refuses
+  the same class of record downstream refuses: duplicate leg name, missing field,
+  undeclared direction, unknown weight key, weight outside `[0.5, 3.0]`, two active
+  objectives, a season or round owned twice, a dangling or cyclic parent, an active
+  objective with no legs, a fork or retirement with no reason.
+- **At-floor is decoded from data, not a flag.** A leg may declare `best` and `floor`; when
+  both are present and `best` has reached `floor`, scheduling it is refused and the
+  rotation must name exactly the playable legs (downstream's R29-R31 rule, as a check).
+  Both fields are optional because a record is written before the first round — an
+  at-floor verdict from half a pair would be a guess.
+- **Weights are data, not economy.** The record keeps a fork's opening weights, but this
+  engine prices one leg per run and nothing here pays, pots or reprices. Band-gated pay and
+  `jackpot_keys` stay downstream and are named as SPECIFIC in the PRD.
+- **`dry_streak` is not ported.** Downstream declares it, prints it in one prompt, and
+  computes it nowhere: a schema field with no writer is a slot a hand-editor fills by
+  guess.
+
+The page's shape is now shipped code, so the concept and the implementation agree; the
+*evidence* behind the failure modes is still the downstream record (medium confidence,
+unchanged): no independent reproduction of the season-17 exhaustion or the season-22
+`cheaper` ledger exists here.
 
 ^[raw/articles/2026-11-15-downstream-frontier-distillation.md]
+^[raw/articles/2026-11-16-objective-and-run-records.md]
 
 ## Related
 

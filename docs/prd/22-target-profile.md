@@ -6,15 +6,23 @@
 > path; and a round hashes its evaluator surface at both ends, voiding itself when the
 > evaluator moved. The tournament that motivated the contract (a 4,980-line arena, a
 > captain economy, seasons of media) is **not** ported.
-> **Domain:** `tpr` — target profile.
+> **Domain:** `tpr` — target profile; this revision adds `obj` (the objective record)
+> and `rec` (the run record) as a second, additive scope — see *Part B* below.
 > **Canonical tests:** `tests/unit/test_target_profile.py` (`AC-TPR-001..016`),
-> `tests/integration/test_target_profile_engine.py` (`AC-TPR-201..203`).
+> `tests/integration/test_target_profile_engine.py` (`AC-TPR-201..203`);
+> `tests/unit/test_engine_objective.py` (`AC-OBJ-001..016`),
+> `tests/unit/test_engine_record.py` (`AC-REC-001..012`),
+> `tests/integration/test_objective_record_replay.py` (`AC-OBJ-201`, `AC-REC-201`).
 > **Grounding:**
 > [target-profile-contract](../../kb/concepts/target-profile-contract.md),
 > [reward-hacking-countermeasures](../../kb/concepts/reward-hacking-countermeasures.md),
 > [evaluator-legitimacy](../../kb/concepts/evaluator-legitimacy.md),
-> [verify-guard-contract](../../kb/concepts/verify-guard-contract.md); raw source
-> [2026-11-16 target-profile contract](../../kb/raw/articles/2026-11-16-target-profile-contract.md).
+> [verify-guard-contract](../../kb/concepts/verify-guard-contract.md),
+> [objective-as-record](../../kb/concepts/objective-as-record.md),
+> [run-record-contract](../../kb/concepts/run-record-contract.md),
+> [relocation-not-play](../../kb/concepts/relocation-not-play.md); raw sources
+> [2026-11-16 target-profile contract](../../kb/raw/articles/2026-11-16-target-profile-contract.md),
+> [2026-11-16 objective and run records](../../kb/raw/articles/2026-11-16-objective-and-run-records.md).
 > **Builds on:** PRD 17 (engine). It adds a resolution layer in front of `init`, plus one
 > additive engine flag — `--state-dir` — so the resolved `runs_dir` is the state a live
 > round actually uses; without the flag the engine behaves exactly as PRD 17 records.
@@ -73,6 +81,15 @@ Out: the arena, referee, captain economy, corpus, media, season pages and the 4,
 `arena.py` (they stay downstream); any scoring layer in this repo (PRD 20's *Out of
 Scope* still holds — the example profile's `referee` names a path the adopter supplies);
 mutating round execution; REST/MCP exposure of `profile`.
+
+**Part B (W2) — the objective and the run record.** In: `autoresearch/objective/registry.json`
+(the tracked record of what is optimised), `autoresearch/engine/autoresearch/objective.py`
+(reader, validator, lookups, CLI), `autoresearch/engine/autoresearch/record.py` (close
+record, readings, `--check`), the engine's additive `init --objective/--objective-leg`
+and `report --record/--check`, the run config's four objective fields, and the `raw`
+line a measurement now carries in its ledger event. Out: the captain economy, seats,
+buys, buzz, pots, jackpots, media and season pages — all downstream-specific. The
+divergences are recorded in *Assumptions* rather than implied.
 
 ## Success Criteria
 
@@ -152,6 +169,129 @@ mutating round execution; REST/MCP exposure of `profile`.
   `tests/unit/test_target_profile.py` (AC-TPR-015),
   `tests/integration/test_target_profile_engine.py` (AC-TPR-203).
 
+## Success Criteria — Part B (objective and run record)
+
+- **SC-obj-1 — An objective is a tracked record, and one leg at weight 1.0 is the
+  degenerate case.** `autoresearch/objective/registry.json` declares every objective:
+  its legs (name, direction, unit, command, repeats, noise_floor, guard, and an optional
+  pinned `baseline` of `commit` plus the `declared/credited/uncovered` trio), its
+  weights, its status, its parent, the seasons and rounds it owns, and a reason.
+  `objective validate` lists every contradiction in one pass — exit 1 for an
+  inconsistent record, exit 2 when `--file` names a file that cannot be opened, the
+  same operator-error code `init` uses; `objective resolve` prints the
+  `--verify/--metric-name/--direction/--repeats/--noise-floor` arguments a leg implies,
+  as argv, never shell text that is then run. A single leg at weight 1.0 resolves, and
+  the shipped record validates.
+  _Verify:_ `tests/unit/test_engine_objective.py` (AC-OBJ-001, AC-OBJ-014).
+- **SC-obj-2 — Every leg is a contract, and a direction is refused rather than
+  defaulted.** A leg missing `unit`, `command`, `repeats`, `noise_floor` or `guard` is
+  named with the missing field; a duplicate leg name is refused (a leg is a lookup
+  key); a direction outside `lower|higher` is refused, because a silent default turns
+  every regression into a win for a metric that should only fall.
+  _Verify:_ `tests/unit/test_engine_objective.py` (AC-OBJ-002, AC-OBJ-003, AC-OBJ-004).
+- **SC-obj-3 — Weights are complete and clamped.** Every weight names a declared leg,
+  every leg carries a weight (an unweighted leg is not priced), and every value lies in
+  `[0.5, 3.0]` inclusive — the downstream clamp, stated as data.
+  _Verify:_ `tests/unit/test_engine_objective.py` (AC-OBJ-005, AC-OBJ-006).
+- **SC-obj-4 — Exactly one objective is active, and every period has one owner.** Two
+  active objectives are refused naming both (two weights for one run and no way to say
+  which settled it); a season or a round listed by two objectives is refused naming
+  both accounts.
+  _Verify:_ `tests/unit/test_engine_objective.py` (AC-OBJ-007, AC-OBJ-008).
+- **SC-obj-5 — A fork has a parent that exists, a chain that ends, and a reason.** A
+  dangling parent and a parent cycle are refused; a fork with no reason and a
+  retired/archived objective with no reason are refused. The reason is where the
+  parent's measured exhaustion is written; a fork without it is a rewrite.
+  _Verify:_ `tests/unit/test_engine_objective.py` (AC-OBJ-009, AC-OBJ-015).
+- **SC-obj-6 — A leg at its floor leaves the rotation, and the rotation is exactly as
+  long as the playable legs.** A leg with `best` and `floor` declared at its floor is
+  refused in a rotation (a scheduled leg nobody can move hands a free zero to whoever
+  draws it); a rotation longer or shorter than the playable legs is refused, and a
+  playable leg it drops is named. An active objective with no legs is refused.
+  _Verify:_ `tests/unit/test_engine_objective.py` (AC-OBJ-010, AC-OBJ-011).
+- **SC-obj-7 — Every contradiction is reported in one pass.** Three or more simultaneous
+  defects — duplicate leg, bad direction, out-of-clamp weight, unknown weight key, two
+  actives, dangling parent — come back as one list, each naming its offender; the CLI
+  exits 1 and prints every problem, so a hand-edited record is fixed once.
+  _Verify:_ `tests/unit/test_engine_objective.py` (AC-OBJ-012, AC-OBJ-014).
+- **SC-obj-8 — The record feeds the engine, and the report names it.**
+  `init --objective <file>` stores the absolute record path, its id, the resolved leg
+  and the leg's unit in `run.json`, and derives verify/metric/direction/repeats/
+  noise-floor/guard from that leg; an explicit flag that **restates** the leg is
+  accepted, and one that **contradicts** it is refused with exit 2 — a run measuring
+  another command, direction or floor under the objective's name would leave a record
+  that disagrees with its own objective. `report` prints the
+  objective id when one is configured. A multi-leg objective requires
+  `--objective-leg`, and a leg at its floor is refused rather than resolved. In the
+  integration tier a single-leg objective drives a real replay whose ledger validates.
+  _Verify:_ `tests/unit/test_engine_objective.py` (AC-OBJ-013, AC-OBJ-016),
+  `tests/integration/test_objective_record_replay.py` (AC-OBJ-201).
+- **SC-rec-1 — A closed run leaves a comparable record.** `report --record` writes
+  `record.json` and `record.md` into the run's state directory: the objective id, the
+  parent and close commits, the per-leg baseline (`commit`, `value`, and the pinned
+  `declared/credited/uncovered` trio when the objective declares one), the keeps
+  (`commit`, `round`, `leg`), `review{means, previous, weights, reason}`, the floors,
+  the state directory **as a label** (repo-relative, else its basename — a record
+  travels with the harness and must not carry host layout), the provenance block of
+  the last decision, and the legs declared but not measured by this run. Every count
+  in the record and its prose derives from the ledger.
+  _Verify:_ `tests/unit/test_engine_record.py` (AC-REC-001, AC-REC-002).
+- **SC-rec-2 — A verdict is required, closed, and defined by cause.** Every reading row
+  carries `name, unit, lower_is_better, before, after, command, raw, verdict, note`, and
+  the repeat series (`values`) whenever the reading was reduced from more than one
+  measurement. `verdict` is one of `improved | held | displaced`, each with the KB
+  definition printed beside it; a `held` or `displaced` reading with no note is a
+  failure, because the note is where the cause is named.
+  _Verify:_ `tests/unit/test_engine_record.py` (AC-REC-003, AC-REC-009).
+- **SC-rec-3 — The record is written beside the run and re-renders byte-identically.**
+  `--record` writes both artefacts under `--state-dir` when it is set; `--check`
+  re-renders from the ledger and exits 0 only on byte identity, exits 2 on any drift,
+  and exits 2 when either artefact is missing or the run has not stopped (a pending
+  record is a guess).
+  _Verify:_ `tests/unit/test_engine_record.py` (AC-REC-004, AC-REC-005, AC-REC-006),
+  `tests/integration/test_objective_record_replay.py` (AC-REC-201).
+- **SC-rec-4 — The honest-verdict gate refuses the mechanically detectable lies.**
+  `--record` refuses to write, and `--check` fails, when baseline commits differ across
+  legs, when a keep's commit is not an ancestor of the close commit, when a
+  `held`/`displaced` reading carries no note, when a reading has no `raw` line, when a
+  `raw` line does not reproduce the recorded value, when the
+  `declared/credited/uncovered` trio is partial, is not three numbers (a `'1,027'` is a
+  label, not a zero), or does not add up, or when a pinned baseline commit is not the
+  commit the run measured. The rest of the checklist needs a reader and is stated below
+  as the human list.
+  _Verify:_ `tests/unit/test_engine_record.py` (AC-REC-007, AC-REC-008, AC-REC-010,
+  AC-REC-011).
+- **SC-rec-5 — The record keeps the evaluator's own line.** A measurement records the
+  exact stdout line the metric was parsed from (`raw`), not a paraphrase, in both the
+  baseline and trial events; with repeats>1 it is the line of the **median repeat**, so
+  a verify printing 6, 6, 7 records `after 6.0` beside the line that printed 6 and the
+  reading carries the series it was reduced from. The record carries it forward, and a
+  ledger written before this field existed fails `--record` with a message naming the
+  missing line rather than rendering a hole.
+  _Verify:_ `tests/unit/test_engine_record.py` (AC-REC-002, AC-REC-010),
+  `tests/unit/test_engine_measure.py` (AC-ENG-005).
+- **SC-rec-6 — A run without an objective is unchanged.** Without `--objective`,
+  `run.json` gains four null fields and `report` gains no line; without `--record`,
+  `report.md` and `results.tsv` are byte-for-byte what PRD 17 records, and an old
+  `run.json` still loads.
+  _Verify:_ `tests/unit/test_engine_record.py` (AC-REC-012),
+  `tests/unit/test_engine_objective.py` (AC-OBJ-016).
+
+## The human half of the honest-verdict checklist
+
+The four checks above are the ones a machine can settle. The other six need a reader,
+and a reviewer who skips them has only a number (see
+[run-record-contract](../../kb/concepts/run-record-contract.md)):
+
+1. Was the unit actually served (void rows excluded, not zeroed)?
+2. Did the guard run **before** the bank, and does the revert name its commit?
+3. Is landing proved by **patch-id**, not ancestry? (Our engine commits its keeps on the
+   run's own branch, so ancestry is a valid proof *here* — the note is for a port that
+   cherry-picks.)
+4. Is the artefact of the loss kept, with its hash, and explicitly not promoted?
+5. Is the **operator** scored (voids, unreadable readings, rounds where nothing moved)?
+6. Is every count in the prose re-derived and proved by a re-render that fails on drift?
+
 ## Test Mapping
 
 | SC | AC ids | Test file | Tier |
@@ -169,6 +309,23 @@ mutating round execution; REST/MCP exposure of `profile`.
 | SC-tpr-8 | AC-ENG-046 | `tests/unit/test_engine_config.py` | unit |
 | SC-tpr-8 | AC-TPR-015 | `tests/unit/test_target_profile.py` | unit |
 | SC-tpr-8 | AC-TPR-203 | `tests/integration/test_target_profile_engine.py` | integration |
+| SC-obj-1 | AC-OBJ-001, 014 | `tests/unit/test_engine_objective.py` | unit |
+| SC-obj-2 | AC-OBJ-002, 003, 004 | `tests/unit/test_engine_objective.py` | unit |
+| SC-obj-3 | AC-OBJ-005, 006 | `tests/unit/test_engine_objective.py` | unit |
+| SC-obj-4 | AC-OBJ-007, 008 | `tests/unit/test_engine_objective.py` | unit |
+| SC-obj-5 | AC-OBJ-009, 015 | `tests/unit/test_engine_objective.py` | unit |
+| SC-obj-6 | AC-OBJ-010, 011 | `tests/unit/test_engine_objective.py` | unit |
+| SC-obj-7 | AC-OBJ-012, 014 | `tests/unit/test_engine_objective.py` | unit |
+| SC-obj-8 | AC-OBJ-013, 016 | `tests/unit/test_engine_objective.py` | unit |
+| SC-obj-8 | AC-OBJ-201 | `tests/integration/test_objective_record_replay.py` | integration |
+| SC-rec-1 | AC-REC-001, 002 | `tests/unit/test_engine_record.py` | unit |
+| SC-rec-2 | AC-REC-003, 009 | `tests/unit/test_engine_record.py` | unit |
+| SC-rec-3 | AC-REC-004, 005, 006 | `tests/unit/test_engine_record.py` | unit |
+| SC-rec-3 | AC-REC-201 | `tests/integration/test_objective_record_replay.py` | integration |
+| SC-rec-4 | AC-REC-007, 008, 010, 011 | `tests/unit/test_engine_record.py` | unit |
+| SC-rec-5 | AC-REC-002, 010 | `tests/unit/test_engine_record.py` | unit |
+| SC-rec-6 | AC-REC-012 | `tests/unit/test_engine_record.py` | unit |
+| SC-rec-6 | AC-OBJ-016 | `tests/unit/test_engine_objective.py` | unit |
 
 ## CI/CD Gate
 
@@ -177,9 +334,11 @@ mutating round execution; REST/MCP exposure of `profile`.
   repos, a copied harness, a scripted replay, no model, no network). No new job.
 - `scripts/audit_pyramid.py` holds the new modules to the comment budget and the banned
   pattern list; `no shell=True` and bounded subprocesses are already the engine's rule.
-- The `doctrine` job's tracked roots are unchanged: `autoresearch/target/` and
-  `autoresearch/targets/` nest under the existing `autoresearch/` root, so this is not a
-  new tracked root and funnel rule 11 does not apply.
+  The one new subprocess (`git merge-base --is-ancestor`) carries `timeout=30`.
+- The `doctrine` job's tracked roots are unchanged: `autoresearch/target/`,
+  `autoresearch/targets/` and the new `autoresearch/objective/` nest under the existing
+  `autoresearch/` root, so this is not a new tracked root and funnel rule 11 does not
+  apply.
 - `kb/raw/` gains one capture; `.github/workflows/sources-readonly.yml` requires the
   `ingest` label on that PR — the branch is merged with the label, not without it.
 
@@ -229,6 +388,78 @@ mutating round execution; REST/MCP exposure of `profile`.
   a well-formed plan and `RoundGuard.start` refuses the round as missing — and the
   integration tier proves the contract with its own demo profile and evaluator instead
   of pretending the stub is runnable.
+- [ASSUMPTION] **The economy is not ported; the weights are.** Downstream's band-gated
+  pay (`metric_profit = 100 · weight · relative_improvement`, a leg whose measured band
+  is at least its improvement paying `0.0`) and its `rules.jackpot_keys` are SPECIFIC to
+  the tournament and stay there. This port keeps weights because they are data about
+  what is optimised — a fork's opening priorities — but nothing here prices a round,
+  pays a pot or settles a seat. `objective resolve` reads one leg; a harness that prices
+  several reads the record directly.
+- [ASSUMPTION] **`dry_streak` is declared but never computed downstream, and is not
+  ported.** `games.json` carries `0` in all three games and no code writes or reads it
+  beyond one prompt display — a schema field with no writer is a slot a hand-editor
+  fills by guess. This port refuses to ship a field it cannot compute.
+- [ASSUMPTION] **Period ownership (`seasons`/`rounds`) is hand-maintained and
+  validated, not written — one step above `dry_streak`.** No code writes the list and no
+  code derives it from the ledger; it is kept because the validator constrains the edit
+  (integers only, and one period cannot be claimed by two objectives), which is exactly
+  the property `dry_streak` lacks. An adopter told that a played period was never listed
+  gets nothing but a human checklist item; cut the key of a port that never forks
+  objectives, since a single objective owns everything it plays.
+- [ASSUMPTION] **The close-attribution error cannot repeat, but the unlisted-period
+  half can.** Downstream played seasons 20–22 on `g1` without listing them, so a close
+  attributed them to `g0`; `g1.notes` records the retroactive listing and `g2.notes`
+  records season 23 attributed the same way. Here the objective id is written into
+  `run.json` at `init` and copied into the close record, so a close cannot re-derive a
+  different owner. What remains hand-maintained is the objective record's own
+  `seasons`/`rounds` list: validation refuses a period two objectives claim, but cannot
+  know a period that was played and never listed. Listing a period at close stays a
+  human step, stated in the human checklist rather than implied by the validator.
+- [ASSUMPTION] **`weights_after` is machine-written, not copied.** Downstream's close
+  record carries `weights_after`, which the next fork's case adopts by hand. This
+  record writes `review.previous` and `review.weights` from the run config and the
+  resolved leg, so the next reader reads a record instead of a transcript. The engine
+  does not reprice (there is no economy), so `weights` equals the declared weight and
+  `review.reason` says so in words derived from the ledger; a run with no objective
+  record carries the identity weight `1.0` and says that too.
+- [ASSUMPTION] **Some record fields are carried for fidelity, not enforced.** The
+  shapes are downstream's, so they are kept; `--check` does not judge them:
+  `review.previous` is the declared weight and is identical to `review.weights` by
+  construction (nothing reprices between records); `floor_before` and `floor_after` are
+  the same config value, because the engine never re-measures its own floor mid-run; and
+  the `provenance` block is written to `record.json` but not rendered in `record.md`
+  (it is a reference to a decision, and `status --require-provenance` is its gate). An
+  adopter reading `--check` as "clean" should read these three as *informational*: they
+  are copied, not verified. `record.md` says so for the floor line.
+- [ASSUMPTION] **A leg's floor is only known after a measurement.** `best` and `floor`
+  are optional per leg: a record is written before the first round, and an at-floor
+  check with only one half present would be a guess. Validation reports a half-declared
+  pair and stays silent on an unmeasured leg; the rotation is then all declared legs.
+- [ASSUMPTION] **`displaced` is expressible but not machine-detected.** `verify` and the
+  protected files are fixed for the life of a run, so the instrument cannot move under
+  it; the mechanical builder therefore emits `improved` or `held`. A record that knows
+  the cost moved elsewhere — a shorter test tier, an upstream commit — supplies
+  `displaced` and its note, which the gate requires. `improved` printed over a
+  relocation is the failure mode human checklist item 4 exists to catch.
+- [ASSUMPTION] **`report --check` is the record's check surface.** There is no separate
+  `record` subcommand: the record is a view of the same ledger `report` reads, and two
+  commands over one source drift. `--record` writes, `--check` re-renders; missing,
+  pending, drifted and gate-failing records all exit 2, and the two flags are mutually
+  exclusive.
+- [ASSUMPTION] **A pre-existing ledger fails `--record`.** The `raw` line arrives with
+  this change, and a record owes the evaluator's own line. It is deliberately not
+  back-filled from `values` — that would be a paraphrase of evidence. `report` without
+  `--record` is byte-for-byte unchanged, so an old run still reports; it cannot claim a
+  comparable record until it has been re-run.
+- [ASSUMPTION] **The objective module is ~400 lines against the ~200 the port planned.**
+  Every refusal carries its own message (the one-pass list is the point), and the
+  at-floor and rotation rules are new. The shape is the port: raise on unreadable input,
+  return every contradiction on an inconsistent record, and look up by name.
+- [ASSUMPTION] **The shipped registry is an example an adopter edits.** It names this
+  repo's own contract (`val_bpb`, `python3 train.py`, `python3 prepare.py`) as one leg at
+  weight 1.0. `objective validate` is the check that keeps it honest; a fork adds an
+  objective with a `parent` and a reason, and `init --objective-leg` selects which leg a
+  run measures.
 
 ## Confidence
 
@@ -239,3 +470,14 @@ claim**: it provably detects a change between its two reads (AC-TPR-010..012), a
 provably writes nothing, but it cannot see a write-then-restore, and the KB page says
 so. The schema itself is a judgement call: one validator and two extra declarative keys
 are a deliberate divergence from downstream, recorded here rather than hidden.
+
+**High for the objective validator and the record shape** — the validator is a pure
+function tested rule by rule, the record is a pure function of the ledger re-rendered
+byte-for-byte, and one integration test drives a single-leg objective through a real
+replay whose ledger validates and whose close record passes `--check`. **Medium for the
+honest gate as a sufficiency claim**: four of the ten questions are mechanically
+settled and red-proofed one by one, the other six need a reader and are stated as such.
+**Medium for `displaced`**: the enum is required and the note is enforced, but the
+single-instrument engine cannot produce the verdict itself. **High for backward
+compatibility**: without `--objective` and `--record` the run config and both report
+artefacts are what PRD 17 records.

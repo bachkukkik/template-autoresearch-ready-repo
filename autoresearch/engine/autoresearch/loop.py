@@ -465,6 +465,7 @@ def _baseline(cfg, ledger: ledger_mod.Ledger, state: State, emit: Emitter) -> No
             "guard": cfg.guard,
             "verify": cfg.verify,
             "seconds": round(measurement.seconds, 3),
+            "raw": measurement.raw[:1000],
         }
     )
     state.baseline = event
@@ -494,6 +495,7 @@ def _one_iteration(
         "guard": None,
         "description": f"iteration {iteration}",
         "log_tail": "",
+        "raw": "",
         # Cost is recorded even when it is unknown (PRD 20 SC-evl-6): a JSON null
         # says "not exposed" where a 0 would claim the agent was free.
         "agent_tokens": None,
@@ -634,6 +636,7 @@ def _one_iteration(
     measurement = measure_mod.measure(cfg)
     fields["values"] = measurement.values
     fields["metric"] = measurement.value
+    fields["raw"] = measurement.raw[:1000]
     fields["seconds"] = round(measurement.seconds, 3)
     if not measurement.ok:
         _revert(cfg, incumbent["commit"])

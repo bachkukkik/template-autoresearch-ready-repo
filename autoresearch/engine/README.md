@@ -44,7 +44,8 @@ instead of the engine. The wrapper already passes `-P`.
 | `init` | Validates the target repo, hashes the protected files, writes `run.json` in the state dir (default `.autoresearch/`). |
 | `run` | Runs iterations until a stop condition: agent → scope → protected → commit → guard → verify → keep\|revert. |
 | `status` | Replay-validates `events.jsonl` and prints the run summary. |
-| `report` | Writes `report.md` (with an EVIDENCE section) and `results.tsv`. |
+| `report` | Writes `report.md` (with an EVIDENCE section) and `results.tsv`; `--record` also writes `record.json` + `record.md`, `--check` re-renders and exits `0` only on byte identity. |
+| `objective` | `validate` lists every contradiction in the objective record (exit `1`); `resolve` prints the `init` arguments a leg implies. Dry: it never measures or writes. |
 | `doctor` | Prints each harness binary, its `--version`, and whether `OPENAI_API_KEY` is set (never its value). |
 
 ### init
@@ -63,9 +64,11 @@ autoresearch/engine/bin/autoresearch init \
 |---|---|---|
 | `--repo PATH` | `.` | Target repo. Must be a git repo on a named branch with a clean tree. |
 | `--state-dir PATH` | `<repo>/.autoresearch` | Where `run.json`, the ledger and the report live. Accepted by `init`, `run`, `status` and `report`; the absolute path is recorded in `run.json` so a round can keep its state in the harness and leave the measured checkout untouched. |
-| `--verify CMD` | required | Prints the metric (`METRIC name=1.5`, `name: 1.5`, or a bare final float). |
-| `--metric-name NAME` | required | The token `parse_metric` looks for. |
-| `--direction {lower,higher}` | required | Which way is better. |
+| `--verify CMD` | required* | Prints the metric (`METRIC name=1.5`, `name: 1.5`, or a bare final float). *Derived from `--objective`'s active leg when omitted. |
+| `--metric-name NAME` | required* | The token `parse_metric` looks for. *Derived from the leg. |
+| `--direction {lower,higher}` | required* | Which way is better. *Derived from the leg. |
+| `--objective PATH` | none | A tracked objective record (PRD 22): the active leg derives `--verify`, `--metric-name`, `--direction`, `--repeats`, `--noise-floor` and `--guard`; the record's path, id, leg and unit are stored in `run.json`. An explicit flag wins. |
+| `--objective-leg NAME` | none | The leg to measure when the active objective prices more than one playable leg. |
 | `--scope PREFIX` | required, repeatable | Repo-relative path prefix the agent may edit. No globs. Must exist, and must not be the repo root (`.`): a revert would then clean every untracked file. |
 | `--guard CMD` | none | Must exit 0 for a candidate to be scorable. |
 | `--target X` | none | Stop once the metric reaches it (inclusive). |
@@ -162,7 +165,8 @@ outcome, or a `stop` that is not last.
 | Code | Meaning |
 |---|---|
 | `0` | Stopped normally (any stop reason, including `interrupted`, `dry-run` and `doctor`). |
-| `2` | Configuration or precondition error: dirty tree, missing run, scope missing, guard fails at baseline, verify prints no metric, HEAD not the incumbent, missing adapter binary. |
+| `1` | An objective record is invalid — `objective validate|resolve` lists every problem. |
+| `2` | Configuration or precondition error: dirty tree, missing run, scope missing, guard fails at baseline, verify prints no metric, HEAD not the incumbent, missing adapter binary; also a close record that is missing, pending, drifted or fails its own honest-verdict check. |
 | `3` | Ledger invalid — `status`/`report`/`run` refuse to work from a history that does not replay. |
 
 Ctrl-C is caught, never a traceback. Mid-run it restores the worktree to the
@@ -186,6 +190,8 @@ measures.
 | `events.jsonl` | `run` | Append-only, fsync'd: `baseline`, `trial`, `stop`, and `resume` when a stopped run is started again. Each trial carries the capped (`4000` char) `log_tail` of the phase that decided it. |
 | `results.tsv` | `report` | `iter, commit, metric, outcome, description`. |
 | `report.md` | `report` | Goal, config, baseline vs best, trial table, EVIDENCE. |
+| `record.json` | `report --record` | The close record: objective id, parent/close commits, per-leg baselines, keeps, readings (with the evaluator's own `raw` line and a verdict), review, floors, provenance. |
+| `record.md` | `report --record` | The human view of `record.json`; `report --check` re-renders both and exits `0` only on byte identity. |
 | `last_agent.log` | `run` | Tail of the most recent agent output (capped at `4000` chars). |
 | `prompt.txt` | `run` (command adapter) | The exact prompt handed to the agent. |
 | `lock` | `run`, `init --force` | `flock` target: one run per repo; a second invocation exits `2`. |
