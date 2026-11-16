@@ -43,6 +43,12 @@ binding by default, no live credentials tracked.
 - **SC5** — No tracked credential files or hardcoded secret assignments enter the
   repo. _Verify:_ `ci.yml` job `secret-scan`.
 
+- **SC6** — No tracked compose file publishes a host port. `docker compose` brings
+  the stack up on the internal network only, so several derived projects can share
+  one Docker host without a port collision; host access is a per-deployment opt-in
+  through the gitignored `docker-compose.override.yml`, never a tracked mapping.
+  _Verify:_ `tests/unit/test_compose_no_host_ports.py` (AC-MCP-047..048).
+
 ## Test Mapping
 
 | Expected behavior | Test file | Test IDs |
@@ -50,6 +56,7 @@ binding by default, no live credentials tracked.
 | REST + MCP routing surface (health, research ops, /mcp) | `tests/unit/test_routes.py` | AC-MCP-001..006 |
 | Live service over a real socket: health + research lifecycle | `tests/integration/test_service_endpoints.py` | AC-MCP-211..215 |
 | Running container answers via `docker compose exec` | `tests/e2e/service.bats` | AC-MCP-101..104 |
+| No tracked compose file declares a host `ports:` mapping; the opt-in override stays gitignored | `tests/unit/test_compose_no_host_ports.py` | AC-MCP-047..048 |
 | `kb/raw` edits/removals blocked without `ingest` label | `.github/workflows/sources-readonly.yml` | job `check-raw-readonly` |
 | Symlinks resolve; funnel tracked; no secrets in tree | `.github/workflows/ci.yml` | jobs `doctrine`, `secret-scan` |
 

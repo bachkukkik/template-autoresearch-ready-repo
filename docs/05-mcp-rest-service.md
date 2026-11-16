@@ -34,6 +34,14 @@ REST surface: `GET /health` (no auth), `POST /api/v1/research` (202 + job),
 `research_results`, `research_cancel` at `/mcp` (FastMCP v4 streamable HTTP,
 stateless 2026-07-28 path).
 
+**Host ports.** No tracked compose file declares a host `ports:` mapping: the stack
+comes up on the compose network only, so several derived projects can share one
+Docker host without a collision. Host access stays a per-deployment opt-in through
+the gitignored `docker-compose.override.yml`;
+`tests/unit/test_compose_no_host_ports.py` enforces both halves — the tracked files
+carry no `ports:` mapping (`AC-MCP-047`) and the override path stays ignored
+(`AC-MCP-048`; PRD-01 SC6).
+
 ### Upgrade paths
 
 None of the upgrades below are implemented — v1 is the batteries-included
