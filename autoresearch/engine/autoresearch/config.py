@@ -55,17 +55,20 @@ class ConfigError(Exception):
 # ─── path helpers ────────────────────────────────────────────────────────────
 
 
-def state_dir(repo: os.PathLike | str) -> Path:
+def state_dir(repo: os.PathLike | str, state: os.PathLike | str | None = None) -> Path:
+    """The state directory: ``--state-dir`` when given, else ``<repo>/.autoresearch``."""
+    if state:
+        return Path(state).expanduser().resolve()
     return Path(repo) / STATE_DIR
 
 
-def run_json_path(repo: os.PathLike | str) -> Path:
-    return state_dir(repo) / RUN_JSON
+def run_json_path(repo: os.PathLike | str, state: os.PathLike | str | None = None) -> Path:
+    return state_dir(repo, state) / RUN_JSON
 
 
 @contextlib.contextmanager
-def state_lock(repo: os.PathLike | str):
-    """Hold ``.autoresearch/lock`` while a command mutates the run.
+def state_lock(repo: os.PathLike | str, state: os.PathLike | str | None = None):
+    """Hold the state directory's ``lock`` while a command mutates the run.
 
     Two runs on one repo would interleave commits and resets, so the second one
     is refused rather than queued: an operator who starts a run by mistake wants
@@ -75,7 +78,7 @@ def state_lock(repo: os.PathLike | str):
     if fcntl is None:  # pragma: no cover - POSIX-only engine
         yield
         return
-    path = state_dir(repo) / LOCK_FILE
+    path = state_dir(repo, state) / LOCK_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a+", encoding="utf-8") as handle:
         try:
@@ -134,12 +137,14 @@ class RunConfig:
     program_path: Optional[str] = None
     goal: Optional[str] = None
     created_at: str = ""
+    #: An absolute state directory when ``--state-dir`` moved it out of the repo.
+    state: Optional[str] = None
 
     # -- views ---------------------------------------------------------------
 
     @property
     def state_dir(self) -> Path:
-        return state_dir(self.repo)
+        return state_dir(self.repo, self.state)
 
     @property
     def events_path(self) -> Path:
@@ -167,6 +172,7 @@ class RunConfig:
             "program_path": self.program_path,
             "goal": self.goal,
             "created_at": self.created_at,
+            "state_dir": self.state,
         }
 
     @classmethod
@@ -194,6 +200,7 @@ class RunConfig:
                 program_path=data.get("program_path"),
                 goal=data.get("goal"),
                 created_at=str(data.get("created_at", "")),
+                state=data.get("state_dir"),
             )
         except KeyError as exc:
             raise ConfigError(f"run.json is missing the field {exc.args[0]!r}") from exc
@@ -201,9 +208,9 @@ class RunConfig:
             raise ConfigError(f"run.json is malformed: {exc}") from exc
 
 
-def load(repo: os.PathLike | str) -> RunConfig:
-    """Read ``.autoresearch/run.json``; a missing file is a config error."""
-    path = run_json_path(repo)
+def load(repo: os.PathLike | str, state: os.PathLike | str | None = None) -> RunConfig:
+    """Read the run's ``run.json`` from ``--state-dir``, else ``<repo>/.autoresearch``."""
+    path = run_json_path(repo, state)
     if not path.is_file():
         raise ConfigError(
             f"no run configured under {path} — run `autoresearch init` first"
@@ -355,11 +362,11 @@ def _unique_dir(parent: Path) -> Path:
     return candidate
 
 
-def archive_state(root: Path) -> Path:
-    """Move the existing state aside into ``.autoresearch/archive/<ts>/``."""
-    state = state_dir(root)
-    dest = _unique_dir(state / "archive")
-    for entry in sorted(state.iterdir()):
+def archive_state(root: Path, state: os.PathLike | str | None = None) -> Path:
+    """Move the existing state aside into ``<state dir>/archive/<ts>/``."""
+    here = state_dir(root, state)
+    dest = _unique_dir(here / "archive")
+    for entry in sorted(here.iterdir()):
         # The archive skips itself, and the lock: it is held by the very
         # `init --force` that is archiving, and moving it would release it.
         if entry.name in ("archive", LOCK_FILE):
@@ -397,8 +404,9 @@ def init_run(
     program: Optional[str] = None,
     goal: Optional[str] = None,
     force: bool = False,
+    state: Optional[os.PathLike | str] = None,
 ) -> RunConfig:
-    """Validate the target repo and write ``.autoresearch/run.json``."""
+    """Validate the target repo and write its ``run.json`` (in ``--state-dir``)."""
     root = require_git_repo(repo)
     require_branch(root)
     require_clean(root)
@@ -441,13 +449,14 @@ def init_run(
     # Archiving is destructive (it moves the previous run aside), so it happens
     # only once every argument above has validated: a typo in --protect must not
     # cost the operator the run it was meant to replace.
-    if run_json_path(root).exists() and not force:
+    where = state_dir(root, state)
+    if run_json_path(root, state).exists() and not force:
         raise ConfigError(
-            f"{run_json_path(root)} already exists — pass --force to archive it "
+            f"{run_json_path(root, state)} already exists — pass --force to archive it "
             "and start a new run"
         )
-    if run_json_path(root).exists():
-        archive_state(root)
+    if run_json_path(root, state).exists():
+        archive_state(root, state)
 
     cfg = RunConfig(
         repo=str(root),
@@ -466,12 +475,12 @@ def init_run(
         program_path=program_path,
         goal=goal,
         created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        state=str(where) if state else None,
     )
 
-    state = state_dir(root)
-    state.mkdir(parents=True, exist_ok=True)
+    where.mkdir(parents=True, exist_ok=True)
     # The state directory ignores itself, so a run never pollutes `git status`
     # and the loop never mistakes its own bookkeeping for a candidate change.
-    (state / ".gitignore").write_text(GITIGNORE_BODY, encoding="utf-8")
-    _write_json(run_json_path(root), cfg.as_dict())
+    (where / ".gitignore").write_text(GITIGNORE_BODY, encoding="utf-8")
+    _write_json(where / RUN_JSON, cfg.as_dict())
     return cfg

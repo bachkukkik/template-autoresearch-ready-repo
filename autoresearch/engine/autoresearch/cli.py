@@ -43,8 +43,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    init = sub.add_parser("init", help="validate the repo and write .autoresearch/run.json")
+    init = sub.add_parser("init", help="validate the repo and write its run.json")
     init.add_argument("--repo", default=".")
+    init.add_argument("--state-dir", dest="state", default=None, metavar="PATH",
+                      help="where run.json and the ledger live (default: <repo>/.autoresearch; "
+                           "relative paths resolve against the current directory)")
     init.add_argument("--verify", required=True, help="command that prints the metric")
     init.add_argument("--metric-name", required=True)
     init.add_argument("--direction", required=True, choices=list(config_mod.DIRECTIONS))
@@ -66,6 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     run = sub.add_parser("run", help="run the keep/discard loop")
     run.add_argument("--repo", default=".")
+    run.add_argument("--state-dir", dest="state", default=None, metavar="PATH",
+                     help="the run's state directory (default: <repo>/.autoresearch)")
     run.add_argument("--agent", required=True, choices=list(adapters_mod.AGENTS))
     run.add_argument("--model", default=None,
                      help="model name recorded in provenance — a name, not a "
@@ -87,6 +92,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     status = sub.add_parser("status", help="replay-validate the ledger and summarise the run")
     status.add_argument("--repo", default=".")
+    status.add_argument("--state-dir", dest="state", default=None, metavar="PATH",
+                        help="the run's state directory (default: <repo>/.autoresearch)")
     status.add_argument("--json", dest="json_output", action="store_true")
     status.add_argument(
         "--require-provenance",
@@ -97,6 +104,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = sub.add_parser("report", help="write report.md and results.tsv")
     report.add_argument("--repo", default=".")
+    report.add_argument("--state-dir", dest="state", default=None, metavar="PATH",
+                        help="the run's state directory (default: <repo>/.autoresearch)")
     report.add_argument("--out", default=None)
     report.set_defaults(func=cmd_report)
 
@@ -112,10 +121,15 @@ def build_parser() -> argparse.ArgumentParser:
 def cmd_init(args) -> int:
     # `--force` archives the previous run, so it takes the same lock a run does:
     # archiving the state out from under a live run would corrupt it.
-    lock = config_mod.state_lock(args.repo) if args.force else contextlib.nullcontext()
+    lock = (
+        config_mod.state_lock(args.repo, args.state)
+        if args.force
+        else contextlib.nullcontext()
+    )
     with lock:
         cfg = config_mod.init_run(
             repo=args.repo,
+            state=args.state,
             verify=args.verify,
             metric_name=args.metric_name,
             direction=args.direction,
@@ -138,12 +152,12 @@ def cmd_init(args) -> int:
     print(f"  scope  : {', '.join(cfg.scope)}")
     if cfg.protected:
         print(f"  protect: {', '.join(cfg.protected_paths())}")
-    print(f"  config : {config_mod.run_json_path(cfg.repo)}")
+    print(f"  config : {config_mod.run_json_path(cfg.repo, cfg.state)}")
     return EXIT_OK
 
 
 def cmd_run(args) -> int:
-    cfg = config_mod.load(args.repo)
+    cfg = config_mod.load(args.repo, args.state)
 
     records = None
     if args.agent == "replay":
@@ -193,12 +207,12 @@ def cmd_run(args) -> int:
     emit = loop_mod.Emitter(json_output=args.json_output)
     # One run per repo at a time: a second process would interleave commits and
     # resets with the first, so it is refused (exit 2) rather than serialised.
-    with config_mod.state_lock(cfg.repo):
+    with config_mod.state_lock(cfg.repo, cfg.state):
         return loop_mod.run(cfg, adapter, ledger, opts, emit)
 
 
 def cmd_status(args) -> int:
-    cfg = config_mod.load(args.repo)
+    cfg = config_mod.load(args.repo, args.state)
     events, problems = ledger_mod.load(
         cfg.events_path, require_provenance=args.require_provenance
     )
@@ -219,7 +233,7 @@ def cmd_status(args) -> int:
 
 
 def cmd_report(args) -> int:
-    cfg = config_mod.load(args.repo)
+    cfg = config_mod.load(args.repo, args.state)
     paths = report_mod.write(cfg, args.out)
     print(paths["report"])
     return EXIT_OK

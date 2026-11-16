@@ -70,3 +70,6 @@ scratchpads/*
 # track the graph, un-ignore graphify-out/graph.json and add its merge driver.
 .codegraph/
 graphify-out/*
+
+autoresearch/runs/*
+!autoresearch/runs/.gitkeep

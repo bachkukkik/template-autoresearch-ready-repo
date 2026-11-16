@@ -64,8 +64,10 @@ ex1–ex4 stay as they are (PRD-02 / PRD-11) — the engine is additive.
   from `--verify`, `--guard`, `--metric-name`, `--direction`, `--scope`, optional
   `--target`, `--noise-floor`, `--repeats`, `--protect`, `--program`, `--goal`; it refuses
   a dirty tree, a detached HEAD, a glob or missing scope, and an existing run without
-  `--force` (which archives, and only after every argument validates).
-  _Verify:_ `tests/unit/test_engine_config.py` (AC-ENG-040..045).
+  `--force` (which archives, and only after every argument validates). `--state-dir`
+  moves the whole state directory out of the measured repo (PRD 22 SC-tpr-8), and
+  omitting it keeps `<repo>/.autoresearch` byte-for-byte.
+  _Verify:_ `tests/unit/test_engine_config.py` (AC-ENG-040..046).
 - **SC2 — The script owns keep/revert.** Each iteration: agent edit → changed paths →
   `no_change` | `scope_violation` | `protected_violation` | commit → guard (`guard_failed`)
   → verify × repeats, median (`crash` on failure) → `decide` → keep or revert. Every
@@ -154,7 +156,7 @@ ex1–ex4 stay as they are (PRD-02 / PRD-11) — the engine is additive.
 | keep only beyond the noise floor; zero and negative incumbents | `tests/unit/test_engine_decide.py` | AC-ENG-010..012 |
 | ledger validation, resume segments, tamper → exit 3 | `tests/unit/test_engine_ledger.py` | AC-ENG-020..025 |
 | exact argv for claude/opencode/hermes/dsh/command; replay | `tests/unit/test_engine_adapters.py` | AC-ENG-030..033 |
-| init preconditions, protected hashes, `--force` validates before archiving | `tests/unit/test_engine_config.py` | AC-ENG-040..045 |
+| init preconditions, protected hashes, `--force` validates before archiving, `--state-dir` | `tests/unit/test_engine_config.py` | AC-ENG-040..046 |
 | iteration outcomes, unified revert, stops, dry-run, Ctrl-C, missing binary | `tests/unit/test_engine_loop.py` | AC-ENG-050..059, 077..079 |
 | salvage a dead agent's tree; the wall reservation and its preflight refusal | `tests/unit/test_engine_loop.py` | AC-ENG-082..082e, 083..083d |
 | report EVIDENCE + results.tsv; status summary | `tests/unit/test_engine_report.py` | AC-ENG-060..064 |

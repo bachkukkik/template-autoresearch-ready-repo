@@ -1,7 +1,7 @@
 ---
 title: Reward-Hacking Countermeasures
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-11-16
 type: concept
 tags: [autoresearch, research-method, example]
 sources: [raw/articles/2026-10-28-autoresearch-real-world-engines.md]
@@ -69,6 +69,10 @@ from the configuration of the evaluation path rather than from the model.
   `--disallowedTools=WebFetch,WebSearch`.
 - **A guard living in the tree the agent edits**, with no checksum and no read-only mount
   (autokernel, pi, goal-md).
+- **A guard hashed only by the tree's own diff.** Moving the evaluator outside the
+  worktree stops a diff from reaching it, not a same-user write to its absolute path;
+  the round must hash the evaluator surface at both ends and void on any difference —
+  see [[target-profile-contract]].
 - **Experiment count as a proxy for progress.** 1293 experiments for one 8.56x, with six hacks
   found on the way.
 
@@ -79,3 +83,5 @@ from the configuration of the evaluation path rather than from the model.
 - [[adversarial-optimization-layer]] — the game-theoretic framing of the same conflict.
 - [[deterministic-keep-gate]] — the deterministic decision that removes the softest link.
 - [[autoresearch-engines-real-world]] — the 15-system evidence and the comparison.
+- [[target-profile-contract]] — where the evaluator lives, and the per-round hash that
+  covers the write a diff cannot see.

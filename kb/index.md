@@ -3,7 +3,7 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-11-15 | Total pages: 50
+> Last updated: 2026-11-16 | Total pages: 51
 
 ## Concepts
 
@@ -41,6 +41,7 @@
 | Scanning Without Advanced Security | [concepts/scanning-without-advanced-security.md](concepts/scanning-without-advanced-security.md) | high |
 | Script-Owned Keep/Revert | [concepts/script-owned-keep-revert.md](concepts/script-owned-keep-revert.md) | high |
 | Skill Self-Improvement | [concepts/skill-self-improvement.md](concepts/skill-self-improvement.md) | medium |
+| Target-Profile Contract | [concepts/target-profile-contract.md](concepts/target-profile-contract.md) | medium |
 | Unattended Loop Recipe | [concepts/unattended-loop-recipe.md](concepts/unattended-loop-recipe.md) | medium |
 | Val-BPB Metric | [concepts/val-bpb-metric.md](concepts/val-bpb-metric.md) | high |
 | Verify/Guard Contract | [concepts/verify-guard-contract.md](concepts/verify-guard-contract.md) | high |
@@ -93,6 +94,7 @@
 | Autoresearch engines that improve real code — 15-system evidence table, verify/guard contract, harness argv | [raw/articles/2026-10-28-autoresearch-real-world-engines.md](raw/articles/2026-10-28-autoresearch-real-world-engines.md) | 2026-10-28 |
 | PR-Agent — OSS AI PR reviewer: licence path, self-host matrix, cost traps | [raw/articles/2026-11-04-pr-agent-research.md](raw/articles/2026-11-04-pr-agent-research.md) | 2026-11-04 |
 | Downstream frontier distillation — 42-PR league record: R28–R39, fair-competition invariants, fail-closed eval doctrine, run-record shape | [raw/articles/2026-11-15-downstream-frontier-distillation.md](raw/articles/2026-11-15-downstream-frontier-distillation.md) | 2026-11-15 |
+| Target-profile contract — relativity split, refusal-by-name, evaluator tamper guard (code capture, arena.py/referee.py) | [raw/articles/2026-11-16-target-profile-contract.md](raw/articles/2026-11-16-target-profile-contract.md) | 2026-11-16 |
 | Codified agent guardrails — potato (inverse) pyramid, 69 techniques across 6 research items | [raw/articles/potato-pyramid-codified-guardrails-research.md](raw/articles/potato-pyramid-codified-guardrails-research.md) | 2026-11-15 |
 | transcript — music AI model | [raw/transcripts/-Ip9EtoBjbk.txt](raw/transcripts/-Ip9EtoBjbk.txt) | 2026-09-04 |
 | transcript — can you autoresearch everything | [raw/transcripts/bMoNOb0iXpA.txt](raw/transcripts/bMoNOb0iXpA.txt) | 2026-09-04 |
@@ -109,10 +111,10 @@
 
 ## Stats
 
-- Concepts: 35
+- Concepts: 36
 - Entities: 7
 - Comparisons: 8
 - Queries: 0
-- Raw sources: 26
+- Raw sources: 27
 - Archived: 4
-- Total: 50
+- Total: 51
