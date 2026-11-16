@@ -1,8 +1,8 @@
 # docs/gaps — Gap Observations
 
 Funnel stage 5 (see *Document Funnel* in `AGENTS.md`). A gap doc records **one
-observed divergence** between two adjacent funnel stages. It is transient: it exists
-to be closed.
+observed divergence** between two adjacent funnel stages. It is transient: it
+exists to be closed.
 
 Two kinds, and only two:
 
@@ -11,8 +11,8 @@ Two kinds, and only two:
 | `kb ↔ prd` | The PRD asserts something the KB does not support, or the KB holds knowledge no PRD acts on | PRD written ahead of the knowledge, or stale intent |
 | `prd ↔ code` | The codebase does not do what the PRD says, or does something no PRD asked for | drift, undocumented work, abandoned intent |
 
-Divergence between *PRD* and *observed runtime behaviour* is not a gap doc — that is
-stage 6, `docs/NN-slug.md`, authored via `coding-agents-docs-guideline`.
+Divergence between *PRD* and *observed runtime behaviour* is not a gap doc —
+that is stage 6, `docs/NN-slug.md`, authored via `coding-agents-docs-guideline`.
 
 ## Naming
 
@@ -75,55 +75,61 @@ Rules:
 
 1. **One gap per file.** Two divergences = two files.
 2. **No open gap survives a merge to `main` without a Resolution section.** An
-   unresolvable gap becomes a GitHub issue and the file is closed pointing at it.
+unresolvable gap becomes a GitHub issue and the file is closed pointing at
+it.
 3. **Gaps never carry fixes.** They observe; upstream stages change.
 4. **Every open gap has a row below.** `docs/README.md` points here for the gap
-   listing — a gap file with no row is invisible to the next agent.
+listing — a gap file with no row is invisible to the next agent.
 5. **Where a resolved gap goes — this rule is the single statement of it:**
-   `docs/gaps/_archive/`, its path structure preserved. The file **stays in the
-   repo and is never deleted.** Every other file (see `docs/README.md`) points
-   here rather than restating the location.
+`docs/gaps/_archive/`, its path structure preserved. The file **stays in the
+repo and is never deleted.** Every other file (see `docs/README.md`) points
+here rather than restating the location.
 6. **`NN` is never reused.** A gap withdrawn without a resolution leaves a
-   **tombstone** rather than returning its number to circulation:
-   `docs/gaps/_archive/NN-<slug>.md` carrying `**Status:** withdrawn`, an
-   `**Opened:**` note, a one-line reason and a `**Superseded by:**` line naming
-   the file that now owns the number.
+**tombstone** rather than returning its number to circulation:
+`docs/gaps/_archive/NN-<slug>.md` carrying `**Status:** withdrawn`, an
+`**Opened:**` note, a one-line reason and a `**Superseded by:**` line naming
+the file that now owns the number.
 
 ## Open gaps
 
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
 | 17 | [The loop described by the docs cannot be pointed at real code](17-loop-cannot-target-real-code.md) | prd ↔ code | open | 2026-10-28 | closed by PRD-17: the `autoresearch/engine/` package + ex5 (NLTK 3.9.1 under a four-stage isolated guard); verified in [docs/17](../17-autoresearch-engine.md) |
+| 27 | [The 20 KB file-size cap cannot hold in this repo](27-file-size-cap-cannot-hold.md) | prd ↔ code | open | 2026-11-16 | convergence path: shrink the 22 measured files in waves (W1–W4), then drop `--max-kb 60` from the `Machine gates` step and `ADOPTED_KB` from `tests/unit/test_audit_size.py`; the gap closes when PRD 27's default is the gate — see [docs/27](../27-file-size-audit.md) |
 
-Resolved gaps leave this directory but stay in the repo, their path structure preserved
-under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a tombstone there instead of
-returning its `NN` to circulation (rule 6):
+Resolved gaps leave this directory but stay in the repo, their path structure
+preserved under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a
+tombstone there instead of returning its `NN` to circulation (rule 6):
 
 - **Archived 2026-09-18** — resolutions landed in PR #9, files moved to
-  [`_archive/`](_archive/): `04-corpus-counts-stale.md`,
-  `05-sc7-start-command-drift.md`, `05-sc8-upgrade-paths-undocumented.md`,
-  `05-unit-auth-id-collision.md`, `06-runbook-unverified.md`,
-  `06-test-mapping-ac-034-stale.md`.
-- **Archived 2026-09-19** — resolution landed in the PRD-07 edit (stage 4 now carries
-  the CodeGraph adoption): `07-codegraph-no-prd.md`; and resolution landed in the
-  `kb/raw/` re-ingest (both articles re-stamped, superseded revisions preserved in
-  `kb/_archive/raw/articles/`, layer-2 re-synthesis a no-op): `03-kb-raw-scratchpad-citations.md`.
-- **Archived 2026-10-16** — `07-codegraph-sync-affected-untested.md`: PRD-07 SC4/SC5
-  claimed a tracking gap that did not exist; closed to GitHub issue #29.
-- **Archived 2026-10-16 (post-merge)** — resolutions landed in PR #31 (squash-merged as
-  `639166b`): `02-contract-claims-unenforced.md` (contract enforcement, PRD 02 SC7–SC11),
-  `08-mandated-skills-unresolvable.md` (vendored skills + install sources, PRD 08 SC9–SC12),
-  `11-examples-unreproducible.md` (baseline replay + honest provenance, PRD 11),
-  `16-quality-controls-not-adopted.md` (quality controls ported, PRD 16; the `main`
-  ruleset verified via `gh api …/rulesets` post-merge, AC-QC-011).
+[`_archive/`](_archive/): `04-corpus-counts-stale.md`,
+`05-sc7-start-command-drift.md`, `05-sc8-upgrade-paths-undocumented.md`,
+`05-unit-auth-id-collision.md`, `06-runbook-unverified.md`,
+`06-test-mapping-ac-034-stale.md`.
+- **Archived 2026-09-19** — resolution landed in the PRD-07 edit (stage 4 now
+carries the CodeGraph adoption): `07-codegraph-no-prd.md`; and resolution
+landed in the `kb/raw/` re-ingest (both articles re-stamped, superseded
+revisions preserved in `kb/_archive/raw/articles/`, layer-2 re-synthesis a
+no-op): `03-kb-raw-scratchpad-citations.md`.
+- **Archived 2026-10-16** — `07-codegraph-sync-affected-untested.md`: PRD-07
+SC4/SC5 claimed a tracking gap that did not exist; closed to GitHub issue #29.
+- **Archived 2026-10-16 (post-merge)** — resolutions landed in PR #31
+(squash-merged as `639166b`): `02-contract-claims-unenforced.md` (contract
+enforcement, PRD 02 SC7–SC11), `08-mandated-skills-unresolvable.md` (vendored
+skills + install sources, PRD 08 SC9–SC12), `11-examples-unreproducible.md`
+(baseline replay + honest provenance, PRD 11),
+`16-quality-controls-not-adopted.md` (quality controls ported, PRD 16; the
+`main` ruleset verified via `gh api …/rulesets` post-merge, AC-QC-011).
 - **Archived 2026-11-10** — resolution landed in PRD-24 (four waves on
-  `feat/autoresearch-as-a-service`; PRD-24 waves W1–W3 + the empirical record
-  [docs/24](../24-autoresearch-as-a-service.md)): `24-three-loops-one-name.md` moved to
-  [`_archive/24-three-loops-one-name.md`](_archive/24-three-loops-one-name.md). Renumbered
-  20 → 24 on 2026-11-15 with the topic files (downstream numbering wins).
+`feat/autoresearch-as-a-service`; PRD-24 waves W1–W3 + the empirical record
+[docs/24](../24-autoresearch-as-a-service.md)): `24-three-loops-one-name.md`
+moved to
+[`_archive/24-three-loops-one-name.md`](_archive/24-three-loops-one-name.md).
+Renumbered 20 → 24 on 2026-11-15 with the topic files (downstream numbering
+wins).
 - **Withdrawn tombstones** — `02-contract-files-missing.md`,
-  `03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
-  `05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`. These
-  predate this directory; their resolutions landed in PRs #3–#5, so they were
-  withdrawn rather than closed here. Each is a record, not an open gap — its `NN` is
-  not reused, and each names the file that now owns that number.
+`03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
+`05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`.
+These predate this directory; their resolutions landed in PRs #3–#5, so they
+were withdrawn rather than closed here. Each is a record, not an open gap —
+its `NN` is not reused, and each names the file that now owns that number.

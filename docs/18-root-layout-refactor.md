@@ -2,29 +2,32 @@
 
 ## What
 
-The repo root now matches the upstream foundation template's shape: the contract and the
-engine live under one tracked root, `autoresearch/` (`autoresearch/contract/`,
-`autoresearch/engine/`); the repo-root `data/` is gone in favour of `service/data/`; and
-`ops/` no longer exists. Tracked top-level directories fell from 14 to 11 (10 to 7
-excluding dot-directories), and `git ls-files | cut -d/ -f1 | sort -u` names none of
-`contract/`, `engine/`, `data/` or `ops/`.
+The repo root now matches the upstream foundation template's shape: the contract
+and the engine live under one tracked root, `autoresearch/`
+(`autoresearch/contract/`, `autoresearch/engine/`); the repo-root `data/` is
+gone in favour of `service/data/`; and `ops/` no longer exists. Tracked
+top-level directories fell from 14 to 11 (10 to 7 excluding dot-directories),
+and `git ls-files | cut -d/ -f1 | sort -u` names none of `contract/`, `engine/`,
+`data/` or `ops/`.
 
 ## Why
 
-- **The root was wider than the template it claims to be.** `bachkukkik/template-agentic-ready-repo`
-  carries 8+ top-level directories; this repo carried 14 (10 non-dot) because each
-  capability had been granted its own root. An adopter diffing the two trees reads a
-  different taxonomy before reading a single doc.
-- **The contract and the engine are one capability, not two.** `contract/` defines the
-  loop's roles and the frozen evaluator; `engine/` runs it. Grouping them under
-  `autoresearch/` states that relationship and removes an ambiguity where `contract/`
-  read like a legal or API document.
-- **`ops/` was this repo's own extension, never baseline adoption.** The PRD 1.6.0
-  provenance note records it as an extension; upstream has no `ops/`, and its only
-  subject (a deploy-target sync tool) had no live consumer in this template.
-- **`data/` at the root was the wrong owner.** Runtime state is produced by the service
-  (docs/12); the root had already been narrowed once to `service/data/`, and the
-  remaining root copy was a duplicate declaration waiting to drift.
+- **The root was wider than the template it claims to be.**
+`bachkukkik/template-agentic-ready-repo` carries 8+ top-level directories;
+this repo carried 14 (10 non-dot) because each capability had been granted its
+own root. An adopter diffing the two trees reads a different taxonomy before
+reading a single doc.
+- **The contract and the engine are one capability, not two.** `contract/`
+defines the loop's roles and the frozen evaluator; `engine/` runs it. Grouping
+them under `autoresearch/` states that relationship and removes an ambiguity
+where `contract/` read like a legal or API document.
+- **`ops/` was this repo's own extension, never baseline adoption.** The PRD
+1.6.0 provenance note records it as an extension; upstream has no `ops/`, and
+its only subject (a deploy-target sync tool) had no live consumer in this
+template.
+- **`data/` at the root was the wrong owner.** Runtime state is produced by the
+service (docs/12); the root had already been narrowed once to `service/data/`,
+and the remaining root copy was a duplicate declaration waiting to drift.
 
 ## How
 
@@ -57,25 +60,27 @@ Top-level directories: 14 → 11 (`git ls-tree -d --name-only HEAD | wc -l` = 14
 
 ### Follow-through
 
-A tracked root is a multi-file edit (funnel rule 11), and a *moved* root reaches further
-than its declaration list:
+A tracked root is a multi-file edit (funnel rule 11), and a *moved* root reaches
+further than its declaration list:
 
-- Declarations: `DOCTRINE_ROOTS` in `.github/workflows/ci.yml`, `REQUIRED_DIRS` +
-  `AC-FUN-002` in `tests/unit/test_funnel_structure.py`, the `README.md` structure tree,
-  and `scripts/verify-clone.sh`'s tracked-root sweep all name `autoresearch` and none of
-  the retired roots.
-- Consumers: `service/src/runner.py`'s contract search, the compose read-only mount
-  (`./autoresearch/contract:/app/contract:ro`), `.github/CODEOWNERS`, and every
-  `sys.path` insert in `tests/unit/test_engine_*.py`.
+- Declarations: `DOCTRINE_ROOTS` in `.github/workflows/ci.yml`,
+`REQUIRED_DIRS` + `AC-FUN-002` in `tests/unit/test_funnel_structure.py`, the
+`README.md` structure tree, and `scripts/verify-clone.sh`'s tracked-root sweep
+all name `autoresearch` and none of the retired roots.
+- Consumers: `service/src/runner.py`'s contract search, the compose read-only
+mount (`./autoresearch/contract:/app/contract:ro`), `.github/CODEOWNERS`, and
+every `sys.path` insert in `tests/unit/test_engine_*.py`.
 - Documentation: current-state path claims in `README.md`, `docs/README.md`,
-  `docs/03`, `docs/06`, `docs/07`, `docs/10`, `docs/11`, `docs/12`, the PRD bodies and
-  `PRD.md`'s 2.3.0 changelog row were rewritten. Historical evidence (verbatim command
-  output, commit quotes such as `80b78b2 contract/examples: …`, the gap evidence table
-  at `afcab6c`, dated changelog rows) was left byte-identical.
+`docs/03`, `docs/06`, `docs/07`, `docs/10`, `docs/11`, `docs/12`, the PRD
+bodies and `PRD.md`'s 2.3.0 changelog row were rewritten. Historical evidence
+(verbatim command output, commit quotes such as
+`80b78b2 contract/examples: …`, the gap evidence table at `afcab6c`, dated
+changelog rows) was left byte-identical.
 
 ## Verification
 
-Run in the refactor worktree (branch `refactor/root-layout`, all changes staged), 2026-11-04.
+Run in the refactor worktree (branch `refactor/root-layout`, all changes
+staged), 2026-11-04.
 
 ```bash
 # 1. no retired root is tracked any more
@@ -126,67 +131,76 @@ $ git check-ignore -v service/data/jobs.db
 
 ## What Works
 
-- The root now carries the upstream taxonomy: 11 tracked top-level directories, with the
-  contract and the engine under `autoresearch/` exactly as upstream groups its loop.
+- The root now carries the upstream taxonomy: 11 tracked top-level directories,
+with the contract and the engine under `autoresearch/` exactly as upstream
+groups its loop.
 - The full hermetic tier is green (`356 passed`) after the move — including
-  `AC-TPL-014`, the byte pin on the frozen `prepare.py`, which proves the file moved
-  without changing content.
-- Both entrypoints resolve from the repo root: `autoresearch/engine/bin/autoresearch --help`
-  prints its usage, and `cd autoresearch/contract && python3 prepare.py --help` does too.
-- The service's runtime defaults are service-root-relative (`<service-root>/data/jobs.db`,
-  `<service-root>/data/workspaces`), so the repo-root `data/` removal changed no runtime
-  behaviour; `test_db_path_fallback_is_service_data` still passes.
+`AC-TPL-014`, the byte pin on the frozen `prepare.py`, which proves the file
+moved without changing content.
+- Both entrypoints resolve from the repo root:
+`autoresearch/engine/bin/autoresearch --help` prints its usage, and
+`cd autoresearch/contract && python3 prepare.py --help` does too.
+- The service's runtime defaults are service-root-relative
+(`<service-root>/data/jobs.db`, `<service-root>/data/workspaces`), so the
+repo-root `data/` removal changed no runtime behaviour;
+`test_db_path_fallback_is_service_data` still passes.
 - `bash scripts/verify-clone.sh` is `RESULT: PASSED — 31 check(s) passed` with
-  `tracked-root coverage — 11 tracked top-level directory(ies), all declared` — the
-  declaration lists and the tree agree in both directions.
-- The ops retirement is documented rather than erased: PRD-08 SC1, `AC-OPS-001..010` and
-  the `ops-drift` job carry explicit retirement notes, so the audit trail survives the
-  deletion.
-- `docker compose config -q` exits 0 and the CI workflow parses as YAML, so the mount
-  rewrite and the job removal left both descriptors valid.
+`tracked-root coverage — 11 tracked top-level directory(ies), all declared` —
+the declaration lists and the tree agree in both directions.
+- The ops retirement is documented rather than erased: PRD-08 SC1,
+`AC-OPS-001..010` and the `ops-drift` job carry explicit retirement notes, so
+the audit trail survives the deletion.
+- `docker compose config -q` exits 0 and the CI workflow parses as YAML, so the
+mount rewrite and the job removal left both descriptors valid.
 
 ## What Fails
 
-- **Three `kb/` layer-2 pages still name the old root.** `kb/concepts/script-owned-keep-revert.md:60`,
-  `kb/concepts/methodology-registration.md:38` and `kb/comparisons/autoresearch-oss-landscape.md:23`
-  say `contract/`; layer-2 pages are llm-wiki-owned and must not be hand-edited, so the
-  refactor could only list them.
-- **Old roots remain in historical evidence by design.** Dated changelog rows, the docs/12
-  pre-move `git ls-files` block, the docs/10 commit quote `80b78b2 contract/examples: …`,
-  the docs/07 codegraph output line and the `at afcab6c` gap evidence table still print
-  the old paths; a repo-wide grep reports them and a reader can mistake them for live
-  claims.
+- **Three `kb/` layer-2 pages still name the old root.**
+`kb/concepts/script-owned-keep-revert.md:60`,
+`kb/concepts/methodology-registration.md:38` and
+`kb/comparisons/autoresearch-oss-landscape.md:23` say `contract/`; layer-2
+pages are llm-wiki-owned and must not be hand-edited, so the refactor could
+only list them.
+- **Old roots remain in historical evidence by design.** Dated changelog rows,
+the docs/12 pre-move `git ls-files` block, the docs/10 commit quote
+`80b78b2 contract/examples: …`, the docs/07 codegraph output line and the
+`at afcab6c` gap evidence table still print the old paths; a repo-wide grep
+reports them and a reader can mistake them for live claims.
 - **A changelog link is read as a catalog row.** Writing the 2.3.0 PRD row as
   `[docs/18](docs/18-root-layout-refactor.md)` made `AC-DOC-005`
-  (`test_prd_quick_reference_rows`) treat the changelog line as a Quick Reference row
-  and fail: `row points at 'docs/18-root-layout-refactor.md', which is not a catalogued
-  file`.
-- **A rename is not a pure `git mv`.** Path strings also live in test assertions and
-  messages, script output, `sys.path` inserts and doctrine line pins: `AC-HRN-011` pins
-  every `/goal` line in `AGENTS.md` and failed at `[106, 129, 134, 179, 181]` versus the
-  recorded `[108, 131, 136, 181, 183]` after two doctrine lines were removed above the
-  cluster.
+  (`test_prd_quick_reference_rows`) treat the changelog line as a Quick
+  Reference row and fail:
+
+  ```text
+  row points at 'docs/18-root-layout-refactor.md', which is not a catalogued file
+  ```
+- **A rename is not a pure `git mv`.** Path strings also live in test assertions
+and messages, script output, `sys.path` inserts and doctrine line pins:
+`AC-HRN-011` pins every `/goal` line in `AGENTS.md` and failed at
+`[106, 129, 134, 179, 181]` versus the recorded `[108, 131, 136, 181, 183]`
+after two doctrine lines were removed above the cluster.
 
 ## Resolution
 
-- **Three `kb/` layer-2 pages still name the old root.** Run `llm-wiki` on `./kb/` with
-  `kb/raw/` unchanged so the three pages are regenerated from confirmed sources; until
-  then the refs are listed here as the follow-up index.
-- **Old roots remain in historical evidence by design.** Keep them; scope any sweep with
-  `git grep … ':!kb/raw' ':!kb/_archive' ':!docs/gaps/_archive'` and classify each hit as
-  current (fix), historical (keep) or layer-2 (llm-wiki).
-- **A changelog link is read as a catalog row.** Reference the record as plain code text
-  (`` `docs/18` ``) in `PRD.md`; the catalog row in `docs/README.md` is the only
-  link-bearing line for a stage-6 doc.
-- **A rename is not a pure `git mv`.** Sweep the path strings after the move and re-run
-  the pinned-line guard; when doctrine text above a pin changes, recompute the pin in the
-  same edit (done here for `AC-HRN-011`).
+- **Three `kb/` layer-2 pages still name the old root.** Run `llm-wiki` on
+`./kb/` with `kb/raw/` unchanged so the three pages are regenerated from
+confirmed sources; until then the refs are listed here as the follow-up index.
+- **Old roots remain in historical evidence by design.** Keep them; scope any
+sweep with `git grep … ':!kb/raw' ':!kb/_archive' ':!docs/gaps/_archive'` and
+classify each hit as current (fix), historical (keep) or layer-2 (llm-wiki).
+- **A changelog link is read as a catalog row.** Reference the record as plain
+code text (`` `docs/18` ``) in `PRD.md`; the catalog row in `docs/README.md`
+is the only link-bearing line for a stage-6 doc.
+- **A rename is not a pure `git mv`.** Sweep the path strings after the move and
+re-run the pinned-line guard; when doctrine text above a pin changes,
+recompute the pin in the same edit (done here for `AC-HRN-011`).
 
 ## Verdict
 
-**works** — the root now matches the upstream grouping (11 tracked top-level directories,
-`autoresearch/{contract,engine}` together, `service/data` owning runtime state, no `ops/`),
-the full unit + integration tier is green at `356 passed`, `verify-clone` reports
-`RESULT: PASSED — 31 check(s) passed`, and both the engine wrapper and the frozen contract
-run from their new paths; the only live old-root references left are three `kb/` layer-2
-pages queued for the next `llm-wiki` synthesis.
+**works** — the root now matches the upstream grouping (11 tracked top-level
+directories, `autoresearch/{contract,engine}` together, `service/data` owning
+runtime state, no `ops/`), the full unit + integration tier is green at
+`356 passed`, `verify-clone` reports `RESULT: PASSED — 31 check(s) passed`, and
+both the engine wrapper and the frozen contract run from their new paths; the
+only live old-root references left are three `kb/` layer-2 pages queued for the
+next `llm-wiki` synthesis.

@@ -1,39 +1,40 @@
 # 08 — Adoption Readiness
 
-> **Retirement note — 2026-11-04.** `ops/` and its `sync.sh` were removed to match the
-> upstream template root layout (no `ops/` there); `AC-OPS-001..010`,
-> `tests/unit/test_ops_sync.py` and the `ops-drift` CI job are retired. The ops sections
-> below record the state before that date as historical evidence; the remaining
-> adoption-readiness guards are current. See
+> **Retirement note — 2026-11-04.** `ops/` and its `sync.sh` were removed to
+> match the upstream template root layout (no `ops/` there); `AC-OPS-001..010`,
+> `tests/unit/test_ops_sync.py` and the `ops-drift` CI job are retired. The ops
+> sections below record the state before that date as historical evidence; the
+> remaining adoption-readiness guards are current. See
 > [18-root-layout-refactor.md](18-root-layout-refactor.md).
 
 ## What
 
 The layer that makes this template adoptable and safe to take to production: the
 one-command onboarding path (`ADOPTING.md` + `scripts/verify-clone.sh`), harness
-neutrality across Hermes / Claude Code / opencode / DeepSeek-OpenAI-compatible, and
-the guards that turn doctrine which was merely stated into doctrine that is enforced.
-(The `ops/` home and `sync.sh` this layer once added were retired 2026-11-04 — see the
-note above.)
+neutrality across Hermes / Claude Code / opencode / DeepSeek-OpenAI-compatible,
+and the guards that turn doctrine which was merely stated into doctrine that is
+enforced. (The `ops/` home and `sync.sh` this layer once added were retired
+2026-11-04 — see the note above.)
 
 ## Why
 
-- **A stated rule is not a gate.** Stage 6 shape, catalog rows, cross-layer `NN`,
-  tracked-root coverage and the gap lifecycle were all hard rules with nothing behind
-  them; an adopter's reviewer found each one by breaking it.
-- **The operational subject had no legal home.** Funnel rule 1 made a scheduler entry
-  or a deploy-wrapper script a defect, because the funnel covers writing that lives
-  *inside* the repo — so production artifacts were either untracked or smuggled into a
-  stage that means something else. Retired 2026-11-04 with `ops/`.
-- **Doctrine written from one seat is not harness-neutral.** The capability tables were
-  authored for a harness with host-level skills and slash commands; opencode and a
-  DeepSeek/OpenAI-compatible harness had no binding, and nothing failed if a harness
-  silently dropped out of the tables.
+- **A stated rule is not a gate.** Stage 6 shape, catalog rows, cross-layer
+`NN`, tracked-root coverage and the gap lifecycle were all hard rules with
+nothing behind them; an adopter's reviewer found each one by breaking it.
+- **The operational subject had no legal home.** Funnel rule 1 made a scheduler
+entry or a deploy-wrapper script a defect, because the funnel covers writing
+that lives *inside* the repo — so production artifacts were either untracked
+or smuggled into a stage that means something else. Retired 2026-11-04 with
+`ops/`.
+- **Doctrine written from one seat is not harness-neutral.** The capability
+tables were authored for a harness with host-level skills and slash commands;
+opencode and a DeepSeek/OpenAI-compatible harness had no binding, and nothing
+failed if a harness silently dropped out of the tables.
 - **Onboarding was instructions, not a check.** A clone with plain-text symlinks
-  (Windows, `core.symlinks` off) or a gitignored doctrine path looked healthy until an
-  agent read a stale instruction file.
-- **Two CI paths were silent-green.** A new tracked root nobody declared passed the
-  `doctrine` job green, and a whole-tier integration skip read as success.
+(Windows, `core.symlinks` off) or a gitignored doctrine path looked healthy
+until an agent read a stale instruction file.
+- **Two CI paths were silent-green.** A new tracked root nobody declared passed
+the `doctrine` job green, and a whole-tier integration skip read as success.
 
 ## How
 
@@ -52,11 +53,11 @@ pre-retirement contract as historical evidence.
 
 ### Onboarding
 
-`ADOPTING.md` states the order (clone → symlinks → verify → keep/replace/delete → wire
-your harness), and `scripts/verify-clone.sh` is the check: read-only — it writes no
-files, no git index and no git config — printing one PASS/FAIL line per check and a
-final verdict, with a guard that makes the success line unreachable over a run that
-performed no checks.
+`ADOPTING.md` states the order (clone → symlinks → verify → keep/replace/delete
+→ wire your harness), and `scripts/verify-clone.sh` is the check: read-only — it
+writes no files, no git index and no git config — printing one PASS/FAIL line
+per check and a final verdict, with a guard that makes the success line
+unreachable over a run that performed no checks.
 
 ### Seven guards
 
@@ -71,45 +72,48 @@ performed no checks.
 | ~~Ops drift~~ (retired 2026-11-04) | a vendored `ops/artifacts/` file that differs from the live deploy target, and a `--check` that cannot go red; becomes a real read-only gate on the adopter's own target once the `OPS_LIVE_ROOT` repository variable is set | removed from `.github/workflows/ci.yml` with `ops/` |
 | Harness neutrality | a Hermes-only mechanism in `AGENTS.md` presented without its non-Hermes fallback in the same context; a harness missing a mechanism with no documented path to a skill gate; a mandated skill (§1) that resolves nowhere; a README harness row with no `AGENTS.md` binding; a forked Gemini CLI entry point | `tests/unit/test_harness_neutrality.py` (AC-HRN-001..017) in the `unit` job |
 
-The neutrality guard parses the two catalog tables by **header text**, never by column
-order, so a rewrite that reorders a column still passes while removing a harness binding
-fails — and every helper is proven falsifiable by a synthetic negative control
-(AC-HRN-005..007). AC-HRN-008..014 then assert the document's *behavioural*
-completeness: every Hermes-only mechanism `AGENTS.md` names — `/goal`, `~/.hermes/plans`,
-`delegate_task`/`kanban`, `$HERMES_HOME`, the native `/llm-wiki` invocation — must sit
-in a context (its own table row, or its enclosing `## ` section) that also documents its
-non-Hermes fallback, and a harness missing a mechanism must still have a documented path
-to every mandated skill (the inline-`SKILL.md` escape). A mechanism the document no
-longer carries is reported rather than passing vacuously. AC-HRN-015..017 close the three
-seams that remained: every skill `AGENTS.md` §1 mandates must resolve to a vendored
-`.agents/skills/<name>/SKILL.md` or to a `README.md` § *Skills* row carrying an install
-source URL (015); the canonical four harnesses are a **floor**, so a fifth harness named in
-both documents pairs while a README-only row is reported as drift (016); and the Gemini CLI
-entry point (`GEMINI.md`) must be a symlink to the one canonical `AGENTS.md`, not a copy
-(017). Adding a harness (Codex CLI, Cursor, Gemini CLI, Aider) therefore edits two
-documents, never a test regex.
+The neutrality guard parses the two catalog tables by **header text**, never by
+column order, so a rewrite that reorders a column still passes while removing a
+harness binding fails — and every helper is proven falsifiable by a synthetic
+negative control (AC-HRN-005..007). AC-HRN-008..014 then assert the document's
+*behavioural* completeness: every Hermes-only mechanism `AGENTS.md` names —
+`/goal`, `~/.hermes/plans`, `delegate_task`/`kanban`, `$HERMES_HOME`, the native
+`/llm-wiki` invocation — must sit in a context (its own table row, or its
+enclosing `## ` section) that also documents its non-Hermes fallback, and a
+harness missing a mechanism must still have a documented path to every mandated
+skill (the inline-`SKILL.md` escape). A mechanism the document no longer carries
+is reported rather than passing vacuously. AC-HRN-015..017 close the three seams
+that remained: every skill `AGENTS.md` §1 mandates must resolve to a vendored
+`.agents/skills/<name>/SKILL.md` or to a `README.md` § *Skills* row carrying an
+install source URL (015); the canonical four harnesses are a **floor**, so a
+fifth harness named in both documents pairs while a README-only row is reported
+as drift (016); and the Gemini CLI entry point (`GEMINI.md`) must be a symlink
+to the one canonical `AGENTS.md`, not a copy (017). Adding a harness (Codex CLI,
+Cursor, Gemini CLI, Aider) therefore edits two documents, never a test regex.
 
 ### What the harness guard does not reach
 
-The guard proves the document every harness reads: that `AGENTS.md` never presents a
-Hermes-only mechanism without a documented non-Hermes fallback in the same context, and
-that a harness missing a mechanism still has a documented path to every mandated skill.
-It does **not** drive a live opencode, Claude Code or DeepSeek client. No such client is
-pinned in the repo, two of them are closed and paid, and shelling out to one would make
-the `unit` tier's verdict a property of the host rather than of the repo — the
-ambient-dependency class this repo bans from that tier (`tests/conftest.py`,
-`require_tool`). A project that wants the live-client half would add it as an opt-in
-integration-tier entry behind `RUN_INTEGRATION_TESTS=1`, where shared-infrastructure
-runs are already gated; the `unit` tier stays hermetic — two file reads and stdlib
-parsing.
+The guard proves the document every harness reads: that `AGENTS.md` never
+presents a Hermes-only mechanism without a documented non-Hermes fallback in the
+same context, and that a harness missing a mechanism still has a documented path
+to every mandated skill. It does **not** drive a live opencode, Claude Code or
+DeepSeek client. No such client is pinned in the repo, two of them are closed
+and paid, and shelling out to one would make the `unit` tier's verdict a
+property of the host rather than of the repo — the ambient-dependency class this
+repo bans from that tier (`tests/conftest.py`, `require_tool`). A project that
+wants the live-client half would add it as an opt-in integration-tier entry
+behind `RUN_INTEGRATION_TESTS=1`, where shared-infrastructure runs are already
+gated; the `unit` tier stays hermetic — two file reads and stdlib parsing.
 
 ### The gap closures
 
-Gaps `03` (`kb/raw/` articles citing a scratchpad path) and `07` (the CodeGraph KB with
-no stage-4 PRD) closed in this change; their resolution records live under
-`docs/gaps/_archive/`, path structure preserved, never deleted and their `NN` never
-reused. The live open-gaps set is the four 2026-10-16 improvement-wave gaps (02/08/11/16), resolved at merge, which is exactly why AC-DOC-004 proves it
-reached real files through the archive rather than passing over nothing.
+Gaps `03` (`kb/raw/` articles citing a scratchpad path) and `07` (the CodeGraph
+KB with no stage-4 PRD) closed in this change; their resolution records live
+under `docs/gaps/_archive/`, path structure preserved, never deleted and their
+`NN` never reused. The live open-gaps set is the four 2026-10-16
+improvement-wave gaps (02/08/11/16), resolved at merge, which is exactly why
+AC-DOC-004 proves it reached real files through the archive rather than passing
+over nothing.
 
 ## Verification
 
@@ -129,8 +133,8 @@ bash scripts/verify-clone.sh
 ```
 
 The `/goal` + `sub1`–`sub4` block measured 3,981 chars, sha256
-`bd533ce25a568b4b` — byte-identical to `origin/main`. AGENTS.md measured
-19,493 chars (headroom 507, floor 500).
+`bd533ce25a568b4b` — byte-identical to `origin/main`. AGENTS.md measured 19,493
+chars (headroom 507, floor 500).
 
 ```bash
 python3 -m pytest tests/unit/test_verify_clone.py -q
@@ -164,10 +168,11 @@ bash tests/run.sh
 # RESULT: PASSED
 ```
 
-Every doctrine path reports tracked in this run (`doctrine paths tracked and not
-gitignored (11 paths)`); the earlier parenthetical naming `ADOPTING.md`, `ops/` and
-`scripts/` as present-but-uncommitted is gone. The `doctrine` job is the strict version
-of the same check and runs on every PR.
+Every doctrine path reports tracked in this run
+(`doctrine paths tracked and not gitignored (11 paths)`); the earlier
+parenthetical naming `ADOPTING.md`, `ops/` and `scripts/` as
+present-but-uncommitted is gone. The `doctrine` job is the strict version of the
+same check and runs on every PR.
 
 The `ops-drift` job has no remote-CI run yet; its evidence is local, under `act`
 (`act push -j ops-drift`), green end to end in both modes:
@@ -195,94 +200,101 @@ act push -j ops-drift -P ubuntu-latest=catthehacker/ubuntu:act-22.04 --pull=fals
 
 ## What Works
 
-- **The ops home is contract-tested:** `tests/unit/test_ops_sync.py` (AC-OPS-001..010)
-  covers the absent root, the empty root, `--check` in sync, `--check` on a drifted live
-  file, `--check` on a live-only file, the allowlisted-runtime-state excuse in both
-  directions, `--apply` refusing without `OPS_APPLY_CONFIRM=1`, `--apply` deploying and
-  preserving live-only state, deploying through a symlinked root, and a bounded
-  (timeout-carrying) invocation.
-- **Documentary invariants are enforced, not stated:** `tests/unit/test_docs_template.py`
-  (AC-DOC-001..016) fails a doc with a missing section, a reordered one, a
-  `What Fails`/`Resolution` count mismatch, a catalogued doc with no row, a row with no
-  doc, a gap `NN` with no topic file — with negative controls proving each check
-  falsifiable.
-- **A new tracked root cannot pass CI silently:** the `doctrine` job derives the real
-  top-level set from the git index and fails naming any root not declared in
-  `DOCTRINE_ROOTS`; AC-FUN-003 keeps that literal list and `AC-FUN-002`'s
-  `REQUIRED_DIRS` in step.
-- **The gap lifecycle survives an empty open set:** AC-FUN-021 plus AC-DOC-004 prove the
-  archive scan reached real files while the live table legitimately reports *no open
-  gaps*, and AC-DOC-006 still checks every `NN` under `docs/gaps/` against a topic file.
-- **A host-dependent test cannot decide a tier's verdict:** the `integration` job fails
-  on a missing/unparseable junit artifact and on a tier that ran zero tests or skipped
-  all of them; `resolve_ambient`/`require_tool` in `tests/conftest.py` mirror the
-  production resolution path and skip loudly, naming what was resolved.
+- **The ops home is contract-tested:** `tests/unit/test_ops_sync.py`
+(AC-OPS-001..010) covers the absent root, the empty root, `--check` in sync,
+`--check` on a drifted live file, `--check` on a live-only file, the
+allowlisted-runtime-state excuse in both directions, `--apply` refusing
+without `OPS_APPLY_CONFIRM=1`, `--apply` deploying and preserving live-only
+state, deploying through a symlinked root, and a bounded (timeout-carrying)
+invocation.
+- **Documentary invariants are enforced, not stated:**
+`tests/unit/test_docs_template.py` (AC-DOC-001..016) fails a doc with a
+missing section, a reordered one, a `What Fails`/`Resolution` count mismatch,
+a catalogued doc with no row, a row with no doc, a gap `NN` with no topic file
+— with negative controls proving each check falsifiable.
+- **A new tracked root cannot pass CI silently:** the `doctrine` job derives the
+real top-level set from the git index and fails naming any root not declared
+in `DOCTRINE_ROOTS`; AC-FUN-003 keeps that literal list and `AC-FUN-002`'s
+`REQUIRED_DIRS` in step.
+- **The gap lifecycle survives an empty open set:** AC-FUN-021 plus AC-DOC-004
+prove the archive scan reached real files while the live table legitimately
+reports *no open gaps*, and AC-DOC-006 still checks every `NN` under
+`docs/gaps/` against a topic file.
+- **A host-dependent test cannot decide a tier's verdict:** the `integration`
+job fails on a missing/unparseable junit artifact and on a tier that ran zero
+tests or skipped all of them; `resolve_ambient`/`require_tool` in
+`tests/conftest.py` mirror the production resolution path and skip loudly,
+naming what was resolved.
 - **The onboarding script is contract-tested, negative controls included:**
-  `tests/unit/test_verify_clone.py` (AC-VC-001..008) runs the real repo's
-  `scripts/verify-clone.sh` to a non-zero check count and pins the run read-only (HEAD
-  and the index unchanged), then drives five broken-clone negative controls — a dangling
-  harness symlink, a plain-copy entry point, an undeclared tracked root, a gitignored
-  doctrine path and a stripped `DOCTRINE_ROOTS` list — each required to exit 1 naming
-  the offender; AC-VC-008 keeps every invocation explicit-argv with `timeout=`, `cwd=`
-  and `capture_output=True`. The one guard unreachable from outside the script (the
-  success line over zero checks) is pinned where it is observable, not faked.
-- **The ops `--check` ran in CI and drift was proven detectable (retired 2026-11-04):**
-  the `ops-drift` job ran `ops/sync.sh --check`; with the `OPS_LIVE_ROOT` repository
-  variable unset it self-fixtured (`--apply` into a temp root, `--check` green, mutate
-  one artifact, `--check` red naming it), and with the variable set both write steps
-  were `if:`-gated off so it became a real read-only gate on the adopter's own target —
-  proven green under `act` in both modes. Recorded here as historical evidence.
-- **Harness neutrality enforces fallback completeness:** `tests/unit/test_harness_neutrality.py`
-  (AC-HRN-001..017) proves `AGENTS.md`'s Harness Adapter names Hermes, Claude Code,
-  opencode and DeepSeek/OpenAI-compatible plus a generic fallback, binds each to an entry
-  instruction file and the host-level-skills capability, marks `/goal` Hermes-only while
-  every other harness prompts the `sub1`–`sub4` phase blocks, and — AC-HRN-008..014 —
-  requires every Hermes-only mechanism to sit in a context that also documents its
-  non-Hermes fallback, with a missing mechanism never waiving a skill gate. AC-HRN-015..017
-  then prove every mandated skill (§1) resolves to a vendored `SKILL.md` or a README
-  install-source URL, that a fifth harness named in both documents pairs while a README-only
-  row is drift (the canonical four are a floor), and that `GEMINI.md` is a symlink to the one
-  `AGENTS.md`; `README.md`'s Harness Support table names the same harnesses.
-- **A fresh clone is provable in one command:** `bash scripts/verify-clone.sh` reported
-  `RESULT: PASSED — 33 check(s) passed` read-only, and `bash tests/run.sh` reported
-  `RESULT: PASSED` (120 unit + 16 integration) with the container tier skipped by
-  design.
+`tests/unit/test_verify_clone.py` (AC-VC-001..008) runs the real repo's
+`scripts/verify-clone.sh` to a non-zero check count and pins the run read-only
+(HEAD and the index unchanged), then drives five broken-clone negative
+controls — a dangling harness symlink, a plain-copy entry point, an undeclared
+tracked root, a gitignored doctrine path and a stripped `DOCTRINE_ROOTS` list
+— each required to exit 1 naming the offender; AC-VC-008 keeps every
+invocation explicit-argv with `timeout=`, `cwd=` and `capture_output=True`.
+The one guard unreachable from outside the script (the success line over zero
+checks) is pinned where it is observable, not faked.
+- **The ops `--check` ran in CI and drift was proven detectable (retired
+2026-11-04):** the `ops-drift` job ran `ops/sync.sh --check`; with the
+`OPS_LIVE_ROOT` repository variable unset it self-fixtured (`--apply` into a
+temp root, `--check` green, mutate one artifact, `--check` red naming it), and
+with the variable set both write steps were `if:`-gated off so it became a
+real read-only gate on the adopter's own target — proven green under `act` in
+both modes. Recorded here as historical evidence.
+- **Harness neutrality enforces fallback completeness:**
+`tests/unit/test_harness_neutrality.py` (AC-HRN-001..017) proves `AGENTS.md`'s
+Harness Adapter names Hermes, Claude Code, opencode and
+DeepSeek/OpenAI-compatible plus a generic fallback, binds each to an entry
+instruction file and the host-level-skills capability, marks `/goal`
+Hermes-only while every other harness prompts the `sub1`–`sub4` phase blocks,
+and — AC-HRN-008..014 — requires every Hermes-only mechanism to sit in a
+context that also documents its non-Hermes fallback, with a missing mechanism
+never waiving a skill gate. AC-HRN-015..017 then prove every mandated skill
+(§1) resolves to a vendored `SKILL.md` or a README install-source URL, that a
+fifth harness named in both documents pairs while a README-only row is drift
+(the canonical four are a floor), and that `GEMINI.md` is a symlink to the one
+`AGENTS.md`; `README.md`'s Harness Support table names the same harnesses.
+- **A fresh clone is provable in one command:** `bash scripts/verify-clone.sh`
+reported `RESULT: PASSED — 33 check(s) passed` read-only, and
+`bash tests/run.sh` reported `RESULT: PASSED` (120 unit + 16 integration) with
+the container tier skipped by design.
 
 ## What Fails
 
-None. All three failures this doc previously recorded are closed: `scripts/verify-clone.sh`
-is now covered by `tests/unit/test_verify_clone.py` (AC-VC-001..008), the ops `--check`
-mode now runs in the `ops-drift` CI job (drift proven detectable under `act` in both
-modes), and harness neutrality now enforces fallback completeness rather than table
-membership (AC-HRN-008..014). One upstream-verified hazard was adopted instead of
-discovered here (foundation template, 2026-10-16): **repeated `-j` flags under `act`
-run only the last job** (`act push -j unit -j secret-scan` executes Secret Scan alone
-— act 0.2.89). Our §6 already prescribes one `-j` per invocation and
-`scripts/local-ci.sh` never passed two `-j` flags, so the repo was never exposed —
-the bullet exists so a reader does not "simplify" the script back into the trap. What
-remains is **scope, not failure**: the harness guard
-reads the document every harness reads and does not drive a live opencode, Claude Code
-or DeepSeek client — stated under *How* → *What the harness guard does not reach* and in
+None. All three failures this doc previously recorded are closed:
+`scripts/verify-clone.sh` is now covered by `tests/unit/test_verify_clone.py`
+(AC-VC-001..008), the ops `--check` mode now runs in the `ops-drift` CI job
+(drift proven detectable under `act` in both modes), and harness neutrality now
+enforces fallback completeness rather than table membership (AC-HRN-008..014).
+One upstream-verified hazard was adopted instead of discovered here (foundation
+template, 2026-10-16): **repeated `-j` flags under `act` run only the last job**
+(`act push -j unit -j secret-scan` executes Secret Scan alone — act 0.2.89). Our
+§6 already prescribes one `-j` per invocation and `scripts/local-ci.sh` never
+passed two `-j` flags, so the repo was never exposed — the bullet exists so a
+reader does not "simplify" the script back into the trap. What remains is
+**scope, not failure**: the harness guard reads the document every harness reads
+and does not drive a live opencode, Claude Code or DeepSeek client — stated
+under *How* → *What the harness guard does not reach* and in
 `tests/unit/test_harness_neutrality.py`'s module docstring.
 
 ## Resolution
 
-No resolutions are outstanding. The act `-j` hazard needs no code change here (see
-*What Fails*); the live-client boundary is scope rather than a defect: it is recorded under *How* → *What
-the harness guard does not reach*, and a project that wants that half would add it as an
-opt-in integration-tier entry behind `RUN_INTEGRATION_TESTS=1` rather than widen the
-hermetic `unit` tier.
+No resolutions are outstanding. The act `-j` hazard needs no code change here
+(see *What Fails*); the live-client boundary is scope rather than a defect: it
+is recorded under *How* → *What the harness guard does not reach*, and a project
+that wants that half would add it as an opt-in integration-tier entry behind
+`RUN_INTEGRATION_TESTS=1` rather than widen the hermetic `unit` tier.
 
 ## Verdict
 
-**works** — the adoption-readiness layer is verified end to end where the guards reach:
-the documentary invariants (AC-DOC-001..016), the gap
-lifecycle (AC-FUN-021), harness neutrality including fallback completeness and mandated-skill
-resolution (AC-HRN-001..017),
-the onboarding script with its five broken-clone negative controls (AC-VC-001..008). The
-`ops/sync.sh` guard (AC-OPS-001..010) and the `ops-drift` job that ran `--check` in CI
-were retired on 2026-11-04 with `ops/` (see the retirement note); their evidence above is
-historical. The one seam outside the guard — a live third-party harness client — is a
-stated scope boundary, not a failure: no pinned client exists to drive it, and driving one
-would move the `unit` tier's
-verdict onto the host.
+**works** — the adoption-readiness layer is verified end to end where the guards
+reach: the documentary invariants (AC-DOC-001..016), the gap lifecycle
+(AC-FUN-021), harness neutrality including fallback completeness and
+mandated-skill resolution (AC-HRN-001..017), the onboarding script with its five
+broken-clone negative controls (AC-VC-001..008). The `ops/sync.sh` guard
+(AC-OPS-001..010) and the `ops-drift` job that ran `--check` in CI were retired
+on 2026-11-04 with `ops/` (see the retirement note); their evidence above is
+historical. The one seam outside the guard — a live third-party harness client —
+is a stated scope boundary, not a failure: no pinned client exists to drive it,
+and driving one would move the `unit` tier's verdict onto the host.

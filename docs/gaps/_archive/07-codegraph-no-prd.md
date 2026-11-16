@@ -2,8 +2,9 @@
 
 **Layers:** kb ↔ prd
 **Status:** resolved
-**Opened:** 2026-09-18
-**Resolved:** 2026-09-19 — PRD-07 written; see [docs/prd/07-codegraph-adoption.md](../../prd/07-codegraph-adoption.md)
+**Opened:** 2026-09-18 **Resolved:**
+2026-09-19 — PRD-07 written; see
+[docs/prd/07-codegraph-adoption.md](../../prd/07-codegraph-adoption.md)
 
 ## Observation
 
@@ -32,15 +33,17 @@ git status --short --untracked-files=all
 
 Stage 3 holds a capability that stage 4 never asks for, so:
 
-- no success criterion and no test covers the adoption — `codegraph` appears in no
-  `_Verify:` annotation and in no CI job, so a later removal of the `## codegraph`
-  section, the `.codegraph/` placeholder or the kb pages fails nothing;
-- the grounding direction is broken upward: KB → PRD is the direction the doctrine
-  requires, and here the PRD is silent while the KB is explicit;
+- no success criterion and no test covers the adoption — `codegraph` appears in
+no `_Verify:` annotation and in no CI job, so a later removal of the
+`## codegraph` section, the `.codegraph/` placeholder or the kb pages fails
+nothing;
+- the grounding direction is broken upward: KB → PRD is the direction the
+doctrine requires, and here the PRD is silent while the KB is explicit;
 - the three pages are untracked in the working tree, so a fresh clone reads a KB
-  that does not mention CodeGraph at all — the same divergence one level down.
+that does not mention CodeGraph at all — the same divergence one level down.
 
-Nothing here says the adoption is wrong; it says stage 4 has not been told about it.
+Nothing here says the adoption is wrong; it says stage 4 has not been told about
+it.
 
 ## Resolution
 
@@ -48,5 +51,6 @@ PRD edit — applied 2026-09-19: `docs/prd/07-codegraph-adoption.md` created (th
 CodeGraph adoption at stage 4: SCs for the one-tool MCP surface, the CLI-twins
 fallback, the deterministic gitignored `.codegraph/` index, `codegraph sync`,
 `codegraph affected` test selection and the `DO_NOT_TRACK=1` opt-out), with its
-stage-6 counterpart [docs/07-codegraph-adoption.md](../../07-codegraph-adoption.md)
-and the `07` rows in `PRD.md` + `docs/README.md`. **Status: resolved.**
+stage-6 counterpart
+[docs/07-codegraph-adoption.md](../../07-codegraph-adoption.md) and the `07`
+rows in `PRD.md` + `docs/README.md`. **Status: resolved.**

@@ -814,7 +814,10 @@ def test_fallback_check_reports_a_deleted_fallback():
     # Recomputed again for the slash-commands adapter row (2026-11-10): the new
     # row above the cluster moved every pinned line down by one. Same intent —
     # every occurrence is still pinned.
-    assert reported_lines == [107, 130, 135, 180, 182], (
+    # Recomputed again for the 80-column prose reflow (2026-11-16): the doctrine
+    # is unchanged, only re-wrapped, so every pinned line moved down. Same
+    # intent — every `/goal` occurrence is still pinned.
+    assert reported_lines == [132, 163, 168, 215, 217], (
         f"the blanked copy should report every `/goal` occurrence, got {reported_lines}"
     )
 

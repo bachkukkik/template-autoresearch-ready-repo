@@ -26,6 +26,7 @@ command under test. No docker, no state, no target code.
 
 import importlib.util
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -179,6 +180,9 @@ def test_standing_order_8_and_the_repo_skill_say_the_same_thing():
     agents = AGENTS_MD.read_text(encoding="utf-8")
     assert ORDER_HEADING in agents, f"AGENTS.md lost the standing order heading: {ORDER_HEADING}"
     order = agents.split(ORDER_HEADING, 1)[1].split("\n### ", 1)[0]
+    # The order is prose hard-wrapped at 80 columns, so a phrase may straddle a
+    # line break; match against the normalised text, not the raw layout.
+    order = re.sub(r"\s+", " ", order)
     assert "autoresearch commands list" in order, order
     assert "docs/prd/23-command-registry.md" in order, order
     assert "no ad-hoc scripts" in order, order

@@ -18,7 +18,8 @@
 
 ## Evidence
 
-Reproduced 2026-10-16; full record in [`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
+Reproduced 2026-10-16; full record in
+[`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
 
 ```bash
 time python3 contract/train.py            # real ~0.06s with TIME_BUDGET=300
@@ -28,8 +29,11 @@ grep -rn sha256 tests/unit/test_prepare_py.py || echo "no pin"
 
 ## Impact
 
-An agent following `program.md` records worse candidates as `keep`; the frozen evaluator can be edited without any test failing; the fixed-budget invariant (iso-compute) is untested.
+An agent following `program.md` records worse candidates as `keep`; the frozen
+evaluator can be edited without any test failing; the fixed-budget invariant
+(iso-compute) is untested.
 
 ## Resolution
 
-Code change + test — PRD 02 SC2 reworded and SC7–SC11 added (AC-TPL-005, 014, 024–028); implemented in `contract/` on this branch.
+Code change + test — PRD 02 SC2 reworded and SC7–SC11 added (AC-TPL-005, 014,
+024–028); implemented in `contract/` on this branch.

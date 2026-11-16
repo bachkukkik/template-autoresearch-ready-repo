@@ -3,28 +3,28 @@
 ## What
 
 Four complete instantiations of the autoresearch contract, one per objective
-shape, living under `autoresearch/contract/examples/`: `ex1-music-abc` (minimize a language-model
-loss), `ex2-iris-knn` (maximize a classifier accuracy), `ex3-hotpath-speedup`
-(minimize wall-clock time under an exact-output gate), and `ex4-llm-repo-speedup`
-(the same wall-time-under-a-gate objective driven by a **live LLM agent** editing
-a small software repo). A single self-contained `dashboard.html` visualizes the
-ex1–ex3 progression ledgers.
+shape, living under `autoresearch/contract/examples/`: `ex1-music-abc` (minimize
+a language-model loss), `ex2-iris-knn` (maximize a classifier accuracy),
+`ex3-hotpath-speedup` (minimize wall-clock time under an exact-output gate), and
+`ex4-llm-repo-speedup` (the same wall-time-under-a-gate objective driven by a
+**live LLM agent** editing a small software repo). A single self-contained
+`dashboard.html` visualizes the ex1–ex3 progression ledgers.
 
 ## Why
 
-- **The contract in `docs/02-autoresearch-contract.md` is stated; a worked run proves
-  it runs.** Each example carries the whole contract — human policy, frozen evaluator,
-  the one agent-edited file, a keep/discard ledger and the loop driver that produced
-  it — so a reader can reproduce a real optimization trajectory, not a description of
-  one.
-- **One direction is not enough to test a loop.** A keep/discard rule can be right for
-  a minimization and silently wrong for a maximization; a gate that measures a scalar
-  can pass a candidate that a structural gate must reject. Three objectives on one
-  contract expose those asymmetries.
-- **The loop's own failure modes only appear when it runs.** A mutation that never
-  fires, a crash that is discarded but not reset, a simplification blocked by strict
-  improvement — none are visible from the template alone. Running the loop three times
-  surfaced each and fixed it.
+- **The contract in `docs/02-autoresearch-contract.md` is stated; a worked run
+proves it runs.** Each example carries the whole contract — human policy,
+frozen evaluator, the one agent-edited file, a keep/discard ledger and the
+loop driver that produced it — so a reader can reproduce a real optimization
+trajectory, not a description of one.
+- **One direction is not enough to test a loop.** A keep/discard rule can be
+right for a minimization and silently wrong for a maximization; a gate that
+measures a scalar can pass a candidate that a structural gate must reject.
+Three objectives on one contract expose those asymmetries.
+- **The loop's own failure modes only appear when it runs.** A mutation that
+never fires, a crash that is discarded but not reset, a simplification blocked
+by strict improvement — none are visible from the template alone. Running the
+loop three times surfaced each and fixed it.
 
 ## How
 
@@ -49,13 +49,14 @@ Every example directory carries the same five artifacts, plus a README:
 | `loop_driver.py` | the mechanical loop: apply patch → commit → run → parse metric → keep or reset | no |
 | `results.tsv` | the keep/discard ledger | vendored once as the record |
 
-`loop_driver.py` applies each candidate as an ordered patch list against the current
-kept state, commits it, runs the objective, parses the metric from the run log, and
-either keeps (a strict improvement) or `git reset --hard HEAD~1`. On a discard the next
-patch set chains from the last kept file, which is exactly the karpathy loop.
+`loop_driver.py` applies each candidate as an ordered patch list against the
+current kept state, commits it, runs the objective, parses the metric from the
+run log, and either keeps (a strict improvement) or `git reset --hard HEAD~1`.
+On a discard the next patch set chains from the last kept file, which is exactly
+the karpathy loop.
 
-ex4 keeps this shape with a model in the mutation slot — `agent_driver.py` writing
-`target/solution.py` — and is described below.
+ex4 keeps this shape with a model in the mutation slot — `agent_driver.py`
+writing `target/solution.py` — and is described below.
 
 ### Ledger shape
 
@@ -67,42 +68,46 @@ ex4 keeps this shape with a model in the mutation slot — `agent_driver.py` wri
 | ex4-llm-repo-speedup | `commit median_seconds gate stop_reason status tokens description` | 6 | 1 / 1 / 3 (+ 1 baseline `timeout`) |
 
 `results.tsv` is **runtime state, vendored here ONCE as the record of the worked
-run.** It is not appended to in place: re-running `loop_driver.py` in a scratch clone
-produces a fresh ledger, and its `seconds` column (a T2 statistical field — T2 =
-statistical tier: values jitter between runs and never gate; see
-`kb/concepts/better-cheaper-faster-metrics.md`) jitters between runs. Each example
-README embeds the run's git history verbatim; the live scratch clones are gitignored
-stage-1 scratch and are never cited.
+run.** It is not appended to in place: re-running `loop_driver.py` in a scratch
+clone produces a fresh ledger, and its `seconds` column (a T2 statistical field
+— T2 = statistical tier: values jitter between runs and never gate; see
+`kb/concepts/better-cheaper-faster-metrics.md`) jitters between runs. Each
+example README embeds the run's git history verbatim; the live scratch clones
+are gitignored stage-1 scratch and are never cited.
 
 ### The frozen evaluator, three ways
 
 - **ex1** imports `evaluate` from `prepare.py`; the baseline starts at a unigram
-  add-alpha model and the loop moves to bigram interpolation and a lighter backoff.
+add-alpha model and the loop moves to bigram interpolation and a lighter
+backoff.
 - **ex2** imports `evaluate_accuracy` and states the rule in `program.md`:
-  `loop_driver.py` asserts `train.evaluate_accuracy is prepare.evaluate_accuracy` and
-  aborts with `CONTRACT VIOLATION` otherwise. Redefining the evaluator in `train.py`
-  fails that identity check before any candidate runs.
-- **ex3** goes further: `prepare.py` owns a frozen `EXPECTED_OUTPUT` reference, and the
-  evaluator screens the `train.py` module source for the names `EXPECTED_OUTPUT` and
-  `run_reference`, rejecting a candidate that reaches into the ground truth.
+`loop_driver.py` asserts
+`train.evaluate_accuracy is prepare.evaluate_accuracy` and aborts with
+`CONTRACT VIOLATION` otherwise. Redefining the evaluator in `train.py` fails
+that identity check before any candidate runs.
+- **ex3** goes further: `prepare.py` owns a frozen `EXPECTED_OUTPUT` reference,
+and the evaluator screens the `train.py` module source for the names
+`EXPECTED_OUTPUT` and `run_reference`, rejecting a candidate that reaches into
+the ground truth.
 
 ### The exact-output gate (ex3)
 
 ex3's objective is wall-clock time, but a candidate's speed counts only after
-`run(data)` equals the frozen reference dict-for-dict. The ledger's `gate` column is
-`ok` or `invalid`; a gate failure is recorded as `crash` (invalid), never a keep. The
-final ledger row is a labeled attack — aggregating only the first 10% of the document
-— which is ≈10× faster than the incumbent (0.027475 s vs 0.274679 s) and rejected by
-the gate.
+`run(data)` equals the frozen reference dict-for-dict. The ledger's `gate`
+column is `ok` or `invalid`; a gate failure is recorded as `crash` (invalid),
+never a keep. The final ledger row is a labeled attack — aggregating only the
+first 10% of the document — which is ≈10× faster than the incumbent (0.027475 s
+vs 0.274679 s) and rejected by the gate.
 
 ### Dashboard
 
-`autoresearch/contract/examples/dashboard.html` is one self-contained file (inline `RUNS` data, no
-JavaScript dependencies) rendering the progression of all three ledgers, coloring
-keep / discard / crash / best. It **hand-transcribes** the vendored ledger values into
-its inline `RUNS` array — it does not read the `results.tsv` files at load time —
-so `tests/unit/test_examples_replay.py` (AC-EXA-003) asserts the inline numbers equal
-the vendored ledgers and fails on any drift.
+`autoresearch/contract/examples/dashboard.html` is one self-contained file
+(inline `RUNS` data, no JavaScript dependencies) rendering the progression of
+all three ledgers, coloring keep / discard / crash / best. It
+**hand-transcribes** the vendored ledger values into its inline `RUNS` array —
+it does not read the `results.tsv` files at load time — so
+`tests/unit/test_examples_replay.py` (AC-EXA-003) asserts the inline numbers
+equal the vendored ledgers and fails on any drift.
 
 ### ex4 — the live LLM instantiation
 
@@ -163,17 +168,24 @@ grep -c "dot" autoresearch/contract/examples/dashboard.html
 # 7        (inline data + legend rendering present; 7,697 bytes)
 ```
 
-The frozen-evaluator guard is falsifiable, verified directly:
-redefining `evaluate_accuracy` in `train.py` and calling
-`loop_driver.assert_frozen_evaluator()` prints
-`CONTRACT VIOLATION: train.evaluate_accuracy is not prepare.evaluate_accuracy`; the
-untouched `train.py` prints
-`contract ok: train.evaluate_accuracy is prepare.evaluate_accuracy (train=105 test=45 seed=23)`.
+The frozen-evaluator guard is falsifiable, verified directly: redefining
+`evaluate_accuracy` in `train.py` and calling
+`loop_driver.assert_frozen_evaluator()` prints:
+
+```text
+CONTRACT VIOLATION: train.evaluate_accuracy is not prepare.evaluate_accuracy
+```
+
+The untouched `train.py` prints:
+
+```text
+contract ok: train.evaluate_accuracy is prepare.evaluate_accuracy (train=105 test=45 seed=23)
+```
 
 ### Run 2026-10-16
 
-Re-run after the examples gained their tracked `train_baseline.py` and the two replay
-tiers (PRD 11). Commands from the repo root:
+Re-run after the examples gained their tracked `train_baseline.py` and the two
+replay tiers (PRD 11). Commands from the repo root:
 
 ```bash
 python3 -m pytest -q tests/unit/test_examples_replay.py
@@ -194,30 +206,33 @@ python3 -m pytest -q tests/integration/test_examples_replay.py
 ```
 
 The endpoints reproduce (`2.178535` / `1.000000` / `gate_ok True`); ex3's
-`median_seconds` is a fresh measurement, not the vendored `0.275`, because timing is T2.
+`median_seconds` is a fresh measurement, not the vendored `0.275`, because
+timing is T2.
 
 **The ex3 replay is the one run the tiers do not compare row for row.** Its
-keep/discard statuses are a T2 statistical field: two candidates sit within a few
-percent of their incumbent (row 2, the `word_count` reuse, ≈3%; row 7, the `Counter`
-counting step, ≈4%) and flip between keep and discard under load. A flipped keep is not
-cosmetic — it diverges the patch cascade. The discarded row's file state survives, so a
-later candidate that assumed its structural change raises inside `run()` (e.g. the
-`re.findall` tokenize removing `clean` while `len(clean.split())` is still referenced);
-the frozen gate records that extra crash as gate `invalid` (or `n/a` when it dies before
-printing a verdict), the candidate is reset, and the final `attack:` anchor is left
-dangling — `PATCH MISS`, driver exit 1, no attack row. The integration tier therefore
-compares only what is deterministic: that the replay starts from the tracked baseline and
-completes the baseline row, that the descriptions it produces are a prefix of the vendored
-ledger, and that the final kept `train.py` — the vendored artifact when a flip diverged
-the cascade, the replay's own HEAD otherwise — still passes the exact-output gate. It
-never compares the `median_seconds`, `status` or `gate` columns.
+keep/discard statuses are a T2 statistical field: two candidates sit within a
+few percent of their incumbent (row 2, the `word_count` reuse, ≈3%; row 7, the
+`Counter` counting step, ≈4%) and flip between keep and discard under load. A
+flipped keep is not cosmetic — it diverges the patch cascade. The discarded
+row's file state survives, so a later candidate that assumed its structural
+change raises inside `run()` (e.g. the `re.findall` tokenize removing `clean`
+while `len(clean.split())` is still referenced); the frozen gate records that
+extra crash as gate `invalid` (or `n/a` when it dies before printing a verdict),
+the candidate is reset, and the final `attack:` anchor is left dangling —
+`PATCH MISS`, driver exit 1, no attack row. The integration tier therefore
+compares only what is deterministic: that the replay starts from the tracked
+baseline and completes the baseline row, that the descriptions it produces are a
+prefix of the vendored ledger, and that the final kept `train.py` — the vendored
+artifact when a flip diverged the cascade, the replay's own HEAD otherwise —
+still passes the exact-output gate. It never compares the `median_seconds`,
+`status` or `gate` columns.
 
 ### Run 2026-10-17 — ex4, the live LLM run
 
 The one example whose candidates were proposed by a live model
 (`opencode-go/kimi-k3`, `--max-tokens 12000`), 5 rounds at `TIME_BUDGET = 5` s.
-`transcript.jsonl` holds every exchange, so the run replays offline. Commands from
-the repo root:
+`transcript.jsonl` holds every exchange, so the run replays offline. Commands
+from the repo root:
 
 ```bash
 python3 -m pytest -q tests/unit/test_examples_ex4.py
@@ -250,28 +265,30 @@ python3 agent_driver.py --from-baseline --replay transcript.jsonl
 The replay reproduces the vendored ledger's **deterministic columns** — `gate`,
 `stop_reason`, `tokens`, `description` — row for row; commit hashes and
 `median_seconds` differ, as with every example. The budget binds: the baseline
-runs **36.05 s** uncapped = **7.2×** the 5 s ceiling, so its row is a budget stop
-(`stop_reason: budget` / `status: timeout` / `median_seconds: inf`). The recorded
-run is **1 keep / 1 discard / 3 unusable**: round 1's single-`Counter` rewrite was
-kept (0.001811 s); round 3's second linear candidate (0.002029 s) did not beat the
-incumbent and was discarded; **rounds 2, 4 and 5 returned empty content**
-(`finish_reason: length`) — the model spent the entire token cap on hidden
-reasoning before emitting a fenced block — and are recorded as unusable-response
-crashes rather than smoothed away. Total cost: 53,563 tokens over 468.8 s of model
-wall time. The replay also prints one `WARNING: round N prompt sha256 differs`
-line per round: a prompt embeds the ledger and run-log tails, the log carries
-`total_seconds`, so its sha256 can never be stable across runs — the warning is
-soft and the recorded response is re-applied verbatim. The round-3 `discard` can
-flip to a `keep` when the two linear candidates land inside the timing noise
-(≈0.0017 s vs ≈0.0019 s); only the deterministic columns are claimed.
+runs **36.05 s** uncapped = **7.2×** the 5 s ceiling, so its row is a budget
+stop (`stop_reason: budget` / `status: timeout` / `median_seconds: inf`). The
+recorded run is **1 keep / 1 discard / 3 unusable**: round 1's single-`Counter`
+rewrite was kept (0.001811 s); round 3's second linear candidate (0.002029 s)
+did not beat the incumbent and was discarded; **rounds 2, 4 and 5 returned empty
+content** (`finish_reason: length`) — the model spent the entire token cap on
+hidden reasoning before emitting a fenced block — and are recorded as
+unusable-response crashes rather than smoothed away. Total cost: 53,563 tokens
+over 468.8 s of model wall time. The replay also prints one
+`WARNING: round N prompt sha256 differs` line per round: a prompt embeds the
+ledger and run-log tails, the log carries `total_seconds`, so its sha256 can
+never be stable across runs — the warning is soft and the recorded response is
+re-applied verbatim. The round-3 `discard` can flip to a `keep` when the two
+linear candidates land inside the timing noise (≈0.0017 s vs ≈0.0019 s); only
+the deterministic columns are claimed.
 
 ### Run 2026-10-17 — hardening after review
 
 A spec review and a quality/security review of the ex4 harness found defects in
-the **evaluator and driver only** — never in the recorded artifact — so they were
-fixed without a model call. `results.tsv` and `transcript.jsonl` are untouched:
-they remain the record of the 2026-10-17 live run, produced by the evaluator as it
-stood then, and `target/solution.py` remains that run's kept artifact.
+the **evaluator and driver only** — never in the recorded artifact — so they
+were fixed without a model call. `results.tsv` and `transcript.jsonl` are
+untouched: they remain the record of the 2026-10-17 live run, produced by the
+evaluator as it stood then, and `target/solution.py` remains that run's kept
+artifact.
 
 | Defect (pre-hardening) | Fix |
 |---|---|
@@ -298,16 +315,17 @@ python3 prepare.py --run exit_zero.py
 ```
 
 …was scored `0.000001 s`, gate `ok`, and kept — no test had run. The hardened
-evaluator gives that candidate no verdict file, hence gate `n/a`, `stop_reason:
-error`, status `crash` (AC-EXA-019, which also covers the print-only forgery).
+evaluator gives that candidate no verdict file, hence gate `n/a`,
+`stop_reason: error`, status `crash` (AC-EXA-019, which also covers the
+print-only forgery).
 
 Under the hardened evaluator the same transcript still reproduces the ledger's
 deterministic columns in a fresh scratch copy (the run quoted in § *Run
 2026-10-17* above): `gate`, `stop_reason`, `tokens` and `description` equal the
 vendored ledger row for row, the baseline still dies at the 5 s budget
 (`timeout`), and the kept round-1 artifact still passes the gate inside the
-budget (the check at the end of AC-EXA-018 runs `prepare.py --run
-target/solution.py` on the replay's own HEAD).
+budget (the check at the end of AC-EXA-018 runs
+`prepare.py --run target/solution.py` on the replay's own HEAD).
 
 New tests, all offline: `tests/unit/test_examples_ex4.py` — AC-EXA-019 (forged
 verdict is not kept), AC-EXA-020 (a gate-passing run killed at the budget is a
@@ -315,8 +333,8 @@ verdict is not kept), AC-EXA-020 (a gate-passing run killed at the budget is a
 grandchild), AC-EXA-022 (no `OPENAI_API_KEY` in the child's environment),
 AC-EXA-023 (the driver refuses a parent repo and leaves its HEAD and uncommitted
 file untouched), AC-EXA-024 (a live run refuses a non-empty ledger), AC-EXA-025
-(the benchmark seeds are fresh and parent-chosen), AC-EXA-026 (the README's ledger
-table is byte-copied from `results.tsv`).
+(the benchmark seeds are fresh and parent-chosen), AC-EXA-026 (the README's
+ledger table is byte-copied from `results.tsv`).
 
 ### Run 2026-10-17 — hardening after review, second pass
 
@@ -328,10 +346,10 @@ number it wrote there was still believed. Two candidates both scored `keep` with
 median `1e-06`:
 
 - **A2** — no `run()` at all: the file's whole body wrote
-  `{"gate": "ok", "median": 1e-06, "stop_reason": "done"}` to the verdict path
-  and called `os._exit(0)`;
+`{"gate": "ok", "median": 1e-06, "stop_reason": "done"}` to the verdict path
+and called `os._exit(0)`;
 - **A3** — the correct solution plus an `atexit` hook that overwrote the verdict
-  file with median `1e-06`.
+file with median `1e-06`.
 
 The fix removes the assumption rather than guarding the file: **within one
 process there is no trust boundary, so the child is no longer asked to tell the
@@ -393,41 +411,42 @@ scratch copy still reproduces the vendored ledger's deterministic columns
 (`gate`, `stop_reason`, `tokens`, `description`) row for row, with no
 `round 1 artifact_sent != current artifact` note.
 
-New tests, all offline: AC-EXA-027 (a results-file forgery with no `run()` is not
-kept), AC-EXA-028 (an `atexit` verdict overwrite is never the recorded median),
-AC-EXA-029 (wrong outputs fail the gate however the child writes), AC-EXA-030
-(fresh parent-chosen seeds defeat load-time precompute). AC-EXA-025 was rewritten
-for the fresh-seed design.
+New tests, all offline: AC-EXA-027 (a results-file forgery with no `run()` is
+not kept), AC-EXA-028 (an `atexit` verdict overwrite is never the recorded
+median), AC-EXA-029 (wrong outputs fail the gate however the child writes),
+AC-EXA-030 (fresh parent-chosen seeds defeat load-time precompute). AC-EXA-025
+was rewritten for the fresh-seed design.
 
 ### Run 2026-10-17 — third pass: parent-side timing
 
-A re-review of the second pass found it still trusted the child for the **timing**.
-Two attacks scored absurdly well against it:
+A re-review of the second pass found it still trusted the child for the
+**timing**. Two attacks scored absurdly well against it:
 
 - an **active load-time precompute** — forge the `imported`/`ready` handshakes,
-  read the seed stream off the child's stdin and compute every rep's answer before
-  the bench even starts — was scored `keep` at **0.000006 s**;
+read the seed stream off the child's stdin and compute every rep's answer
+before the bench even starts — was scored `keep` at **0.000006 s**;
 - a candidate that appended `bench` records claiming `seconds: 1e-9` (with the
-  correct output) was recorded at a median of **0.0**.
+correct output) was recorded at a median of **0.0**.
 
-Both are the same defect: the recorded number was one the candidate could choose.
-The fix moves the clock to the parent. For each timed rep the parent draws one
-fresh `secrets.randbits` seed, computes `reference(generate_data(seed))` for it
-**before** it sends anything, writes only that seed to the child's stdin after the
-child reports it is ready, and times the round trip with its own `perf_counter`
-until the child's output record for that seed arrives. The protocol carries no
-`seconds` field any more, so a forged one is ignored, and the recorded median is
-the median of the **parent's** per-rep seconds.
+Both are the same defect: the recorded number was one the candidate could
+choose. The fix moves the clock to the parent. For each timed rep the parent
+draws one fresh `secrets.randbits` seed, computes
+`reference(generate_data(seed))` for it **before** it sends anything, writes
+only that seed to the child's stdin after the child reports it is ready, and
+times the round trip with its own `perf_counter` until the child's output record
+for that seed arrives. The protocol carries no `seconds` field any more, so a
+forged one is ignored, and the recorded median is the median of the **parent's**
+per-rep seconds.
 
 **The metric changed, so the vendored medians are not comparable.** A parent-rep
 now includes the child's `generate_data` workload build and the IPC — a constant
 overhead — so an honest run measures **0.0107–0.0117 s** (the parent measured
-0.010678 / 0.011116 / 0.011657 s on `target/solution.py`), not the **0.0018 s** the
-vendored ledger records. The vendored `0.001811 s` keep and `0.002029 s` discard
-were produced by the **pre-hardening** evaluator, which timed `run()` inside the
-child; they are that run's record and stay as they are. Keep/discard is decided
-against the incumbent **measured by the same evaluator in the same run**, so the
-shift cancels — only the within-run comparison is read as signal.
+0.010678 / 0.011116 / 0.011657 s on `target/solution.py`), not the **0.0018 s**
+the vendored ledger records. The vendored `0.001811 s` keep and `0.002029 s`
+discard were produced by the **pre-hardening** evaluator, which timed `run()`
+inside the child; they are that run's record and stay as they are. Keep/discard
+is decided against the incumbent **measured by the same evaluator in the same
+run**, so the shift cancels — only the within-run comparison is read as signal.
 
 Attack table, all re-run against `66b6f7c` (parent-side gate and timing):
 
@@ -445,172 +464,183 @@ Attack table, all re-run against `66b6f7c` (parent-side gate and timing):
 | `importlib.import_module('pre'+'pare')` oracle copy | passes with a real median |
 
 The last row is the honest limit: the FORBIDDEN screen is a **best-effort
-tripwire, not a security boundary** — a two-token bypass defeats it, and a copied
-*correct* implementation is not a gate forgery (a genuinely correct output passing
-the gate is the right answer). The real defence is the parent-side comparison: a
-wrong output fails the gate whatever the source named. Under the new evaluator the
-replay still reproduces the vendored ledger's deterministic columns row for row
-(`gate`, `stop_reason`, `tokens`, `description`, plus `status` for the
-baseline/crash rows and the first keep); its own medians are 0.010638 s (keep) and
-0.010853 s (discard).
+tripwire, not a security boundary** — a two-token bypass defeats it, and a
+copied *correct* implementation is not a gate forgery (a genuinely correct
+output passing the gate is the right answer). The real defence is the
+parent-side comparison: a wrong output fails the gate whatever the source named.
+Under the new evaluator the replay still reproduces the vendored ledger's
+deterministic columns row for row (`gate`, `stop_reason`, `tokens`,
+`description`, plus `status` for the baseline/crash rows and the first keep);
+its own medians are 0.010638 s (keep) and 0.010853 s (discard).
 
-The parent also caps the results channel (8 MiB / 1000 records) and reads it with a
-tracked offset rather than re-reading the whole file every poll; past the cap the
-run is a crash, never a slow win. `--run` accepts a relative path from any
-directory.
+The parent also caps the results channel (8 MiB / 1000 records) and reads it
+with a tracked offset rather than re-reading the whole file every poll; past the
+cap the run is a crash, never a slow win. `--run` accepts a relative path from
+any directory.
 
 New tests, all offline: AC-EXA-030 (the ACTIVE precompute attack is not a fast
 keep), AC-EXA-031 (an `atexit`-forged `seconds: 1e-9` is never the recorded
-median), AC-EXA-032 (no orphan after a clean exit), AC-EXA-033 (a channel flood is
-a crash).
+median), AC-EXA-032 (no orphan after a clean exit), AC-EXA-033 (a channel flood
+is a crash).
 
 ## What Works
 
 - **One contract, three objective shapes.** ex1 (lower-is-better `val_bpb`), ex2
-  (higher-is-better `accuracy`) and ex3 (wall-time under a gate) each run the same
-  `program.md` / `prepare.py` / `train.py` / `loop_driver.py` / `results.tsv` contract
-  with only the direction and the gate changed.
+(higher-is-better `accuracy`) and ex3 (wall-time under a gate) each run the
+same `program.md` / `prepare.py` / `train.py` / `loop_driver.py` /
+`results.tsv` contract with only the direction and the gate changed.
 - **The frozen evaluator is enforceable, not advisory.** ex2's object-identity
-  assertion aborts the driver on a redefinition, and ex3's source screen rejects a
-  candidate that names the ground-truth symbols — both fail before a metric is
-  reported.
-- **The exact-output gate defeats Goodharting.** ex3's attack candidate is ≈10× faster
-  and is recorded as an invalid crash, so the incumbent (0.274679 s, the fastest
-  *valid* row) keeps its place.
-- **Direction inversion is real, not cosmetic.** ex2 maximizes accuracy while ex1/ex3
-  minimize, and the loop's comparison, ledger and keep/reset rule hold against `>`
-  exactly as against `<`.
-- **A seed chosen to widen the headline delta is disclosed evaluator-input tuning, not a
-  hidden win.** ex2's `prepare.py` records a seeds-0–39 scan and freezes seed 23. On the
-  first candidate, seed 42, the 1-NN raw baseline already scores 0.977778 (= 44/45) and
-  the K × metric × normalize × weighted grid still reaches 1.000000, so that split has
-  headroom too — a one-test-row delta against seed 23's three. The seed was picked to
-  enlarge the headline delta and the note names that as a Goodhart risk; see
-  `ex2-iris-knn/prepare.py:204-217`.
-- **The dashboard is portable.** `dashboard.html` carries its data inline and loads no
-  external script, so it renders offline from the vendored ledgers.
-- **Every documented run is reproducible from the tracked copy.** `python3 train.py` on
-  each example prints the ledger's best metric — 2.178535 / 1.000000 / gate_ok True —
-  from the shipped `train.py`.
+assertion aborts the driver on a redefinition, and ex3's source screen rejects
+a candidate that names the ground-truth symbols — both fail before a metric is
+reported.
+- **The exact-output gate defeats Goodharting.** ex3's attack candidate is ≈10×
+faster and is recorded as an invalid crash, so the incumbent (0.274679 s, the
+fastest *valid* row) keeps its place.
+- **Direction inversion is real, not cosmetic.** ex2 maximizes accuracy while
+ex1/ex3 minimize, and the loop's comparison, ledger and keep/reset rule hold
+against `>` exactly as against `<`.
+- **A seed chosen to widen the headline delta is disclosed evaluator-input
+tuning, not a hidden win.** ex2's `prepare.py` records a seeds-0–39 scan and
+freezes seed 23. On the first candidate, seed 42, the 1-NN raw baseline
+already scores 0.977778 (= 44/45) and the K × metric × normalize × weighted
+grid still reaches 1.000000, so that split has headroom too — a one-test-row
+delta against seed 23's three. The seed was picked to enlarge the headline
+delta and the note names that as a Goodhart risk; see
+`ex2-iris-knn/prepare.py:204-217`.
+- **The dashboard is portable.** `dashboard.html` carries its data inline and
+loads no external script, so it renders offline from the vendored ledgers.
+- **Every documented run is reproducible from the tracked copy.**
+`python3 train.py` on each example prints the ledger's best metric — 2.178535
+/ 1.000000 / gate_ok True — from the shipped `train.py`.
 - **A live model is a real mutation operator and the run still replays.** ex4's
-  candidates came from a live model (`opencode-go/kimi-k3`), yet
-  `--replay transcript.jsonl` reproduced the ledger's deterministic columns offline
-  from the tracked baseline, so the three roles hold with a model in the loop.
+candidates came from a live model (`opencode-go/kimi-k3`), yet
+`--replay transcript.jsonl` reproduced the ledger's deterministic columns
+offline from the tracked baseline, so the three roles hold with a model in the
+loop.
 - **The budget binds.** ex4's quadratic baseline is killed at `TIME_BUDGET` (its
-  uncapped 36.05 s is 7.2× the 5 s ceiling), so the first ledger row is a real budget
-  stop — a ceiling on a runaway candidate, not decoration.
+uncapped 36.05 s is 7.2× the 5 s ceiling), so the first ledger row is a real
+budget stop — a ceiling on a runaway candidate, not decoration.
 - **A result the candidate cannot report is a result.** ex4's evaluator trusts
-  nothing the child says about itself: the child reports only the raw `run()`
-  outputs, and the parent recomputes `reference(...)` and compares — on a held-out
-  workload plus benchmark workloads whose seeds the parent draws with `secrets`
-  after the child's import handshake. A candidate that writes a verdict file (with
-  no `run()` at all, or from an `atexit` hook) has no verified output and is a
-  crash, and a workload precomputed at import is empty. The child also runs in its
-  own process group with a scrubbed environment, so a budget kill takes its
-  grandchildren down and no API key is reachable.
+nothing the child says about itself: the child reports only the raw `run()`
+outputs, and the parent recomputes `reference(...)` and compares — on a
+held-out workload plus benchmark workloads whose seeds the parent draws with
+`secrets` after the child's import handshake. A candidate that writes a
+verdict file (with no `run()` at all, or from an `atexit` hook) has no
+verified output and is a crash, and a workload precomputed at import is empty.
+The child also runs in its own process group with a scrubbed environment, so a
+budget kill takes its grandchildren down and no API key is reachable.
 
 ## What Fails
 
-- **A mutation that never fires is indistinguishable from a failed candidate.** An
-  anchor bug that patches the wrong site (ex1) leaves the metric identical to the
-  incumbent, which a strict-improvement rule mechanically discards.
-- **A crash that only discards leaves HEAD on the broken commit.** ex3's first driver
-  reset on a discard but not on a crash, so the tree could end on the broken candidate.
-- **Strict improvement rejects a simplification that costs nothing.** ex3's dead-code
-  deletion (candidate 10) lost by 0.8% (0.276896 s vs 0.274679 s) and was discarded even
-  though the code shrank.
-- **A spot-check gate is not shape-proof.** ex3's attack candidate passed the first
-  spot-check field and still failed the full-output comparison — a field-sample gate
-  would have kept a badly wrong answer.
-- **A widened headline delta is a metric choice, not a modelling gain.** ex2's seed 23
-  was picked after a 0–39 scan because it makes the `0.933333 → 1.000000` delta three
-  test rows wide, against one row on seed 42 — the delta is widened by the split, so the
-  seed choice is recorded as evaluator-input tuning rather than read as a modelling win.
-- **Timing columns are T2 and jitter between runs.** A wall-clock delta within ~10% is
-  not signal, so a re-run of `results.tsv` never reproduces its `seconds` column exactly
-  (ex3's fresh run measured 0.291 s against the vendored 0.275 s).
-- **A reasoning model's hidden chain of thought can swallow the token cap.** ex4's
-  rounds 2, 4 and 5 returned empty content (`finish_reason: length`) because the whole
-  `--max-tokens` budget went into reasoning before any fenced block; an earlier attempt
-  on a different reasoning model failed outright (a 2048-token cap fully consumed by
-  reasoning, plus a provider stall) and was discarded as a driver-config problem, not
-  read as a run result.
-- **A verdict parsed from the child's stdout is forgeable.** ex4's first evaluator
-  read `gate` / `median_seconds` / `stop_reason` from the stdout it shared with the
-  candidate and took the first match, so an artifact that printed a fake verdict and
-  called `sys.exit(0)` was scored 0.000001 s and **kept with no test run**; a budget
-  kill also re-parsed that same stream to assemble its verdict, and the kill reached
-  only the direct child.
+- **A mutation that never fires is indistinguishable from a failed candidate.**
+An anchor bug that patches the wrong site (ex1) leaves the metric identical to
+the incumbent, which a strict-improvement rule mechanically discards.
+- **A crash that only discards leaves HEAD on the broken commit.** ex3's first
+driver reset on a discard but not on a crash, so the tree could end on the
+broken candidate.
+- **Strict improvement rejects a simplification that costs nothing.** ex3's
+dead-code deletion (candidate 10) lost by 0.8% (0.276896 s vs 0.274679 s) and
+was discarded even though the code shrank.
+- **A spot-check gate is not shape-proof.** ex3's attack candidate passed the
+first spot-check field and still failed the full-output comparison — a
+field-sample gate would have kept a badly wrong answer.
+- **A widened headline delta is a metric choice, not a modelling gain.** ex2's
+seed 23 was picked after a 0–39 scan because it makes the
+`0.933333 → 1.000000` delta three test rows wide, against one row on seed 42 —
+the delta is widened by the split, so the seed choice is recorded as
+evaluator-input tuning rather than read as a modelling win.
+- **Timing columns are T2 and jitter between runs.** A wall-clock delta within
+~10% is not signal, so a re-run of `results.tsv` never reproduces its
+`seconds` column exactly (ex3's fresh run measured 0.291 s against the
+vendored 0.275 s).
+- **A reasoning model's hidden chain of thought can swallow the token cap.**
+ex4's rounds 2, 4 and 5 returned empty content (`finish_reason: length`)
+because the whole `--max-tokens` budget went into reasoning before any fenced
+block; an earlier attempt on a different reasoning model failed outright (a
+2048-token cap fully consumed by reasoning, plus a provider stall) and was
+discarded as a driver-config problem, not read as a run result.
+- **A verdict parsed from the child's stdout is forgeable.** ex4's first
+evaluator read `gate` / `median_seconds` / `stop_reason` from the stdout it
+shared with the candidate and took the first match, so an artifact that
+printed a fake verdict and called `sys.exit(0)` was scored 0.000001 s and
+**kept with no test run**; a budget kill also re-parsed that same stream to
+assemble its verdict, and the kill reached only the direct child.
 - **A file the candidate can write is no safer than a line it can print.** ex4's
-  second evaluator moved the verdict into a parent-created JSON file — but the
-  candidate is imported inside the same process that writes it and can read the
-  path straight off `sys.argv`, so a file with no `run()` at all (A2) and the
-  correct file plus an `atexit` overwrite (A3) were both scored `keep` with median
-  `1e-06`. A gate a process reports about itself is only as strong as the process
-  boundary around it, and inside one process there is none.
-- **The screen is a tripwire, not a boundary, and the artifact runs unsandboxed.**
-  ex4's correctness and timing are parent-side, but the candidate is imported and
-  run as arbitrary Python with the caller's privileges, so it can read files, spawn
-  processes and consume the machine; and the source screen that rejects a candidate
-  naming `prepare` is defeated by a two-token bypass
-  (`importlib.import_module('pre'+'pare')`) — a copied *correct* implementation
-  passes with a real median, because correct output is the right answer, not a
-  forgery.
+second evaluator moved the verdict into a parent-created JSON file — but the
+candidate is imported inside the same process that writes it and can read the
+path straight off `sys.argv`, so a file with no `run()` at all (A2) and the
+correct file plus an `atexit` overwrite (A3) were both scored `keep` with
+median `1e-06`. A gate a process reports about itself is only as strong as the
+process boundary around it, and inside one process there is none.
+- **The screen is a tripwire, not a boundary, and the artifact runs
+unsandboxed.** ex4's correctness and timing are parent-side, but the candidate
+is imported and run as arbitrary Python with the caller's privileges, so it
+can read files, spawn processes and consume the machine; and the source screen
+that rejects a candidate naming `prepare` is defeated by a two-token bypass
+(`importlib.import_module('pre'+'pare')`) — a copied *correct* implementation
+passes with a real median, because correct output is the right answer, not a
+forgery.
 
 ## Resolution
 
 - Verify the patch site before trusting a result: the drivers abort on a
-  `PATCH MISS`/`src.count(old) != 1` and an exact tie with the incumbent is read as a
-  fired-patch bug, not a candidate outcome.
-- Reset on any non-keep, crash included — the fix landed in ex3's driver, which runs
-  `git reset --hard HEAD~1` when `status != "keep"`, so a broken candidate stays neither
-  in the tree nor in history (the row survives in the ledger). ex1 and ex2 as shipped
-  reset only on `discard` (`if status == "discard"`) and keep HEAD on a crashed
-  candidate; their crashes never fire in the recorded runs (ex1 and ex2 ledgers have 0
-  crash rows), so the difference is latent rather than observed.
-- Apply a noise floor: keep if `metric <= incumbent*(1+eps)` **and** the code shrinks,
-  so a simplification that is within the timing noise but deletes code is a win.
-- Compare the whole output, not a field: the exact-output gate matches the reference
-  dict-for-dict, which is what made ex3's fast-but-wrong candidate fail.
-- Pre-register the split in the frozen evaluator and document the choice: scan seeds and
-  freeze one (ex2 seed 23), recording the scan and the seed-42 split in `prepare.py` as
-  evaluator-input tuning (a Goodhart risk) rather than as a headroom constraint.
-- Never treat a sub-10% wall-clock delta as signal, and vendor `results.tsv` once: new
-  measurements go to a scratch clone, and only the endpoints (not the timing column) are
-  compared across runs.
-- Give a reasoning model a large `--max-tokens` and record `finish_reason`: a truncated
-  round then lands as an honest unusable-response crash (ex4 rounds 2/4/5) instead of a
-  silent empty candidate, and a too-tight cap is diagnosed as configuration before it is
-  read as a model outcome.
-- Judge out of band: never parse the shared stdout, have a timeout SET the verdict
-  (median `inf`, `stop_reason: budget`) instead of re-assembling one from what the
-  candidate printed, and kill the child's whole process group with a scrubbed
-  environment — a verdict is only as trustworthy as the process boundary around it.
-- Don't let the child grade itself: a gate a process reports about itself is only as
-  strong as the process boundary around it, and inside one process there is none — so
-  the child asserts no verdict (it reports only the raw `run()` outputs), the parent
-  recomputes `reference(...)` and compares them, and the benchmark seeds are drawn by
-  the parent with `secrets` after the child's import handshake and sent over its stdin.
+`PATCH MISS`/`src.count(old) != 1` and an exact tie with the incumbent is read
+as a fired-patch bug, not a candidate outcome.
+- Reset on any non-keep, crash included — the fix landed in ex3's driver, which
+runs `git reset --hard HEAD~1` when `status != "keep"`, so a broken candidate
+stays neither in the tree nor in history (the row survives in the ledger). ex1
+and ex2 as shipped reset only on `discard` (`if status == "discard"`) and keep
+HEAD on a crashed candidate; their crashes never fire in the recorded runs
+(ex1 and ex2 ledgers have 0 crash rows), so the difference is latent rather
+than observed.
+- Apply a noise floor: keep if `metric <= incumbent*(1+eps)` **and** the code
+shrinks, so a simplification that is within the timing noise but deletes code
+is a win.
+- Compare the whole output, not a field: the exact-output gate matches the
+reference dict-for-dict, which is what made ex3's fast-but-wrong candidate
+fail.
+- Pre-register the split in the frozen evaluator and document the choice: scan
+seeds and freeze one (ex2 seed 23), recording the scan and the seed-42 split
+in `prepare.py` as evaluator-input tuning (a Goodhart risk) rather than as a
+headroom constraint.
+- Never treat a sub-10% wall-clock delta as signal, and vendor `results.tsv`
+once: new measurements go to a scratch clone, and only the endpoints (not the
+timing column) are compared across runs.
+- Give a reasoning model a large `--max-tokens` and record `finish_reason`: a
+truncated round then lands as an honest unusable-response crash (ex4 rounds
+2/4/5) instead of a silent empty candidate, and a too-tight cap is diagnosed
+as configuration before it is read as a model outcome.
+- Judge out of band: never parse the shared stdout, have a timeout SET the
+verdict (median `inf`, `stop_reason: budget`) instead of re-assembling one
+from what the candidate printed, and kill the child's whole process group with
+a scrubbed environment — a verdict is only as trustworthy as the process
+boundary around it.
+- Don't let the child grade itself: a gate a process reports about itself is
+only as strong as the process boundary around it, and inside one process there
+is none — so the child asserts no verdict (it reports only the raw `run()`
+outputs), the parent recomputes `reference(...)` and compares them, and the
+benchmark seeds are drawn by the parent with `secrets` after the child's
+import handshake and sent over its stdin.
 - Run a live loop only in a disposable sandbox/VM with no host mounts and no
-  credentials beyond the endpoint key (the evaluated child does not inherit it
-  either), and treat the source screen as an accidental-oracle tripwire rather than
-  a security boundary: the defence is the parent-side output comparison, which fails
-  a wrong output whatever the source said.
+credentials beyond the endpoint key (the evaluated child does not inherit it
+either), and treat the source screen as an accidental-oracle tripwire rather
+than a security boundary: the defence is the parent-side output comparison,
+which fails a wrong output whatever the source said.
 
 ## Verdict
 
-**works** — four faithful contract instantiations run end to end on four objective
-shapes, three scripted and one driven by a live LLM agent (ex4, whose `--replay`
-reproduces the deterministic ledger columns offline), each reproducible from its
-tracked baseline, with the frozen-evaluator guard and the exact-output gate proven
-falsifiable against a live redefinition and a labeled ~10×-faster attack. The ex4
-harness was hardened three times afterwards — a verdict file with an exit-code
-cross-check; then, after the parent reproduced a verdict-file forgery the first pass
-still allowed, a parent-side comparison of the child's raw `run()` outputs on
-parent-chosen fresh seeds; then, after a re-review showed the child still owned the
-clock, parent-side per-rep timing on a fresh parent-chosen seed per rep — alongside
-the process-group budget kill, the environment scrub and the in-repo guard, all
-without touching the recorded run. The loop-mechanics
-failures this doc records are the naive loop's — plus ex4's three
-token-cap-truncated rounds, kept in the ledger as crashes — and each carries the
-calibration rule that fixes it; no example's own run is left red.
+**works** — four faithful contract instantiations run end to end on four
+objective shapes, three scripted and one driven by a live LLM agent (ex4, whose
+`--replay` reproduces the deterministic ledger columns offline), each
+reproducible from its tracked baseline, with the frozen-evaluator guard and the
+exact-output gate proven falsifiable against a live redefinition and a labeled
+~10×-faster attack. The ex4 harness was hardened three times afterwards — a
+verdict file with an exit-code cross-check; then, after the parent reproduced a
+verdict-file forgery the first pass still allowed, a parent-side comparison of
+the child's raw `run()` outputs on parent-chosen fresh seeds; then, after a
+re-review showed the child still owned the clock, parent-side per-rep timing on
+a fresh parent-chosen seed per rep — alongside the process-group budget kill,
+the environment scrub and the in-repo guard, all without touching the recorded
+run. The loop-mechanics failures this doc records are the naive loop's — plus
+ex4's three token-cap-truncated rounds, kept in the ledger as crashes — and each
+carries the calibration rule that fixes it; no example's own run is left red.

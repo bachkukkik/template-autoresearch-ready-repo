@@ -6,14 +6,15 @@
 > [bachkukkik/template-agentic-ready-repo](https://github.com/bachkukkik/template-agentic-ready-repo)
 > doctrine — document funnel, harness adapter, PRD→SC→test→CI.
 
-> **Adopting this for your own project?** [`ADOPTING.md`](ADOPTING.md) is the onboarding
-> guide — clone → verify → keep/replace/delete → wire your harness. `AGENTS.md` stays the
-> canonical rule set it points back at.
+> **Adopting this for your own project?** [`ADOPTING.md`](ADOPTING.md) is the
+> onboarding guide — clone → verify → keep/replace/delete → wire your harness.
+> `AGENTS.md` stays the canonical rule set it points back at.
 
 ## Document Funnel
 
-Every piece of writing in this repo has exactly one home. Writing flows one direction
-only — full rules in [AGENTS.md](AGENTS.md#document-funnel-mandatory--every-harness-every-agent).
+Every piece of writing in this repo has exactly one home. Writing flows one
+direction only — full rules in
+[AGENTS.md](AGENTS.md#document-funnel-mandatory--every-harness-every-agent).
 
 ```
 user prompt (any harness)
@@ -34,17 +35,18 @@ GitHub issues         everything else
 ```
 
 A new `.md` that fits none of these stages is a defect — file an issue instead.
-`kb/` follows the [`llm-wiki` spec](.agents/skills/llm-wiki/SKILL.md) strictly — the
-stage-3 gate travels with the repo, vendored (MIT) from
+`kb/` follows the [`llm-wiki` spec](.agents/skills/llm-wiki/SKILL.md) strictly —
+the stage-3 gate travels with the repo, vendored (MIT) from
 [`NousResearch/hermes-agent`](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/llm-wiki/SKILL.md);
 unused KB material is archived to `kb/_archive/`, never deleted. The add-only
 rule for `kb/raw/` is enforced in CI by
-[`sources-readonly.yml`](.github/workflows/sources-readonly.yml), not just by instruction.
+[`sources-readonly.yml`](.github/workflows/sources-readonly.yml), not just by
+instruction.
 
 ## Knowledge Base — what is in `kb/` now
 
-Ingested 2026-09-04 from a deep-research run on the autoresearch pattern
-(each `kb/raw/` file names its sources in its frontmatter):
+Ingested 2026-09-04 from a deep-research run on the autoresearch pattern (each
+`kb/raw/` file names its sources in its frontmatter):
 
 | Layer | Content |
 |-------|---------|
@@ -93,12 +95,30 @@ python3 scripts/audit-ste.py            # default: docs/*.md + README.md, 80% th
 python3 scripts/audit_pyramid.py        # codebase constraints + comment budget + test linkage
 ```
 
+### Machine gates
+
+```bash
+python3 scripts/audit_pyramid.py          # 3 deterministic foundations
+python3 scripts/audit-chars.py            # 80 columns, strict
+python3 scripts/audit-size.py --max-kb 60 # per-file byte cap
+```
+
+`audit-chars.py` measures prose in `docs/`, `README.md` and `AGENTS.md`, and
+exits 1 on any line over 80 characters; `--advisory` prints the same report and
+exits 0 — a staged-adoption aid, never a CI setting.
+
+`audit-size.py` caps each tracked file in bytes: upstream's 20 KB suits its 91
+files, this repo has 423, so the gate runs at 60 KB. Three classes are exempt by
+policy, not size — `kb/raw/` (append-or-archive), `kb/log.md` (append-only) and
+`autoresearch/uv.lock` (generated). → `docs/prd/27-file-size-audit.md`
+
 ## Repo Commands — one catalog, one way in
 
 Every user-facing command is declared once in
-[`autoresearch/commands/registry.py`](autoresearch/commands/registry.py) — a name, a
-one-line help, a typed argument schema, what it costs and the argv that reaches the real
-tool — and the CLI, its `--help` and the catalog are generated from those declarations:
+[`autoresearch/commands/registry.py`](autoresearch/commands/registry.py) — a
+name, a one-line help, a typed argument schema, what it costs and the argv that
+reaches the real tool — and the CLI, its `--help` and the catalog are generated
+from those declarations:
 
 ```bash
 ./autoresearch/bin/autoresearch commands list            # the catalog: surfaces, cost flags, help
@@ -108,30 +128,34 @@ tool — and the CLI, its `--help` and the catalog are generated from those decl
 ./autoresearch/bin/autoresearch engine doctor            # the engine's own CLI, passed through
 ```
 
-Four groups: `engine` (init/run/status/report/doctor/objective-validate/objective-resolve),
-`target` (profile/import), `supervisor` (render/install/status/pause/resume) and `commands`
-(list/describe). `autoresearch engine <args…>` is the engine's CLI unchanged, for anything
-the declared verbs do not cover.
+Four groups: `engine`
+(init/run/status/report/doctor/objective-validate/objective-resolve), `target`
+(profile/import), `supervisor` (render/install/status/pause/resume) and
+`commands` (list/describe). `autoresearch engine <args…>` is the engine's CLI
+unchanged, for anything the declared verbs do not cover.
 
-A command that mutates state, executes the target's code or reads the host is **CLI/agent
-only**: this cycle generates no REST or MCP surface, and the catalog states the cost rather
-than implying a reachability. A target is a declared profile name, never a path. The rule
-behind the catalog — *every request is a repo command* — is `AGENTS.md` standing order 8,
-the procedure is [`.agents/skills/repo-commands/SKILL.md`](.agents/skills/repo-commands/SKILL.md),
-and an entry point with no command fails `tests/unit/test_commands_rule.py`. Intent:
-[docs/prd/23-command-registry.md](docs/prd/23-command-registry.md).
+A command that mutates state, executes the target's code or reads the host is
+**CLI/agent only**: this cycle generates no REST or MCP surface, and the catalog
+states the cost rather than implying a reachability. A target is a declared
+profile name, never a path. The rule behind the catalog — *every request is a
+repo command* — is `AGENTS.md` standing order 8, the procedure is
+[`.agents/skills/repo-commands/SKILL.md`](.agents/skills/repo-commands/SKILL.md),
+and an entry point with no command fails `tests/unit/test_commands_rule.py`.
+Intent: [docs/prd/23-command-registry.md](docs/prd/23-command-registry.md).
 
 ## PR-Agent (optional but dormant) — see AGENTS.md §pr-agent
 
-[PR-Agent](https://github.com/The-PR-Agent/pr-agent) (MIT) is an AI reviewer that posts
-`/review`, `/describe` and `/improve` comments on a PR. It is **off until you opt in**:
-set the repository variable `PR_AGENT_ENABLED=true` and the secret `OPENAI_API_KEY`; optionally
-set the variables `OPENAI_BASE_URL` (any OpenAI-compatible endpoint — LiteLLM gateway, cloud API,
-local vLLM) and `OPENAI_DEFAULT_MODEL`. The same names live in `.env.example`, so a locally
-filled `.env` lets the CLI (`pip install "pr-agent[github]"`) review your branch before the PR.
-Per-repo tuning is `.pr_agent.toml`; intent and success criteria are in
-[docs/prd/18-pr-agent-adoption.md](docs/prd/18-pr-agent-adoption.md). Fork PRs receive no
-secrets on `pull_request`, so the reviewer does not run on forks.
+[PR-Agent](https://github.com/The-PR-Agent/pr-agent) (MIT) is an AI reviewer
+that posts `/review`, `/describe` and `/improve` comments on a PR. It is **off
+until you opt in**: set the repository variable `PR_AGENT_ENABLED=true` and the
+secret `OPENAI_API_KEY`; optionally set the variables `OPENAI_BASE_URL` (any
+OpenAI-compatible endpoint — LiteLLM gateway, cloud API, local vLLM) and
+`OPENAI_DEFAULT_MODEL`. The same names live in `.env.example`, so a locally
+filled `.env` lets the CLI (`pip install "pr-agent[github]"`) review your branch
+before the PR. Per-repo tuning is `.pr_agent.toml`; intent and success criteria
+are in [docs/prd/18-pr-agent-adoption.md](docs/prd/18-pr-agent-adoption.md).
+Fork PRs receive no secrets on `pull_request`, so the reviewer does not run on
+forks.
 
 ## Repository Structure
 
@@ -190,8 +214,8 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 
 ### Three things named `autoresearch`
 
-The name appears three times for three different things. Nothing is renamed — this table is
-the map.
+The name appears three times for three different things. Nothing is renamed —
+this table is the map.
 
 | Path | What it is | How you run it |
 |---|---|---|
@@ -200,20 +224,22 @@ the map.
 | `autoresearch/engine/autoresearch` | **The loop engine's Python package** (PRD 17), imported as `autoresearch`; `autoresearch/engine/bin/autoresearch` is **the research-loop runner** — `init` → `run` → `status` → `report`. | `autoresearch/engine/bin/autoresearch --help`; see `autoresearch/engine/README.md` § *Commands* |
 | `autoresearch/service/` | The network layer: FastAPI REST + MCP over the engine (PRD 05/06/24), its own extras and base image. | `docker compose up -d --build` |
 
-The package name is why the wrappers look odd: the engine's package is itself called
-`autoresearch`, so a bare `import autoresearch` from a checkout can resolve to the wrong one
-in either direction. Both wrappers therefore run `python3 -P` (which keeps the cwd off
-`sys.path`), and the command CLI loads `commands/registry.py` by absolute path under a private
-module name — a name no package can shadow.
+The package name is why the wrappers look odd: the engine's package is itself
+called `autoresearch`, so a bare `import autoresearch` from a checkout can
+resolve to the wrong one in either direction. Both wrappers therefore run
+`python3 -P` (which keeps the cwd off `sys.path`), and the command CLI loads
+`commands/registry.py` by absolute path under a private module name — a name no
+package can shadow.
 
 ## Harness Support
 
-`AGENTS.md` is the one instruction file. Every harness reads it — natively, through a
-symlinked entry point, or (Aider) through an explicit `--read`; only Gemini CLI insists on
-its own filename, which `GEMINI.md` supplies as a symlink. Adding a harness never forks the
-content. The pipeline is harness-neutral: every harness runs the `sub1`–`sub4` phase blocks
-by prompting them in order (`AGENTS.md` § *The `/goal` Orchestration Workflow*); `/goal` is
-a Hermes-only convenience and **"go through sub1-4"** is valid everywhere.
+`AGENTS.md` is the one instruction file. Every harness reads it — natively,
+through a symlinked entry point, or (Aider) through an explicit `--read`; only
+Gemini CLI insists on its own filename, which `GEMINI.md` supplies as a symlink.
+Adding a harness never forks the content. The pipeline is harness-neutral: every
+harness runs the `sub1`–`sub4` phase blocks by prompting them in order
+(`AGENTS.md` § *The `/goal` Orchestration Workflow*); `/goal` is a Hermes-only
+convenience and **"go through sub1-4"** is valid everywhere.
 
 | Harness | Entry point | Skills | Run the `sub1`–`sub4` phases |
 |---|---|---|---|
@@ -228,21 +254,22 @@ a Hermes-only convenience and **"go through sub1-4"** is valid everywhere.
 | DeepSeek / OpenAI-compatible | read `AGENTS.md` manually | vendor into `.agents/skills/`, or inline `SKILL.md` | prompt the phase blocks in order |
 | Anything else | read `AGENTS.md` directly | paste `SKILL.md` into the prompt | prompt the phase blocks in order |
 
-No harness needs a vendor entry file or config of its own beyond the entry points above.
-`AGENTS.md`'s *Harness Adapter*, including its *Per-harness rows* table, is the
-authoritative binding; `ADOPTING.md` step 4 is the short version.
+No harness needs a vendor entry file or config of its own beyond the entry
+points above. `AGENTS.md`'s *Harness Adapter*, including its *Per-harness rows*
+table, is the authoritative binding; `ADOPTING.md` step 4 is the short version.
 
-**No-deploy adopters** — a clone that ships no service has no redeploy step, so `sub4` is
-*clean `main` + green* `bash tests/run.sh --with-e2e` (never a redeploy cycle).
+**No-deploy adopters** — a clone that ships no service has no redeploy step, so
+`sub4` is *clean `main` + green* `bash tests/run.sh --with-e2e` (never a
+redeploy cycle).
 
 ## Skills
 
 Skills resolve wherever the harness provides them — a host-level skills dir, the
-repo-scoped `.agents/skills/`, or, last resort, the skill's `SKILL.md` inlined into the
-prompt (a missing tool never waives a gate; `AGENTS.md` §1). Three of the mandated skills
-**travel with the repo**; every other one has an install source below. Install from a
-neutral cwd (`cd /tmp`), never from inside this repo, so auto-detecting installers do not
-pollute the working tree.
+repo-scoped `.agents/skills/`, or, last resort, the skill's `SKILL.md` inlined
+into the prompt (a missing tool never waives a gate; `AGENTS.md` §1). Three of
+the mandated skills **travel with the repo**; every other one has an install
+source below. Install from a neutral cwd (`cd /tmp`), never from inside this
+repo, so auto-detecting installers do not pollute the working tree.
 
 | Skill | Source | Install shape |
 |-------|--------|---------------|
@@ -284,29 +311,46 @@ The `/goal` phase → skill mapping:
 | Task delegation | the harness's delegation mechanism (adapter table) | Scoped sub-agent tasks |
 | All coding | `opencode-plan-build-orchestrator` | plan → build → verify |
 
-The output-medium doctrine (`AGENTS.md` §7) adds the consumer-side skills: `simple-english`
-(rung 2), `diagrams` (rung 3), `render-verify`, and `explainer-video` (rung 5).
+The output-medium doctrine (`AGENTS.md` §7) adds the consumer-side skills:
+`simple-english` (rung 2), `diagrams` (rung 3), `render-verify`, and
+`explainer-video` (rung 5).
 
 The nine `potato-pyramid` rows above are ported from
-[cursor/plugins](https://github.com/cursor/plugins) (MIT, Lauren "poteto" Tan's `pstack` +
-`cli-for-agent`) and adapted to harness-neutral conventions: `Task` sub-agents become the
-harness's delegation mechanism (`AGENTS.md` § *Harness Adapter*), `.cursor/skills/` paths
-become `.agents/skills/`, and frontmatter carries `license: MIT` + `source:`. Together they
-carry the three deterministic foundations of the inverse pyramid (codebase → static analysis
-→ verification); `scripts/audit_pyramid.py` is the machine gate for the same three layers and
-runs in the unit tier (`AC-PYR-001..007`, [PRD 16](docs/prd/16-quality-controls.md)).
+[cursor/plugins](https://github.com/cursor/plugins) (MIT, Lauren "poteto" Tan's
+`pstack` + `cli-for-agent`) and adapted to harness-neutral conventions: `Task`
+sub-agents become the harness's delegation mechanism (`AGENTS.md` § *Harness
+Adapter*), `.cursor/skills/` paths become `.agents/skills/`, and frontmatter
+carries `license: MIT` + `source:`. Together they carry the three deterministic
+foundations of the inverse pyramid (codebase → static analysis → verification);
+`scripts/audit_pyramid.py` is the machine gate for the same three layers and
+runs in the unit tier (`AC-PYR-001..007`,
+[PRD 16](docs/prd/16-quality-controls.md)).
 
 ## Status
 
 - [x] Skeleton doctrine (funnel, harness adapter, CI gates)
 - [x] `kb/` built: raw sources ingested + layer-2 pages synthesized (2026-09-04)
-- [x] PRD topics 01–08, 11, 13–16 (docs/prd/) — scaffold, autoresearch contract, funnel governance, examples corpus, service, codegraph, adoption readiness, worked examples, output medium, gen-env, STE audit, quality controls
-- [x] Autoresearch contract implemented (`program.md` / `prepare.py` / `train.py` + `AC-TPL-*` tests)
-- [x] Governance + corpus integrity tests (`AC-FUN-*`, `AC-EXC-*`) — unit tier green (count of record: run `bash tests/run.sh`; 187 unit tests at the 2026-10-16 improvement wave)
-- [x] One-command onboarding — `ADOPTING.md` + `scripts/verify-clone.sh` (read-only clone health check). Funnel stage 7 is GitHub issues: there is no examples stage
-- [x] Output-medium doctrine — `AGENTS.md` §7 (prose → controlled English → diagram → HTML → explainer video) + `kb/` grounding + `AC-OM-*` / `AC-CTX-*` tripwires
-- [x] `scripts/gen-env.py` (`--fresh` byte copy / `--update` value-carry, no clobber) + `AC-GEN-001..005`
-- [x] `scripts/audit-ste.py` (the "80% to ASD-STE100" prose gate) + `AC-STE-001..003`; repo docs measured at 99.0% within-limit (1544/1559, 2026-10-16)
-- [x] `scripts/audit_pyramid.py` (the potato-pyramid 3-foundations gate: codebase constraints, comment budget, test linkage) + `AC-PYR-001..007` — runs in the unit tier, PRD 16
+- [x] PRD topics 01–08, 11, 13–16 (docs/prd/) — scaffold, autoresearch contract,
+funnel governance, examples corpus, service, codegraph, adoption readiness,
+worked examples, output medium, gen-env, STE audit, quality controls
+- [x] Autoresearch contract implemented (`program.md` / `prepare.py` /
+`train.py` + `AC-TPL-*` tests)
+- [x] Governance + corpus integrity tests (`AC-FUN-*`, `AC-EXC-*`) — unit tier
+green (count of record: run `bash tests/run.sh`; 187 unit tests at the
+2026-10-16 improvement wave)
+- [x] One-command onboarding — `ADOPTING.md` + `scripts/verify-clone.sh`
+(read-only clone health check). Funnel stage 7 is GitHub issues: there is no
+examples stage
+- [x] Output-medium doctrine — `AGENTS.md` §7 (prose → controlled English →
+diagram → HTML → explainer video) + `kb/` grounding + `AC-OM-*` / `AC-CTX-*`
+tripwires
+- [x] `scripts/gen-env.py` (`--fresh` byte copy / `--update` value-carry, no
+clobber) + `AC-GEN-001..005`
+- [x] `scripts/audit-ste.py` (the "80% to ASD-STE100" prose gate) +
+`AC-STE-001..003`; repo docs measured at 99.0% within-limit (1544/1559,
+2026-10-16)
+- [x] `scripts/audit_pyramid.py` (the potato-pyramid 3-foundations gate:
+codebase constraints, comment budget, test linkage) + `AC-PYR-001..007` — runs
+in the unit tier, PRD 16
 
-<!-- pr-agent smoke test: verifies the optional AI reviewer fires on a real PR -->
+<!-- pr-agent smoke test: optional AI reviewer fires on a real PR -->

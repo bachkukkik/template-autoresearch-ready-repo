@@ -9,15 +9,16 @@ concurrently in one process with distinct inputs and no shared state.
 
 ## Why
 
-- Two consumers can use the service at the same time on different topics —
-  user1 researches topic A from `kb/raw/transcripts/A.txt` while user2
-  researches topic B from `B.txt` — without cross-talk.
+- Two consumers can use the service at the same time on different topics — user1
+researches topic A from `kb/raw/transcripts/A.txt` while user2 researches
+topic B from `B.txt` — without cross-talk.
 - The original runner executed the workload in a single shared directory and
-  ignored `topic` (gap 06): results were identical regardless of topic and
-  concurrent jobs raced on the same `data.txt`.
-- The workload source is now the **canonical contract** (`autoresearch/contract/`,
-  single source of truth; the old vendored `service/workload/` copy is gone) — the
-  service executes, and copies, the real autoresearch loop.
+ignored `topic` (gap 06): results were identical regardless of topic and
+concurrent jobs raced on the same `data.txt`.
+- The workload source is now the **canonical contract**
+(`autoresearch/contract/`, single source of truth; the old vendored
+`service/workload/` copy is gone) — the service executes, and copies, the real
+autoresearch loop.
 
 ## How
 
@@ -30,13 +31,12 @@ concurrently in one process with distinct inputs and no shared state.
 | Env | `.env.example`, compose | `RESEARCH_MAX_CONCURRENT_JOBS`, `RESEARCH_WORKSPACES_DIR` (default `service/data/workspaces`), `RESEARCH_CORPUS_ROOT` (default `kb/raw`, container `/kb-raw` ro mount), `RESEARCH_WORKLOAD_DIR` override; compose mounts `./kb/raw:/kb-raw:ro` and `./autoresearch/contract:/app/contract:ro` |
 
 Corpus per job (`params.corpus`): `texts` (inline `{title, content}` — always
-available) and/or `files` (paths relative to `RESEARCH_CORPUS_ROOT`, copied
-into the workspace, missing file → 400 at submit).
+available) and/or `files` (paths relative to `RESEARCH_CORPUS_ROOT`, copied into
+the workspace, missing file → 400 at submit).
 
 Workspace layout: `<workspaces_root>/<job_id>/` = `prepare.py`, `train.py`,
-`data.txt` (contract copy), `topic.txt`, `context.json`,
-`corpus/texts/…`, `corpus/files/…`. Retained after terminal jobs; `service/data/` is
-gitignored.
+`data.txt` (contract copy), `topic.txt`, `context.json`, `corpus/texts/…`,
+`corpus/files/…`. Retained after terminal jobs; `service/data/` is gitignored.
 
 Async decision (PRD-06 SC4): REST/MCP handlers stay **sync `def`** — FastAPI
 threadpool + APScheduler threads/subprocesses own the work; no handler blocks
@@ -60,52 +60,54 @@ bash tests/run.sh --with-e2e                        # RESULT: PASSED (68 unit + 
 
 New IDs: AC-MCP-031..037 (unit: workspace isolation, corpus texts/files,
 fail-fast, in-workspace run, concurrent overlap, cap honors env, sync-handler
-guard), AC-MCP-231..233 (integration: two topics concurrently, corpus file
-from `kb/raw/transcripts`, missing file → 400), AC-MCP-104 (e2e: two topics
-in the container), AC-MCP-044..045 (unit: the runbook coverage added for SC6 —
-see [docs/prd/06](prd/06-multi-topic-concurrent-service.md)).
+guard), AC-MCP-231..233 (integration: two topics concurrently, corpus file from
+`kb/raw/transcripts`, missing file → 400), AC-MCP-104 (e2e: two topics in the
+container), AC-MCP-044..045 (unit: the runbook coverage added for SC6 — see
+[docs/prd/06](prd/06-multi-topic-concurrent-service.md)).
 
 ## What Works
 
 - Two topics with distinct inline corpora complete concurrently with distinct
-  `result.topic` and `result.corpus` stats (AC-MCP-231, AC-MCP-104)
-- Corpus files resolve under `RESEARCH_CORPUS_ROOT` off `kb/raw/transcripts`
-  and land in the job workspace (AC-MCP-032/033/232)
-- Missing corpus file → HTTP 400 fail-fast, never a mid-run surprise (AC-MCP-233)
-- Per-job workspaces are disjoint; the contract runs inside each (AC-MCP-031/034)
+`result.topic` and `result.corpus` stats (AC-MCP-231, AC-MCP-104)
+- Corpus files resolve under `RESEARCH_CORPUS_ROOT` off `kb/raw/transcripts` and
+land in the job workspace (AC-MCP-032/033/232)
+- Missing corpus file → HTTP 400 fail-fast, never a mid-run surprise
+(AC-MCP-233)
+- Per-job workspaces are disjoint; the contract runs inside each
+(AC-MCP-031/034)
 - Concurrent execution is real: overlapping runs proven under a bounded budget
-  (AC-MCP-035); the scheduler cap honors `RESEARCH_MAX_CONCURRENT_JOBS` (AC-MCP-036)
+(AC-MCP-035); the scheduler cap honors `RESEARCH_MAX_CONCURRENT_JOBS`
+(AC-MCP-036)
 - Handlers stay sync by design (AC-MCP-037); `service/README.md` is the agent
-  runbook (PRD-06 SC6)
+runbook (PRD-06 SC6)
 
 ## What Fails
 
 - **Triple subprocess per job:** each workspace run costs two `python3`
-  subprocesses plus provisioning — fine for the template's millisecond
-  contract, expensive for real training workloads (the budget is per-job
-  anyway).
+subprocesses plus provisioning — fine for the template's millisecond contract,
+expensive for real training workloads (the budget is per-job anyway).
 - **Workspaces accumulate:** retained after terminal jobs with no TTL/cleanup
-  job in v1 (`service/data/` is gitignored; a cleanup sweeper is the documented
-  upgrade).
+job in v1 (`service/data/` is gitignored; a cleanup sweeper is the documented
+upgrade).
 - **Corpus files are host-filesystem-dependent:** `params.corpus.files` only
-  works when `RESEARCH_CORPUS_ROOT` is mounted (compose mounts `kb/raw`);
-  inline `texts` are the portable path.
+works when `RESEARCH_CORPUS_ROOT` is mounted (compose mounts `kb/raw`); inline
+`texts` are the portable path.
 - **Concurrent session during development:** this verification ran while a
-  parallel session refactored the same tree (contract/ move) — the merge of
-  both change-sets passed the full suite, but concurrent edits on one working
-  tree remain a coordination hazard for future sessions.
+parallel session refactored the same tree (contract/ move) — the merge of both
+change-sets passed the full suite, but concurrent edits on one working tree
+remain a coordination hazard for future sessions.
 
 ## Resolution
 
 - **Subprocess cost:** keep the sandbox posture; per-job time budget bounds it.
-- **Workspace growth:** TTL sweeper on `service/data/workspaces` (documented upgrade
-  path in PRD-06).
+- **Workspace growth:** TTL sweeper on `service/data/workspaces` (documented
+upgrade path in PRD-06).
 - **Filesystem-dependent corpus:** document `texts` as the portable path;
-  `files` requires the corpus root (README + PRD-06).
-- **Concurrency hazard:** out of scope; recorded here so the next session
-  checks `git status` before editing (the `docs/gaps/06` record flipped to
-  resolved in the same window and was archived inside the repo, at
-  `docs/gaps/_archive/`, 2026-09-18 — see `docs/gaps/README.md`, *Lifecycle*).
+`files` requires the corpus root (README + PRD-06).
+- **Concurrency hazard:** out of scope; recorded here so the next session checks
+`git status` before editing (the `docs/gaps/06` record flipped to resolved in
+the same window and was archived inside the repo, at `docs/gaps/_archive/`,
+2026-09-18 — see `docs/gaps/README.md`, *Lifecycle*).
 
 ## Verdict
 

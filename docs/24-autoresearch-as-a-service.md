@@ -1,29 +1,31 @@
 # 24 — Autoresearch as a Service
 
-> **Renumber note — 2026-11-15.** This doc and its PRD were numbered **20** until today.
-> The downstream repo's numbering wins (its PRD 20 is *agent-evals*), so as-a-service moves
-> to **24** and frees 20–23 for the PRD/doc slots this repo is about to fill. Recorded
-> command lines below keep their original `PRD-20` labels — they transcribe a 2026-11-10 run
-> and were not re-run. See [PRD 24](prd/24-autoresearch-as-a-service.md).
+> **Renumber note — 2026-11-15.** This doc and its PRD were numbered **20**
+> until today. The downstream repo's numbering wins (its PRD 20 is
+> *agent-evals*), so as-a-service moves to **24** and frees 20–23 for the
+> PRD/doc slots this repo is about to fill. Recorded command lines below keep
+> their original `PRD-20` labels — they transcribe a 2026-11-10 run and were not
+> re-run. See [PRD 24](prd/24-autoresearch-as-a-service.md).
 
 ## What
 
-One autoresearch implementation — the engine in `autoresearch/engine/`, the contract in
-`autoresearch/contract/` and the REST + MCP service in `autoresearch/service/` — ships from
-one `autoresearch/pyproject.toml` and is driven from four surfaces: a slash command, the
-engine CLI, REST and MCP.
+One autoresearch implementation — the engine in `autoresearch/engine/`, the
+contract in `autoresearch/contract/` and the REST + MCP service in
+`autoresearch/service/` — ships from one `autoresearch/pyproject.toml` and is
+driven from four surfaces: a slash command, the engine CLI, REST and MCP.
 
 ## Why
 
 - Before PRD-24 the repo carried three loops under one name (gap
-  [24](gaps/_archive/24-three-loops-one-name.md)): `service/` ran the toy `val_bpb`
-  contract through its own `runner.py`, the engine was reachable only from a CLI, and the
-  vendored skill was a prompt loop with neither.
-- A service is only "the same loop" if every surface reaches the engine's keep/discard,
-  metric parser and report; two copies of that logic disagree silently.
-- A network surface needs a bounded blast radius by default: over REST/MCP the only agent
-  allowed without configuration is `replay`, and `command` (arbitrary shell) is refused
-  even when listed.
+[24](gaps/_archive/24-three-loops-one-name.md)): `service/` ran the toy
+`val_bpb` contract through its own `runner.py`, the engine was reachable only
+from a CLI, and the vendored skill was a prompt loop with neither.
+- A service is only "the same loop" if every surface reaches the engine's
+keep/discard, metric parser and report; two copies of that logic disagree
+silently.
+- A network surface needs a bounded blast radius by default: over REST/MCP the
+only agent allowed without configuration is `replay`, and `command` (arbitrary
+shell) is refused even when listed.
 
 ## How
 
@@ -45,10 +47,11 @@ autoresearch/
 
 `autoresearch==0.1.0` is one distribution with two top-level packages:
 `[tool.setuptools.package-dir]` maps `autoresearch` → `engine/autoresearch` and
-`autoresearch_service` → `service/autoresearch_service`. The engine's dependencies are
-empty; FastAPI, uvicorn, FastMCP, APScheduler and pydantic live behind the `service` extra.
-`docker-compose.yml` builds `./autoresearch` with `service/Dockerfile` and mounts
-`./autoresearch/contract` read-only at `/app/contract`.
+`autoresearch_service` → `service/autoresearch_service`. The engine's
+dependencies are empty; FastAPI, uvicorn, FastMCP, APScheduler and pydantic live
+behind the `service` extra. `docker-compose.yml` builds `./autoresearch` with
+`service/Dockerfile` and mounts `./autoresearch/contract` read-only at
+`/app/contract`.
 
 ### Four surfaces, one loop
 
@@ -66,11 +69,11 @@ empty; FastAPI, uvicorn, FastMCP, APScheduler and pydantic live behind the `serv
 | `research_*` (PRD-05/06 contract kept) | `research_start`, `research_status`, `research_results`, `research_cancel` | **one** engine measurement of the bundled `contract` workload |
 | `run_*` / `doctor` (PRD-24) | `run_start`, `run_status`, `run_report`, `run_cancel`, `doctor` | a full engine keep/discard loop over a bundled workload |
 
-Each operation is one Python handler, registered both as a REST route and as an MCP tool of
-the same name. A job returns an id immediately and is polled to a terminal status; its
-`engine` summary is the engine's own ledger view
-(`metric_name`, `direction`, `baseline_metric`, `incumbent_metric`, `trials`, `outcomes`,
-`stop_reason`).
+Each operation is one Python handler, registered both as a REST route and as an
+MCP tool of the same name. A job returns an id immediately and is polled to a
+terminal status; its `engine` summary is the engine's own ledger view
+(`metric_name`, `direction`, `baseline_metric`, `incumbent_metric`, `trials`,
+`outcomes`, `stop_reason`).
 
 ### Bounds a request cannot cross
 
@@ -108,9 +111,9 @@ $ docker compose build
 Successfully tagged template-autoresearch-ready-repo-service:latest
 ```
 
-The service was exercised from a temp container (`ar-w4`, host port 18099) that mounts
-`kb/raw:/kb-raw:ro` and `autoresearch/contract:/app/contract:ro` — the compose mounts,
-without replacing any running stack:
+The service was exercised from a temp container (`ar-w4`, host port 18099) that
+mounts `kb/raw:/kb-raw:ro` and `autoresearch/contract:/app/contract:ro` — the
+compose mounts, without replacing any running stack:
 
 ```console
 $ docker run -d --name ar-w4 -p 18099:8000 -e AUTH_DISABLED=1 \
@@ -120,9 +123,10 @@ $ curl -s -o /dev/null -w '%{http_code}\n' localhost:18099/health
 200
 ```
 
-**CLI.** A scratch repo built from the bundled contract (`prepare.py`, `train.py`,
-`program.md`, one baseline commit) plus a two-record replay file generated the same way the
-integration tier generates one (`git diff` of `STEP_WINDOW = 256` → `64`):
+**CLI.** A scratch repo built from the bundled contract (`prepare.py`,
+`train.py`, `program.md`, one baseline commit) plus a two-record replay file
+generated the same way the integration tier generates one (`git diff` of
+`STEP_WINDOW = 256` → `64`):
 
 ```console
 $ PYTHONPATH=autoresearch/engine python3 -P -m autoresearch init --repo "$S" \
@@ -167,8 +171,9 @@ iter	commit	metric	outcome	description
 2	4e4afb8e6f7a...	3.79553	discard	window 2
 ```
 
-**REST.** `research_*` still serves its PRD-05/06 contract (job id, poll, numeric
-`val_bpb`) — now by one engine baseline measurement of the same contract workload:
+**REST.** `research_*` still serves its PRD-05/06 contract (job id, poll,
+numeric `val_bpb`) — now by one engine baseline measurement of the same contract
+workload:
 
 ```console
 $ curl -s -X POST localhost:18099/api/v1/research -H 'Content-Type: application/json' \
@@ -201,8 +206,9 @@ $ curl -s -X POST localhost:18099/api/v1/runs -H 'Content-Type: application/json
 400 {"detail":"agent 'command' is never available over the API — it runs an arbitrary command; use the CLI for it"}
 ```
 
-**MCP.** `tools/list` over the streamable-HTTP endpoint returns the nine dual-registered
-tools, and `doctor` executes through the same handler as the REST route:
+**MCP.** `tools/list` over the streamable-HTTP endpoint returns the nine
+dual-registered tools, and `doctor` executes through the same handler as the
+REST route:
 
 ```console
 $ curl -s -X POST localhost:18099/mcp \
@@ -220,8 +226,8 @@ isError=False
  "workloads":["contract"]}
 ```
 
-**Agent mode.** The four commands live once in `.agents/commands/` and resolve from both
-harness dirs:
+**Agent mode.** The four commands live once in `.agents/commands/` and resolve
+from both harness dirs:
 
 ```console
 $ for h in .claude/commands .opencode/commands; do for f in ar-init ar-run ar-status ar-report; do
@@ -289,60 +295,69 @@ docker rm -f ar-w4
 
 ## What Works
 
-- One distribution ships the engine, the contract and the service: `docker compose build`
-  succeeds from `./autoresearch`, and the image exposes the loop at `/api/v1` and `/mcp`
-  without a second copy of the keep/discard logic.
-- All four surfaces reach the same engine: the CLI's replay run, the REST `run_*` job and
-  the MCP `doctor` tool report the same ledger numbers (`baseline 3.795531`, 2 discards)
-  and the same allowlist (`allowed=[replay]`, `refused=[command]`).
-- The `research_*` contract survived the re-founding: `POST /api/v1/research` → `202`,
-  poll → `completed`, `result.val_bpb` numeric (`3.795531`).
-- Safety is enforced at the edge, not documented hopefully: `agent=command` is a `400` with
-  the reason, and `doctor` lists `command` under `refused_agents` even with an empty
-  allowlist.
-- The slash commands are one canonical set: all four resolve from `.claude/commands/` and
-  `.opencode/commands/` to `.agents/commands/`, so no harness carries a divergent copy.
-- Clone health holds after the move: `verify-clone.sh` → `33 check(s) passed`, 11 tracked
-  roots, all declared.
+- One distribution ships the engine, the contract and the service:
+`docker compose build` succeeds from `./autoresearch`, and the image exposes
+the loop at `/api/v1` and `/mcp` without a second copy of the keep/discard
+logic.
+- All four surfaces reach the same engine: the CLI's replay run, the REST
+`run_*` job and the MCP `doctor` tool report the same ledger numbers
+(`baseline 3.795531`, 2 discards) and the same allowlist (`allowed=[replay]`,
+`refused=[command]`).
+- The `research_*` contract survived the re-founding: `POST /api/v1/research` →
+`202`, poll → `completed`, `result.val_bpb` numeric (`3.795531`).
+- Safety is enforced at the edge, not documented hopefully: `agent=command` is a
+`400` with the reason, and `doctor` lists `command` under `refused_agents`
+even with an empty allowlist.
+- The slash commands are one canonical set: all four resolve from
+`.claude/commands/` and `.opencode/commands/` to `.agents/commands/`, so no
+harness carries a divergent copy.
+- Clone health holds after the move: `verify-clone.sh` → `33 check(s) passed`,
+11 tracked roots, all declared.
 
 ## What Fails
 
 - **The image carries no harness binary.** `doctor` inside the container reports
-  `available: false` for `claude`, `opencode`, `hermes` and `dsh`, so the live API demo can
-  only use `replay`; a real-harness API run needs binaries and credentials baked into (or
-  mounted into) the image and a matching `RESEARCH_ALLOWED_AGENTS`.
-- **The replay demo proves the pipeline, not a win.** Both recorded candidates land inside
-  the 0.001 noise floor, so the run stops on `plateau`/`max_iterations` with
-  `incumbent == baseline` (`3.795531`); it exercises commit → guard → verify → discard and
-  the report, but shows no improvement.
-- **`research_*` no longer researches the corpus.** The operation measures the bundled
-  contract once and returns `val_bpb` with the topic as a label; `params.corpus` is
-  recorded as stats, and corpus content does not move the metric (PRD-24 records this as an
-  `[ASSUMPTION]`).
-- **A slash-command invocation is not in this record.** Only command *resolution* was
-  re-verified (symlinks above); no harness was driven through `/ar-run` in this session, so
-  SC6's slash-command leg rests on the files plus the CLI run they call.
-- **Timeout semantics are per measurement, not per job.** `RESEARCH_RUN_TIMEOUT` bounds one
-  verify and one guard run; a `run_*` job with many iterations can outlive that budget.
+`available: false` for `claude`, `opencode`, `hermes` and `dsh`, so the live
+API demo can only use `replay`; a real-harness API run needs binaries and
+credentials baked into (or mounted into) the image and a matching
+`RESEARCH_ALLOWED_AGENTS`.
+- **The replay demo proves the pipeline, not a win.** Both recorded candidates
+land inside the 0.001 noise floor, so the run stops on
+`plateau`/`max_iterations` with `incumbent == baseline` (`3.795531`); it
+exercises commit → guard → verify → discard and the report, but shows no
+improvement.
+- **`research_*` no longer researches the corpus.** The operation measures the
+bundled contract once and returns `val_bpb` with the topic as a label;
+`params.corpus` is recorded as stats, and corpus content does not move the
+metric (PRD-24 records this as an `[ASSUMPTION]`).
+- **A slash-command invocation is not in this record.** Only command
+*resolution* was re-verified (symlinks above); no harness was driven through
+`/ar-run` in this session, so SC6's slash-command leg rests on the files plus
+the CLI run they call.
+- **Timeout semantics are per measurement, not per job.** `RESEARCH_RUN_TIMEOUT`
+bounds one verify and one guard run; a `run_*` job with many iterations can
+outlive that budget.
 
 ## Resolution
 
 - Build a harness into the image (or run the CLI on the host) and set
-  `RESEARCH_ALLOWED_AGENTS=claude,opencode`; `GET /api/v1/doctor` is the check that the
-  image can actually do it.
-- For a win-shaped API demo, record a live `--record` run whose candidate clears the noise
-  floor and replay that; PRD-17's ex5 (NLTK, 3.7×) stays the real-improvement evidence, not
-  this workload.
-- Treat `research_*` as a compatibility surface (job id, poll, numeric metric); corpus-driven
-  research is the vendored skill's job, and a corpus-aware metric needs its own PRD.
-- Run `/ar-run` once in a harness session on a clean repo and append the transcript to this
-  doc's *Verification*; until then, treat that leg as unverified, not as broken.
-- Size `max_iterations` against `RESEARCH_RUN_TIMEOUT` (or raise the timeout) rather than
-  expecting the job budget to cut a long loop short.
+`RESEARCH_ALLOWED_AGENTS=claude,opencode`; `GET /api/v1/doctor` is the check
+that the image can actually do it.
+- For a win-shaped API demo, record a live `--record` run whose candidate clears
+the noise floor and replay that; PRD-17's ex5 (NLTK, 3.7×) stays the
+real-improvement evidence, not this workload.
+- Treat `research_*` as a compatibility surface (job id, poll, numeric metric);
+corpus-driven research is the vendored skill's job, and a corpus-aware metric
+needs its own PRD.
+- Run `/ar-run` once in a harness session on a clean repo and append the
+transcript to this doc's *Verification*; until then, treat that leg as
+unverified, not as broken.
+- Size `max_iterations` against `RESEARCH_RUN_TIMEOUT` (or raise the timeout)
+rather than expecting the job budget to cut a long loop short.
 
 ## Verdict
 
-**works** — one package serves the loop from CLI, REST, MCP and agent-mode commands with
-the engine's own semantics and a safe-by-default allowlist; the live API demo is
-`replay`-only and shows no metric win, and the slash-command leg is verified by resolution
-only.
+**works** — one package serves the loop from CLI, REST, MCP and agent-mode
+commands with the engine's own semantics and a safe-by-default allowlist; the
+live API demo is `replay`-only and shows no metric win, and the slash-command
+leg is verified by resolution only.

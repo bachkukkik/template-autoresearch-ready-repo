@@ -18,7 +18,8 @@
 
 ## Evidence
 
-Reproduced 2026-10-16; full record in [`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
+Reproduced 2026-10-16; full record in
+[`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
 
 ```bash
 git ls-files .agents/skills
@@ -27,8 +28,12 @@ test -f .agents/skills/llm-wiki/SKILL.md || echo "fallback path missing"
 
 ## Impact
 
-A Claude Code, opencode, Codex, Cursor, Gemini CLI or Aider adopter without a Hermes skills home cannot satisfy the stage-3 and stage-6 gates, and the documented fallback points at a file that does not exist.
+A Claude Code, opencode, Codex, Cursor, Gemini CLI or Aider adopter without a
+Hermes skills home cannot satisfy the stage-3 and stage-6 gates, and the
+documented fallback points at a file that does not exist.
 
 ## Resolution
 
-Code change + test — PRD 08 gains SCs for AC-HRN-015..017; skills vendored or given install sources; `GEMINI.md` entry point; repo-budget restatement of AC-CTX.
+Code change + test — PRD 08 gains SCs for AC-HRN-015..017; skills vendored or
+given install sources; `GEMINI.md` entry point; repo-budget restatement of
+AC-CTX.

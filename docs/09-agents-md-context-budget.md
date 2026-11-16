@@ -2,45 +2,49 @@
 
 ## What
 
-`AGENTS.md` is this repo's single agent instruction file — `CLAUDE.md`, `GEMINI.md` and
-`.github/copilot-instructions.md` are symlinks to it — and every harness auto-loads it
-into each prompt, silently truncating it above its own context-file cap. The budget this
-repo pins is `AGENTS_MD_BUDGET_CHARS` — *the tightest auto-load cap among the harnesses
-this template targets* (currently the Hermes 20,000-char floor; Claude Code, Codex CLI,
-opencode, Cursor and Aider load the file with no such cap, and other harnesses differ), so
-a file under it is under all of them. This doc records the trim that brought `AGENTS.md`
-from 42,936 to 19,482 chars, which regions were preserved byte-for-byte versus compressed,
-the guard expectations the trim invalidated, and the unit tripwire that keeps the file
-under the budget.
+`AGENTS.md` is this repo's single agent instruction file — `CLAUDE.md`,
+`GEMINI.md` and `.github/copilot-instructions.md` are symlinks to it — and every
+harness auto-loads it into each prompt, silently truncating it above its own
+context-file cap. The budget this repo pins is `AGENTS_MD_BUDGET_CHARS` — *the
+tightest auto-load cap among the harnesses this template targets* (currently the
+Hermes 20,000-char floor; Claude Code, Codex CLI, opencode, Cursor and Aider
+load the file with no such cap, and other harnesses differ), so a file under it
+is under all of them. This doc records the trim that brought `AGENTS.md` from
+42,936 to 19,482 chars, which regions were preserved byte-for-byte versus
+compressed, the guard expectations the trim invalidated, and the unit tripwire
+that keeps the file under the budget.
 
 ## Why
 
-- Every harness loads the instruction file into each prompt. An oversized file is not an
-  error — it is truncated with a warning the agent never sees at task time.
-- Overflow is lossy in the **middle**: head 70% plus tail 20% of the cap survive and the
-  middle is dropped. Position, not importance, decides what the agent reads, so whole
-  sections of the doctrine vanish with no signal.
-- At 42,936 chars the file was 22,936 chars over the cap and the builder was delivering
-  18,372 chars of it — less of the doctrine reached the agent than after the trim, even
-  though the file was more than twice the size.
+- Every harness loads the instruction file into each prompt. An oversized file
+is not an error — it is truncated with a warning the agent never sees at task
+time.
+- Overflow is lossy in the **middle**: head 70% plus tail 20% of the cap survive
+and the middle is dropped. Position, not importance, decides what the agent
+reads, so whole sections of the doctrine vanish with no signal.
+- At 42,936 chars the file was 22,936 chars over the cap and the builder was
+delivering 18,372 chars of it — less of the doctrine reached the agent than
+after the trim, even though the file was more than twice the size.
 - A doctrine the agent cannot read is not a doctrine. The failure is silent and
-  positional, so the fix had to keep every rule and end in a structural guard rather than
-  a note asking the next author to be careful.
-- This repo is the largest of its family: unlike its sibling repositories it cannot keep
-  its load-bearing regions byte-identical (see *The 19,791-char arithmetic*), so the
-  preservation claim had to be made per region rather than uniformly.
+positional, so the fix had to keep every rule and end in a structural guard
+rather than a note asking the next author to be careful.
+- This repo is the largest of its family: unlike its sibling repositories it
+cannot keep its load-bearing regions byte-identical (see *The 19,791-char
+arithmetic*), so the preservation claim had to be made per region rather than
+uniformly.
 
 ## How
 
 ### The cap
 
-The repo budget is `AGENTS_MD_BUDGET_CHARS = 20_000` — *the tightest auto-load cap among
-the harnesses this template targets*. Its value is the flat floor of Hermes's dynamic cap:
-`CONTEXT_FILE_MAX_CHARS = 20_000` in `agent/prompt_builder.py`, the floor of
-`context_length × 4 × 0.06` clamped to 20,000–500,000, which applies whenever the model
-window is not threaded through (the common case), so it is the number this repo targets.
-Claude Code, Codex CLI, opencode, Cursor and Aider load `AGENTS.md` with no such cap, so a
-file under this budget is under all of them. Read off the staged tree:
+The repo budget is `AGENTS_MD_BUDGET_CHARS = 20_000` — *the tightest auto-load
+cap among the harnesses this template targets*. Its value is the flat floor of
+Hermes's dynamic cap: `CONTEXT_FILE_MAX_CHARS = 20_000` in
+`agent/prompt_builder.py`, the floor of `context_length × 4 × 0.06` clamped to
+20,000–500,000, which applies whenever the model window is not threaded through
+(the common case), so it is the number this repo targets. Claude Code, Codex
+CLI, opencode, Cursor and Aider load `AGENTS.md` with no such cap, so a file
+under this budget is under all of them. Read off the staged tree:
 
 ```text
 floor 20000 | head 0.7 | tail 0.2
@@ -50,58 +54,62 @@ cap(131,072)  31,457
 cap(200,000)  48,000
 ```
 
-It is a **characters** rule, not a bytes rule. Measure with `len(text)` in Python, or with
-`LC_ALL=C.UTF-8 wc -m`; a bare `wc -m` on this host counts bytes (see *What Fails*).
+It is a **characters** rule, not a bytes rule. Measure with `len(text)` in
+Python, or with `LC_ALL=C.UTF-8 wc -m`; a bare `wc -m` on this host counts bytes
+(see *What Fails*).
 
 ### Truncation behaviour
 
 `_truncate_content()` keeps `head_chars = int(max_chars * 0.7)` and
-`tail_chars = int(max_chars * 0.2)` — the ratios apply to the **cap**, not to the file —
-replaces the middle with a `[...truncated AGENTS.md: kept 14000+4000 of 42949 chars. …]`
-marker, and logs:
+`tail_chars = int(max_chars * 0.2)` — the ratios apply to the **cap**, not to
+the file — replaces the middle with a
+`[...truncated AGENTS.md: kept 14000+4000 of 42949 chars. …]` marker, and logs:
 
 ```text
 ⚠️  Context file AGENTS.md TRUNCATED: 42949 chars exceeds limit of 20000 — trim the file, pin a larger context_file_max_chars, or use a larger-context model!
 ```
 
 `[ASSUMPTION]` At the pre-edit size the omitted window was therefore characters
-`[14000, 38949)` of the 42,949 the builder counted (42,949 − 14,000 − 4,000 = 24,949
-dropped). The window is derived from the builder's own `kept 14000+4000 of 42949 chars`
-marker and the head/tail constants; the before-state delivery probe was not re-run for
-this doc.
+`[14000, 38949)` of the 42,949 the builder counted (42,949 − 14,000 − 4,000 =
+24,949 dropped). The window is derived from the builder's own
+`kept 14000+4000 of 42949 chars` marker and the head/tail constants; the
+before-state delivery probe was not re-run for this doc.
 
 ### The trim — before and after
 
-Measured through the real builder (`pb.build_context_files_prompt(cwd=…,
-context_length=None)`), not inferred from size:
+Measured through the real builder
+(`pb.build_context_files_prompt(cwd=…, context_length=None)`), not inferred from
+size:
 
 | Revision | chars | bytes | sha256 (`AGENTS.md`) | delivered block | whole file verbatim | `TRUNCATED` warnings |
 |---|---|---|---|---|---|---|
 | before — `main` @ `f4008c2` | 42,936 | 43,859 | `17e064e16c2443ac…` | 18,372 chars | `False` | 1 |
 | after — this branch | 19,467 | 19,691 | `17a663d392b92c0b…` | 19,577 chars | `True` | 0 |
 
-Reduction: 23,469 chars (54.7%) / 24,168 bytes (55.1%). Headroom under the floor: 533
-chars (2.7% of the cap); the byte reading is 19,691, also under 20,000, so a reviewer
-checking `ls -l` or a byte-counting `wc -m` sees no over-cap number either.
+Reduction: 23,469 chars (54.7%) / 24,168 bytes (55.1%). Headroom under the
+floor: 533 chars (2.7% of the cap); the byte reading is 19,691, also under
+20,000, so a reviewer checking `ls -l` or a byte-counting `wc -m` sees no
+over-cap number either.
 
 `/context` source status went `AGENTS.md status=truncated chars=42935` →
-`AGENTS.md status=loaded chars=19466`, with `CLAUDE.md` reported `shadowed` in both
-readings — the symlink families resolve to one loaded copy, so the trim cannot be
-double-counted. The committed file is the measured draft (re-measure per run; round-3 values below are the record)
-(sha256 `17a663d392b92c0b80a80cf4164c3d160bb4970c9b47fcde1370e076d7f23248`), so the
+`AGENTS.md status=loaded chars=19466`, with `CLAUDE.md` reported `shadowed` in
+both readings — the symlink families resolve to one loaded copy, so the trim
+cannot be double-counted. The committed file is the measured draft (re-measure
+per run; round-3 values below are the record) (sha256
+`17a663d392b92c0b80a80cf4164c3d160bb4970c9b47fcde1370e076d7f23248`), so the
 measurement still describes the shipped artifact.
 
 ### What was preserved vs compressed
 
-**Byte-identical to the pre-edit snapshot — 1 region, 377 chars.** Nothing in it was
-retyped or reworded:
+**Byte-identical to the pre-edit snapshot — 1 region, 377 chars.** Nothing in it
+was retyped or reworded:
 
 | Region | chars | Treatment |
 |---|---|---|
 | H1 + top blockquote (the symlink families) | 377 | **byte-identical** |
 
-**Compressed — every rule, table row, harness binding and CI-asserted string retained**,
-each rule ending in a pointer to where the detail already lives:
+**Compressed — every rule, table row, harness binding and CI-asserted string
+retained**, each rule ending in a pointer to where the detail already lives:
 
 | Region | orig → draft chars | Treatment |
 |---|---|---|
@@ -114,9 +122,10 @@ each rule ending in a pointer to where the detail already lives:
 | `## Security` | 926 → 603 | one line per rule |
 | `## codegraph` | 3,485 → 1,200 | routing rule, install/init and the CLI twins kept; explanation delegated to the stage-4 PRD |
 
-No rule was deleted and no pointer was left unresolved: every `→ docs/…`, `README.md` and
-`PRD.md` target in the trimmed file was checked to exist and to carry the fact delegated
-to it, and `bash scripts/verify-clone.sh` re-confirms the doctrine paths are tracked.
+No rule was deleted and no pointer was left unresolved: every `→ docs/…`,
+`README.md` and `PRD.md` target in the trimmed file was checked to exist and to
+carry the fact delegated to it, and `bash scripts/verify-clone.sh` re-confirms
+the doctrine paths are tracked.
 
 ### The 19,791-char arithmetic — why byte-exact preservation is impossible here
 
@@ -133,18 +142,19 @@ working budget          19,500 chars   (target ceiling, cap 20,000 minus headroo
 overrun if preserved       +291 chars
 ```
 
-The protected regions **alone** are 291 chars more than the working budget, leaving
-−291 chars for *Read First*, *Standing Orders*, *Repository Structure*, *Development
-Commands*, *Security* and *codegraph*. Byte-exact preservation of all four is therefore
-arithmetically impossible in this repo, and any claim that they survive byte-for-byte
-would be false. The honest preservation statement is per region: the H1 + top blockquote
-is byte-identical; the other three are **tightened, not retyped away** — every funnel
-rule, table row, harness binding, symlink family and CI-asserted string is still present.
+The protected regions **alone** are 291 chars more than the working budget,
+leaving −291 chars for *Read First*, *Standing Orders*, *Repository Structure*,
+*Development Commands*, *Security* and *codegraph*. Byte-exact preservation of
+all four is therefore arithmetically impossible in this repo, and any claim that
+they survive byte-for-byte would be false. The honest preservation statement is
+per region: the H1 + top blockquote is byte-identical; the other three are
+**tightened, not retyped away** — every funnel rule, table row, harness binding,
+symlink family and CI-asserted string is still present.
 
 ### Guard expectations recomputed, not relaxed
 
-Three assertions elsewhere in the tree parse `AGENTS.md` and were invalidated by the
-compression. Each was recomputed against the new file rather than loosened:
+Three assertions elsewhere in the tree parse `AGENTS.md` and were invalidated by
+the compression. Each was recomputed against the new file rather than loosened:
 
 | Guard | Old expectation | New expectation |
 |---|---|---|
@@ -154,22 +164,25 @@ compression. Each was recomputed against the new file rather than loosened:
 
 ### The tripwire
 
-`tests/unit/test_agents_md_budget.py` (unit tier) carries four guards. `AC-CTX-001` —
-`AGENTS.md` is under the `AGENTS_MD_BUDGET_CHARS` repo budget (20,000 chars), in characters
-and in bytes. `AC-CTX-002` — the file fits the host-pinned cap (`AGENTS_MD_CAP_CHARS`); a
-malformed or non-positive pin fails loudly instead of being ignored. `AC-CTX-003` — the
-file keeps at least 500 characters of headroom, so accretion fails the tier *before* the
-budget is crossed. `AC-CTX-004` — the harness entry-point symlinks (`CLAUDE.md`,
-`GEMINI.md`, `.github/copilot-instructions.md`) still resolve to `AGENTS.md` and read back
-the same bytes. All four are hermetic: file reads and the stdlib only, no subprocess, no
-service import, no transport. The failure messages name the actual count, the budget, the
-lossy head-70/tail-20 middle truncation and the remedy. This repo keeps no separate
-test-index file, so the tripwire is registered here.
+`tests/unit/test_agents_md_budget.py` (unit tier) carries four guards.
+`AC-CTX-001` — `AGENTS.md` is under the `AGENTS_MD_BUDGET_CHARS` repo budget
+(20,000 chars), in characters and in bytes. `AC-CTX-002` — the file fits the
+host-pinned cap (`AGENTS_MD_CAP_CHARS`); a malformed or non-positive pin fails
+loudly instead of being ignored. `AC-CTX-003` — the file keeps at least 500
+characters of headroom, so accretion fails the tier *before* the budget is
+crossed. `AC-CTX-004` — the harness entry-point symlinks (`CLAUDE.md`,
+`GEMINI.md`, `.github/copilot-instructions.md`) still resolve to `AGENTS.md` and
+read back the same bytes. All four are hermetic: file reads and the stdlib only,
+no subprocess, no service import, no transport. The failure messages name the
+actual count, the budget, the lossy head-70/tail-20 middle truncation and the
+remedy. This repo keeps no separate test-index file, so the tripwire is
+registered here.
 
 ### Round 2 — the output-medium order (2026-10-03)
 
-A later round added Standing Order 7 (the output-medium doctrine) and kept the file under
-the cap by compressing two non-load-bearing regions instead of appending:
+A later round added Standing Order 7 (the output-medium doctrine) and kept the
+file under the cap by compressing two non-load-bearing regions instead of
+appending:
 
 | Revision | chars | bytes | headroom vs 20,000 | unit tier |
 |---|---|---|---|---|
@@ -185,21 +198,23 @@ Facts moved, not dropped:
 | `## codegraph` → graphify subsection | compressed to one pointer line (detail already lives in `kb/comparisons/codegraph-vs-graphify.md`) |
 | `## Repository Structure` | one line — `.agents/` canonical, the entry files symlink here, a new tracked root is a five-file edit |
 
-The first changed line is line 213 of the pre-edit file, so everything above line 202 —
-the regions `AC-HRN-011` (`/goal` line numbers) and `AC-CG-00x` (`## codegraph` tokens)
-pin — stays byte-identical. The two compressions saved slightly more than §7 cost, for a
-net −3 chars: the file shrank while a new standing order was added. The unit tier grew
-122 → 135 (AC-CTX-002 and AC-CTX-003 are new; the old symlink guard became AC-CTX-004).
+The first changed line is line 213 of the pre-edit file, so everything above
+line 202 — the regions `AC-HRN-011` (`/goal` line numbers) and `AC-CG-00x`
+(`## codegraph` tokens) pin — stays byte-identical. The two compressions saved
+slightly more than §7 cost, for a net −3 chars: the file shrank while a new
+standing order was added. The unit tier grew 122 → 135 (AC-CTX-002 and
+AC-CTX-003 are new; the old symlink guard became AC-CTX-004).
 
 ### Round 3 — the harness rows and the Gemini CLI entry point (2026-10-16)
 
-The harness-neutrality round added four harnesses the doctrine must serve (Codex CLI,
-Cursor, Gemini CLI, Aider) without re-crossing the budget. One compact row carries them in
-the *Per-harness rows* table — entry `AGENTS.md` native (Gemini CLI reads `GEMINI.md`),
-skills `.agents/skills` or the `README.md` § *Skills* install source, pipeline "prompt the
-phases" — and `GEMINI.md` joins the entry-point symlink fence. Adding four harness bindings
-this way was possible only by compressing three existing regions by more than they cost,
-keeping the `/goal` block byte-identical:
+The harness-neutrality round added four harnesses the doctrine must serve (Codex
+CLI, Cursor, Gemini CLI, Aider) without re-crossing the budget. One compact row
+carries them in the *Per-harness rows* table — entry `AGENTS.md` native (Gemini
+CLI reads `GEMINI.md`), skills `.agents/skills` or the `README.md` § *Skills*
+install source, pipeline "prompt the phases" — and `GEMINI.md` joins the
+entry-point symlink fence. Adding four harness bindings this way was possible
+only by compressing three existing regions by more than they cost, keeping the
+`/goal` block byte-identical:
 
 | Region | Change | chars |
 |---|---|---|
@@ -211,33 +226,36 @@ keeping the `/goal` block byte-identical:
 | opencode row | pipeline and KB-synthesis cells tightened | −13 |
 | **net** | | **+29** |
 
-The added row cites the **fact**, not the URL: the four install-source URLs and the
-per-harness prose live in `README.md` § *Harness Support*, which the row points at. The
-preservation set is intact — the `/goal` block (lines 150–194) is byte-identical, the two
-symlink families and their members are unchanged, and the `/goal` occurrence lines
-`AC-HRN-011` pins (`[109, 145, 147, 196, 198, 201]`) did not move, because the four
-line-neutral edits above it add and remove the same number of lines.
+The added row cites the **fact**, not the URL: the four install-source URLs and
+the per-harness prose live in `README.md` § *Harness Support*, which the row
+points at. The preservation set is intact — the `/goal` block (lines 150–194) is
+byte-identical, the two symlink families and their members are unchanged, and
+the `/goal` occurrence lines `AC-HRN-011` pins
+(`[109, 145, 147, 196, 198, 201]`) did not move, because the four line-neutral
+edits above it add and remove the same number of lines.
 
 | Revision | chars | bytes | headroom vs 20,000 | unit tier |
 |---|---|---|---|---|
 | before round 3 | 19,464 | 19,697 | 536 | 173 collected (172 passed, 1 failing on the pre-added README rows) |
 | after round 3 | 19,493 | 19,733 | 507 | 176 passed |
 
-The harness guard grew AC-HRN-015 (every mandated skill resolves to a vendored `SKILL.md`
-or a README install-source URL), AC-HRN-016 (the canonical four are a floor — a fifth
-harness named in both documents pairs, a README-only one is drift) and AC-HRN-017 (the
-Gemini CLI entry point is a symlink to `AGENTS.md`).
+The harness guard grew AC-HRN-015 (every mandated skill resolves to a vendored
+`SKILL.md` or a README install-source URL), AC-HRN-016 (the canonical four are a
+floor — a fifth harness named in both documents pairs, a README-only one is
+drift) and AC-HRN-017 (the Gemini CLI entry point is a symlink to `AGENTS.md`).
 
 ### Round 4 — the lifecycle restructure (2026-10-16)
 
-Upstream restructured its pipeline section from the `/goal`-only cluster into a two-stage
-**Lifecycle** (`## Lifecycle — Zero to Deployment (coding-agent entry point)`): a *Development*
-stage (D0–D4) then a *Delivery* stage (`sub1`–`sub4`, plus an opt-in UAT variant that replaces
-`sub4` with `sub4`/`sub5`). It re-fits the same budget mainly because it **dedupes the shared
-footer** — the old section repeated the four footer lines once per sub block (five fenced copies,
-20 lines), while upstream stores them once in a `Shared footer` block and cites it by name
-elsewhere. The restructure still cost more than the dedupe saved, so the surplus came from
-compressing non-load-bearing regions, not from appending:
+Upstream restructured its pipeline section from the `/goal`-only cluster into a
+two-stage **Lifecycle**
+(`## Lifecycle — Zero to Deployment (coding-agent entry point)`): a
+*Development* stage (D0–D4) then a *Delivery* stage (`sub1`–`sub4`, plus an
+opt-in UAT variant that replaces `sub4` with `sub4`/`sub5`). It re-fits the same
+budget mainly because it **dedupes the shared footer** — the old section
+repeated the four footer lines once per sub block (five fenced copies, 20
+lines), while upstream stores them once in a `Shared footer` block and cites it
+by name elsewhere. The restructure still cost more than the dedupe saved, so the
+surplus came from compressing non-load-bearing regions, not from appending:
 
 | Region | Change | chars |
 |---|---|---|
@@ -255,11 +273,12 @@ Two guard expectations the restructure invalidated were recomputed, not relaxed:
 | `AC-HRN-011` (`tests/unit/test_harness_neutrality.py`) | `/goal` occurrence lines `[109, 145, 147, 196, 198, 201]` | `[108, 148, 153, 198, 200]` — adapter row, D1 row, kickoff line, and the no-`/goal` heading + its paragraph; still every occurrence outside a fence |
 | `AC-HRN-003` (same file) | the cross-harness-contract paragraph carries `sub1` + `phase table` | the upstream paragraph is reworded to keep `canonical cross-harness contract`, `sub1` and `phase table` in one paragraph |
 
-`tests/unit/test_agents_md_lifecycle.py` (unit tier, **AC-LC-001..003**) is the new layout guard:
-it reads `AGENTS.md` by exact heading — Lifecycle → Development → Delivery — asserts the D0–D4
-rows in order with their skills, the four `subN` blocks plus the opt-in UAT variant in order, and
-that each shared-footer line appears **once**. A rename, a reordered stage or a re-duplicated
-footer fails the tier.
+`tests/unit/test_agents_md_lifecycle.py` (unit tier, **AC-LC-001..003**) is the
+new layout guard: it reads `AGENTS.md` by exact heading — Lifecycle →
+Development → Delivery — asserts the D0–D4 rows in order with their skills, the
+four `subN` blocks plus the opt-in UAT variant in order, and that each
+shared-footer line appears **once**. A rename, a reordered stage or a
+re-duplicated footer fails the tier.
 
 ## Verification
 
@@ -300,11 +319,12 @@ python3 -m pytest tests/unit/test_agents_md_budget.py tests/unit/test_harness_ne
 bash tests/run.sh
 ```
 
-Expected (round 1, 2026-09-21): `LC_ALL=C.UTF-8 wc -m` reports 19,467 against `wc -c`'s
-19,691; the cap probe prints `20000 20000`; the delivery probe prints `verbatim True` with
-an empty warning list; the four guard files end `39 passed`; `bash tests/run.sh` ends
-`RESULT: PASSED` with **122 passed** in the unit tier (120 before that change, plus
-`AC-CTX-001` and `AC-CTX-002`) and 16 passed in the integration tier.
+Expected (round 1, 2026-09-21): `LC_ALL=C.UTF-8 wc -m` reports 19,467 against
+`wc -c`'s 19,691; the cap probe prints `20000 20000`; the delivery probe prints
+`verbatim True` with an empty warning list; the four guard files end
+`39 passed`; `bash tests/run.sh` ends `RESULT: PASSED` with **122 passed** in
+the unit tier (120 before that change, plus `AC-CTX-001` and `AC-CTX-002`) and
+16 passed in the integration tier.
 
 Round 2 (2026-10-03) re-verified the same file after the §7 accretion:
 
@@ -324,11 +344,13 @@ bash tests/run.sh
 # -> RESULT: PASSED (135 unit + 16 integration; e2e skipped without --with-e2e)
 ```
 
-Expected (round 2): 19,464 characters and 19,697 bytes — 536 characters of headroom, above
-the AC-CTX-003 floor of 500; four guards in `test_agents_md_budget.py`; 135 unit tests and
-16 integration tests, `RESULT: PASSED`.
+Expected (round 2): 19,464 characters and 19,697 bytes — 536 characters of
+headroom, above the AC-CTX-003 floor of 500; four guards in
+`test_agents_md_budget.py`; 135 unit tests and 16 integration tests,
+`RESULT: PASSED`.
 
-Round 3 (2026-10-16) re-verified after the harness rows and the `GEMINI.md` symlink:
+Round 3 (2026-10-16) re-verified after the harness rows and the `GEMINI.md`
+symlink:
 
 ```bash
 python3 -c "t=open('AGENTS.md',encoding='utf-8').read(); print(len(t), len(t.encode()))"
@@ -348,12 +370,13 @@ bash scripts/verify-clone.sh
 #    RESULT: PASSED — 35 check(s) passed
 ```
 
-The `/goal` block is byte-identical to the pre-edit snapshot (lines 150–194, 2032 chars,
-sha256 `c08ef37f…`), and its `/goal` occurrence lines did not move.
+The `/goal` block is byte-identical to the pre-edit snapshot (lines 150–194,
+2032 chars, sha256 `c08ef37f…`), and its `/goal` occurrence lines did not move.
 
-Expected (round 3): 19,493 characters and 19,733 bytes — 507 characters of headroom, above
-the AC-CTX-003 floor of 500; four budget guards green; the harness guard's 17 tests
-(AC-HRN-001..017) green; `verify-clone.sh` reports 5 harness entry-point symlinks.
+Expected (round 3): 19,493 characters and 19,733 bytes — 507 characters of
+headroom, above the AC-CTX-003 floor of 500; four budget guards green; the
+harness guard's 17 tests (AC-HRN-001..017) green; `verify-clone.sh` reports 5
+harness entry-point symlinks.
 
 Round 4 (2026-10-16) re-verified after the lifecycle restructure:
 
@@ -375,114 +398,132 @@ bash scripts/verify-clone.sh
 #    RESULT: PASSED — 35 check(s) passed
 ```
 
-Expected (round 4): 19,482 characters and 19,774 bytes — 518 characters of headroom, above the
-AC-CTX-003 floor of 500; four budget guards green; the new layout guard
-`test_agents_md_lifecycle.py` (AC-LC-001..003) green; the harness guard's 17 tests
-(AC-HRN-001..017) green with the recomputed `AC-HRN-011` line list; the full unit tier green
-under **pytest 9.1.1** (190 tests); `verify-clone.sh` reports 5 harness entry-point symlinks.
+Expected (round 4): 19,482 characters and 19,774 bytes — 518 characters of
+headroom, above the AC-CTX-003 floor of 500; four budget guards green; the new
+layout guard `test_agents_md_lifecycle.py` (AC-LC-001..003) green; the harness
+guard's 17 tests (AC-HRN-001..017) green with the recomputed `AC-HRN-011` line
+list; the full unit tier green under **pytest 9.1.1** (190 tests);
+`verify-clone.sh` reports 5 harness entry-point symlinks.
 
 ## What Works
 
-- `AGENTS.md` is under the budget in both readings — 19,482 chars / 19,774 bytes against the
-  20,000-char `AGENTS_MD_BUDGET_CHARS` repo budget, with 518 chars (2.6%) of headroom
-- The real prompt builder delivers the file verbatim and queues **zero** `TRUNCATED`
-  warnings, down from one at 42,936 chars; delivered chars went **18,372 → 19,577** while
-  the file got 23,469 chars smaller, because the whole file now arrives instead of a
-  head-70%/tail-20% slice
-- `/context` reports `AGENTS.md status=loaded` (was `status=truncated`) with `CLAUDE.md`
-  `shadowed`, so the four harness entry points still resolve to one loaded copy
+- `AGENTS.md` is under the budget in both readings — 19,482 chars / 19,774 bytes
+against the 20,000-char `AGENTS_MD_BUDGET_CHARS` repo budget, with 518 chars
+(2.6%) of headroom
+- The real prompt builder delivers the file verbatim and queues **zero**
+`TRUNCATED` warnings, down from one at 42,936 chars; delivered chars went
+**18,372 → 19,577** while the file got 23,469 chars smaller, because the whole
+file now arrives instead of a head-70%/tail-20% slice
+- `/context` reports `AGENTS.md status=loaded` (was `status=truncated`) with
+`CLAUDE.md` `shadowed`, so the four harness entry points still resolve to one
+loaded copy
 - The H1 + top blockquote is byte-identical to the pre-edit snapshot (sha256
-  `ff059aa1bd17b8a4…`, 377 chars), and every tightened region keeps all eleven funnel
-  rules, the three CI-enforcement strings (rules 3, 9, 10), the two Harness Adapter tables
-  — every harness binding: Hermes, Claude Code, Copilot/other, the generic fallback, plus
-  the opencode and DeepSeek/OpenAI-compatible rows — and the `/goal` phase contract
-- Every pointer the trim left behind resolves and carries the fact delegated to it —
-  `docs/`, `docs/prd/`, `PRD.md` and `README.md` targets were checked one by one
-- The three guard expectations the trim invalidated were recomputed from the new file
-  (AC-HRN-011 line list, AC-CG-001/002 spellings, AC-CG-003 pointer scope) and all three
-  still fail on a removed claim
-- `AC-CTX-001`/`AC-CTX-002` make a future regression loud instead of silent — the cap
-  breach and a forked entry-point symlink both fail the unit tier
-- The *Per-harness rows* table now binds Codex CLI / Cursor / Gemini CLI / Aider and the
-  entry-point fence carries `GEMINI.md -> AGENTS.md`, so the four added harness bindings cost
-  +29 net chars — the row cites the fact and delegates the URLs to `README.md` § *Harness
-  Support* (round 3, 2026-10-16)
-- The pipeline section is now the upstream two-stage **Lifecycle** (D0–D4 Development, then
-  `sub1`–`sub4` Delivery with an opt-in UAT `sub4`/`sub5` variant), and it fit by **deduping the
-  shared footer** — 20 duplicated lines (five fenced copies) down to the four in one `Shared
-  footer` block — with the surplus (−11 net chars) taken from the mapping table, `## codegraph`
-  and cosmetic Harness Adapter prose, never from a rule, binding or token (round 4, 2026-10-16)
+`ff059aa1bd17b8a4…`, 377 chars), and every tightened region keeps all eleven
+funnel rules, the three CI-enforcement strings (rules 3, 9, 10), the two
+Harness Adapter tables — every harness binding: Hermes, Claude Code,
+Copilot/other, the generic fallback, plus the opencode and
+DeepSeek/OpenAI-compatible rows — and the `/goal` phase contract
+- Every pointer the trim left behind resolves and carries the fact delegated to
+it — `docs/`, `docs/prd/`, `PRD.md` and `README.md` targets were checked one
+by one
+- The three guard expectations the trim invalidated were recomputed from the new
+file (AC-HRN-011 line list, AC-CG-001/002 spellings, AC-CG-003 pointer scope)
+and all three still fail on a removed claim
+- `AC-CTX-001`/`AC-CTX-002` make a future regression loud instead of silent —
+the cap breach and a forked entry-point symlink both fail the unit tier
+- The *Per-harness rows* table now binds Codex CLI / Cursor / Gemini CLI / Aider
+and the entry-point fence carries `GEMINI.md -> AGENTS.md`, so the four added
+harness bindings cost +29 net chars — the row cites the fact and delegates the
+URLs to `README.md` § *Harness Support* (round 3, 2026-10-16)
+- The pipeline section is now the upstream two-stage **Lifecycle** (D0–D4
+Development, then `sub1`–`sub4` Delivery with an opt-in UAT `sub4`/`sub5`
+variant), and it fit by **deduping the shared footer** — 20 duplicated lines
+(five fenced copies) down to the four in one `Shared footer` block — with the
+surplus (−11 net chars) taken from the mapping table, `## codegraph` and
+cosmetic Harness Adapter prose, never from a rule, binding or token (round 4,
+2026-10-16)
 
 ## What Fails
 
-- **Byte-exact preservation was impossible in this repo.** The four protected regions
-  total 19,791 chars against a 19,500-char working budget, so only the H1 + top
-  blockquote is byte-identical; the *Document Funnel*, *Harness Adapter* and `/goal`
-  clusters are tightened wording. Any statement that all contract regions survive
-  byte-for-byte is false for this repo.
-- **Only one region is byte-identical, and nothing guards the rest byte-for-byte.** The
-  per-region sha256s recorded here (H1 + top blockquote `ff059aa1…`; *Document Funnel*
-  `945bac5a…`; *Harness Adapter* `91584049…`; `/goal` `d1a0d8a9…`; *Standing Orders*
-  `4496ed57…`; *Repository Structure* `96705ab9…`; *Development Commands* `c99d1374…`;
-  *Security* `62429f04…`; *codegraph* `0ee75c2d…`) are an audit reference, not an
-  assertion — a later reflow of a contract region passes the tests that exist. The
-  *Harness Adapter* entry predates round 3's harness rows and no longer matches; round 4 also
-  reflowed *Harness Adapter*, *Security*, *codegraph* and the `/goal`-cluster successor (the
-  `## Lifecycle` section), so recompute any of them before relying on it.
-- **The budget is a repo budget, and the cap is host-dependent.** `AGENTS_MD_BUDGET_CHARS`
-  is the tightest auto-load cap among the harnesses this template targets (currently the
-  Hermes 20,000-char floor; others differ). The tripwire reads the repo, not host state, so
-  a host profile that pins a *lower* `context_file_max_chars` truncates a file this test
-  passes.
-- **A bare `wc -m` is a byte count on this host.** `LC_CTYPE=C` is set, so `wc -m AGENTS.md`
-  prints 19,691 — the same output as `wc -c` — while the file carries 115 non-ASCII
-  characters and the two readings differ by 224. A char check that reads a bare `wc -m` is
-  really a byte check.
-- **Headroom is thin — 518 chars (2.6% of the budget).** That is roughly 15 lines of prose.
-  A few appended Standing Orders re-cross the budget; the tripwire reports that, it does not
-  prevent it.
+- **Byte-exact preservation was impossible in this repo.** The four protected
+regions total 19,791 chars against a 19,500-char working budget, so only the
+H1 + top blockquote is byte-identical; the *Document Funnel*, *Harness
+Adapter* and `/goal` clusters are tightened wording. Any statement that all
+contract regions survive byte-for-byte is false for this repo.
+- **Only one region is byte-identical, and nothing guards the rest
+byte-for-byte.** The per-region sha256s recorded here (H1 + top blockquote
+`ff059aa1…`; *Document Funnel* `945bac5a…`; *Harness Adapter* `91584049…`;
+`/goal` `d1a0d8a9…`; *Standing Orders* `4496ed57…`; *Repository Structure*
+`96705ab9…`; *Development Commands* `c99d1374…`; *Security* `62429f04…`;
+*codegraph* `0ee75c2d…`) are an audit reference, not an assertion — a later
+reflow of a contract region passes the tests that exist. The *Harness Adapter*
+entry predates round 3's harness rows and no longer matches; round 4 also
+reflowed *Harness Adapter*, *Security*, *codegraph* and the `/goal`-cluster
+successor (the `## Lifecycle` section), so recompute any of them before
+relying on it.
+- **The budget is a repo budget, and the cap is host-dependent.**
+`AGENTS_MD_BUDGET_CHARS` is the tightest auto-load cap among the harnesses
+this template targets (currently the Hermes 20,000-char floor; others differ).
+The tripwire reads the repo, not host state, so a host profile that pins a
+*lower* `context_file_max_chars` truncates a file this test passes.
+- **A bare `wc -m` is a byte count on this host.** `LC_CTYPE=C` is set, so
+`wc -m AGENTS.md` prints 19,691 — the same output as `wc -c` — while the file
+carries 115 non-ASCII characters and the two readings differ by 224. A char
+check that reads a bare `wc -m` is really a byte check.
+- **Headroom is thin — 518 chars (2.6% of the budget).** That is roughly 15
+lines of prose. A few appended Standing Orders re-cross the budget; the
+tripwire reports that, it does not prevent it.
 
 ## Resolution
 
-- **Byte-exact preservation impossible:** sum the preserve-set against the target budget
-  *before* promising byte-identity, and state per region which are byte-identical versus
-  compressed — this doc's two tables are that statement. Never claim uniform
-  preservation; the 19,791-vs-19,500 arithmetic is the reason.
-- **No byte-identity guard on the compressed regions:** treat the recorded sha256s as the
-  audit reference for a manual diff, and after any edit to a contract region re-run the
-  behavioural guards that do exist —
-  `python3 -m pytest tests/unit/test_harness_neutrality.py tests/unit/test_codegraph_adoption.py
-  tests/unit/test_funnel_structure.py -q` — plus `bash scripts/verify-clone.sh` for the
-  symlink and tracked-path bindings. A future author who wants the byte half adds a
-  snapshot-hash test; it is not claimed here.
-- **A repo budget over a host-dependent cap:** read the effective value off the live host
-  before quoting a number — the `CONTEXT_FILE_MAX_CHARS` probe above — and pin
-  `context_file_max_chars` explicitly where the repo must not depend on the model window.
-- **`wc -m` counts bytes under `LC_CTYPE=C`:** run it as `LC_ALL=C.UTF-8 wc -m`, or measure
-  in Python with `len(text)` — which is what the tripwire does. Never trust a bare `wc -m`
-  on a host whose locale is not UTF-8.
-- **Thin headroom:** when adding a Standing Order or a funnel rule, collapse an existing
-  line to a pointer rather than appending. The tripwire fails the unit tier before the
-  file ships.
+- **Byte-exact preservation impossible:** sum the preserve-set against the
+target budget *before* promising byte-identity, and state per region which are
+byte-identical versus compressed — this doc's two tables are that statement.
+Never claim uniform preservation; the 19,791-vs-19,500 arithmetic is the
+reason.
+- **No byte-identity guard on the compressed regions:** treat the recorded
+  sha256s as the audit reference for a manual diff, and after any edit to a
+  contract region re-run the behavioural guards that do exist:
+
+  ```bash
+  python3 -m pytest tests/unit/test_harness_neutrality.py tests/unit/test_codegraph_adoption.py tests/unit/test_funnel_structure.py -q
+  ```
+
+  plus `bash scripts/verify-clone.sh` for the symlink and tracked-path
+  bindings. A future author who wants the byte half adds a snapshot-hash test;
+  it is not claimed here.
+- **A repo budget over a host-dependent cap:** read the effective value off the
+live host before quoting a number — the `CONTEXT_FILE_MAX_CHARS` probe above —
+and pin `context_file_max_chars` explicitly where the repo must not depend on
+the model window.
+- **`wc -m` counts bytes under `LC_CTYPE=C`:** run it as `LC_ALL=C.UTF-8 wc -m`,
+or measure in Python with `len(text)` — which is what the tripwire does. Never
+trust a bare `wc -m` on a host whose locale is not UTF-8.
+- **Thin headroom:** when adding a Standing Order or a funnel rule, collapse an
+existing line to a pointer rather than appending. The tripwire fails the unit
+tier before the file ships.
 
 ## Verdict
 
-**partial** — The trim verifies end to end: the file reaches the prompt byte-for-byte
-under the budget (19,493 chars / 19,733 bytes at round 3) with zero truncation warnings, the
-delivered block grew from 18,372 to 19,577 chars, every tightened region retains its rules
-and resolvable pointers, and a hermetic unit tripwire now fails loudly on a budget breach, a
-malformed host pin, a thin headroom margin and a forked entry-point symlink. The open
-limits are that this repo cannot preserve its contract regions byte-for-byte (19,791 chars
-of preserve-set against a 19,500-char budget), that nothing guards those regions
-byte-for-byte, and that the headroom margin is thin for a file that grows by accretion.
-Round 2 (2026-10-03) added Standing Order 7 and preserved the margin — 19,464 chars /
-19,697 bytes, 536 chars of headroom, unit tier 135 passed — by compressing two
-non-load-bearing regions rather than appending. Round 3 (2026-10-16) added four harness rows
-(Codex CLI / Cursor / Gemini CLI / Aider) and the `GEMINI.md` symlink — 19,493 chars /
-19,733 bytes, 507 chars of headroom, harness guard 17 passed — by compressing existing rows
-rather than appending, keeping the `/goal` block byte-identical. Round 4 (2026-10-16) adopted the upstream
-Lifecycle section (Development D0–D4 + Delivery sub1–sub4 with the opt-in UAT sub4/sub5
-variant; shared footer stated once instead of 4×) — 19,482 chars / 19,774 bytes, 518 chars
-of headroom, `AC-LC-001..003` green — funded by the footer dedupe plus the round-2
-compressions re-applied (skill-to-phase table → pointer, codegraph section → routing
-form); the byte-identity preserve-set was superseded by the upstream layout itself.
+**partial** — The trim verifies end to end: the file reaches the prompt
+byte-for-byte under the budget (19,493 chars / 19,733 bytes at round 3) with
+zero truncation warnings, the delivered block grew from 18,372 to 19,577 chars,
+every tightened region retains its rules and resolvable pointers, and a hermetic
+unit tripwire now fails loudly on a budget breach, a malformed host pin, a thin
+headroom margin and a forked entry-point symlink. The open limits are that this
+repo cannot preserve its contract regions byte-for-byte (19,791 chars of
+preserve-set against a 19,500-char budget), that nothing guards those regions
+byte-for-byte, and that the headroom margin is thin for a file that grows by
+accretion. Round 2 (2026-10-03) added Standing Order 7 and preserved the margin
+— 19,464 chars / 19,697 bytes, 536 chars of headroom, unit tier 135 passed — by
+compressing two non-load-bearing regions rather than appending. Round 3
+(2026-10-16) added four harness rows (Codex CLI / Cursor / Gemini CLI / Aider)
+and the `GEMINI.md` symlink — 19,493 chars / 19,733 bytes, 507 chars of
+headroom, harness guard 17 passed — by compressing existing rows rather than
+appending, keeping the `/goal` block byte-identical. Round 4 (2026-10-16)
+adopted the upstream Lifecycle section (Development D0–D4 + Delivery sub1–sub4
+with the opt-in UAT sub4/sub5 variant; shared footer stated once instead of 4×)
+— 19,482 chars / 19,774 bytes, 518 chars of headroom, `AC-LC-001..003` green —
+funded by the footer dedupe plus the round-2 compressions re-applied
+(skill-to-phase table → pointer, codegraph section → routing form); the
+byte-identity preserve-set was superseded by the upstream layout itself.

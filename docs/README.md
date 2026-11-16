@@ -1,18 +1,23 @@
 # docs/ — Empirical Status Index
 
 > Funnel stage 6 catalog (see *Document Funnel* in `AGENTS.md`). One row per
-> `docs/NN-slug.md`. **Maintained via the `coding-agents-docs-guideline` skill** —
-> the same skill invocation that writes or updates a doc updates its row here.
+> `docs/NN-slug.md`. **Maintained via the `coding-agents-docs-guideline` skill**
+> — the same skill invocation that writes or updates a doc updates its row here.
 >
 > Scope: this file indexes the **empirical layer only**.
-> - Intent (`docs/prd/`) is indexed by [PRD.md](../PRD.md#quick-reference) — do not duplicate it here.
-> - Gaps (`docs/gaps/`) are transient and self-listing — see [docs/gaps/README.md](gaps/README.md).
-> - Knowledge (`kb/`) has its own llm-wiki catalog — see [kb/index.md](../kb/index.md).
+> - Intent (`docs/prd/`) is indexed by [PRD.md](../PRD.md#quick-reference) — do
+> not duplicate it here.
+> - Gaps (`docs/gaps/`) are transient and self-listing — see
+> [docs/gaps/README.md](gaps/README.md).
+> - Knowledge (`kb/`) has its own llm-wiki catalog — see
+> [kb/index.md](../kb/index.md).
 
 ## Status Docs
 
 | # | Topic | Verdict | Updated | Covers | PRD | Gaps |
 |---|-------|---------|---------|--------|-----|------|
+| 26 | [Char-Per-Line Audit](26-char-per-line-audit.md) | works | 2026-11-16 | `scripts/audit-chars.py` (ported byte-identical from upstream `18694c5`, its doc 09), `tests/unit/test_audit_chars.py` (`AC-CHARS-001..006`), the `Machine gates` step in `.github/workflows/ci.yml`; measured 0 of 6,450 lines over 80 columns across 69 files (exit 0), 37 unbreakable link tokens (31 `kb/…` targets, 3 `docs/…` targets, 3 `README.md` URLs) that no wrap can fix; all six ACs pass, `AC-CHARS-001` pinning the 37 as a shrink-only ratchet | [26-char-per-line-audit](prd/26-char-per-line-audit.md) | — |
+| 27 | [File-Size Audit](27-file-size-audit.md) | partial | 2026-11-16 | `scripts/audit-size.py` (ported from upstream `18694c5`, its doc 10, plus `EXEMPT_PATHS` for `kb/raw/`, `kb/log.md`, `autoresearch/uv.lock`), `tests/unit/test_audit_size.py` (`AC-SIZE-001..006`), the `--max-kb 60` invocation in the `Machine gates` step; 423 regular tracked files, 30 over 20 KB, 386 measured with 0 over at 61,440 bytes, largest 56,312 B | [27-file-size-audit](prd/27-file-size-audit.md) | [27-file-size-cap-cannot-hold](gaps/27-file-size-cap-cannot-hold.md) |
 | 21 | [Agent Evals](21-agent-evals.md) | works | 2026-11-16 | The engine's evaluation layer in `autoresearch/engine/autoresearch/{measure,decide,ledger,loop,cli,prompt,config}.py`: `Measurement` dispersion (`repeats`/`spread`/`honest`, derived in `__post_init__`), `standard_error_of_difference()` with `MEDIAN_CONSISTENCY = 1.2533`, `margin()` = `max(floor, 1.96 × SE)` and `decide_with_margin()` with the third `inconclusive` verdict, `DEFAULT_REPEATS = 3`, six-field `provenance` on every keep/discard (with the `--model` userinfo refusal and the opt-in `status --require-provenance` gate), replay re-checking the recorded `margin`, the salvage and wall-reservation behaviour it shares with PRD 17 (`AC-ENG-082..082e`, `083..083d`); `tests/unit/test_eval_statistics.py` (`AC-EVL-001..004`), `tests/unit/test_eval_provenance.py` (`AC-EVL-006..007`), `tests/unit/test_engine_ledger.py` (`AC-EVL-005`), `tests/integration/test_eval_loop_stats.py` (`AC-EVL-202`), `tests/unit/test_engine_loop.py` (`AC-ENG-050..059`, `082..082e`, `083..083d`), `tests/integration/test_objective_record_replay.py` (`AC-OBJ-201`, `AC-REC-201`); `scripts/legacy_grid.py` (the tracked brute force the record quotes) | [20-agent-evals](prd/20-agent-evals.md) | — |
 | 24 | [Autoresearch as a Service](24-autoresearch-as-a-service.md) | works | 2026-11-10 | `autoresearch/pyproject.toml` + one `uv.lock` (one distribution: the stdlib `autoresearch` engine + `autoresearch_service` behind the `service` extra), `autoresearch/service/autoresearch_service/{policy,jobs,workloads,workspace,main}.py` (`run_start`/`run_status`/`run_report`/`run_cancel`/`doctor` dual-registered on `/api/v1/runs*` and as MCP tools at `/mcp`; `research_*` served by one engine baseline measurement of the bundled `contract` workload), the `RESEARCH_ALLOWED_AGENTS` allowlist (`replay` default, `command` refused), `.agents/commands/ar-{init,run,status,report}.md` + `.agents/skills/autoresearch-engine/SKILL.md`, `tests/unit/test_service_{layout,engine,readme}.py` (`AC-SVC-*`), `tests/unit/test_harness_neutrality.py` (`AC-HRN-019..020`) | [24-autoresearch-as-a-service](prd/24-autoresearch-as-a-service.md) | [24-three-loops-one-name](gaps/_archive/24-three-loops-one-name.md) (resolved, archived 2026-11-10) |
 | 19 | [PR-Agent Live Adoption](19-pr-agent-live-adoption.md) | works | 2026-11-04 | `.github/workflows/pr-agent.yml` (opt-in gate), repo variables/secrets (`PR_AGENT_ENABLED`, `OPENAI_BASE_URL`, `OPENAI_DEFAULT_MODEL`, `OPENAI_API_KEY`), `.pr_agent.toml` (`custom_model_max_tokens`, `fallback_models`), `tests/unit/test_pr_agent_adoption.py` (`AC-PRA-001..009`); live cycle verified on PR #40 (job green 49 s, reviewer-guide + suggestions comments) | [18-pr-agent-adoption](prd/18-pr-agent-adoption.md) | — |
@@ -34,53 +39,61 @@
 | 08 | [Adoption Readiness](08-adoption-readiness.md) | works | 2026-11-04 | `ADOPTING.md`, `scripts/verify-clone.sh`, `tests/unit/test_{verify_clone,docs_template,harness_neutrality,funnel_structure,gaps_lifecycle,corpus_integrity}.py`, `.github/workflows/ci.yml` (`integration` junit guard, `doctrine` tracked-root coverage), `tests/conftest.py`, `docs/gaps/_archive/{03,07}-*.md`; the `ops/` home, `AC-OPS-001..010`, `tests/unit/test_ops_sync.py` and the `ops-drift` job were retired 2026-11-04 | [08-adoption-readiness](prd/08-adoption-readiness.md) | — (resolved; archived 2026-09-19) |
 | 09 | [AGENTS.md Context Budget](09-agents-md-context-budget.md) | partial | 2026-10-16 | `AGENTS.md` (19,482 chars / 19,774 bytes after the round-4 lifecycle restructure; 518 chars of headroom), `tests/unit/test_agents_md_{budget,lifecycle}.py` (AC-CTX-001..004, AC-LC-001..003), the instruction-entry symlinks `CLAUDE.md`, `.github/copilot-instructions.md` + `GEMINI.md`, and the recomputed guard expectations in `tests/unit/test_{harness_neutrality,codegraph_adoption}.py` | [03-funnel-kb-governance](prd/03-funnel-kb-governance.md) — the PRD that owns the `AGENTS.md` doctrine; `09` files no PRD of its own | — (no gap filed; the trim's limits are recorded in the doc's *What Fails*) |
 
-Rows 02–06 were re-verified 2026-09-18 in one pass: `bash tests/run.sh
---with-e2e` → `RESULT: PASSED` (135 unit + 16 integration + 4 e2e at the time of writing; count of record per run) and all four
-local `act` jobs (`unit`, `integration`, `secret-scan`, `doctrine`) report
-`Job succeeded`. The `AC-TPL-*`/`AC-FUN-*`/`AC-EXC-*` unit tests are green
-(31 tests; full unit tier 68 — see each doc's *Verification*). Row 07 was
-verified 2026-09-19 against the CodeGraph CLI + MCP surfaces on this machine and
-re-verified 2026-10-17 (`.codegraph/` is ignored wholesale like upstream; SC4/SC5 now
-carry opt-in integration tests) — see its *Verification*. Row 08 was re-verified 2026-09-19 on closure of its three
-recorded failures: `bash tests/run.sh` → `RESULT: PASSED` (135 unit + 16 integration;
-the e2e tier needs a container) with `bash scripts/verify-clone.sh` → `RESULT: PASSED — 34
-check(s) passed`, and the `ops-drift` job green end to end under `act` in both modes —
-that job was retired 2026-11-04 with `ops/`; see its *Verification*.
+Rows 02–06 were re-verified 2026-09-18 in one pass:
+`bash tests/run.sh --with-e2e` → `RESULT: PASSED` (135 unit + 16 integration + 4
+e2e at the time of writing; count of record per run) and all four local `act`
+jobs (`unit`, `integration`, `secret-scan`, `doctrine`) report `Job succeeded`.
+The `AC-TPL-*`/`AC-FUN-*`/`AC-EXC-*` unit tests are green (31 tests; full unit
+tier 68 — see each doc's *Verification*). Row 07 was verified 2026-09-19 against
+the CodeGraph CLI + MCP surfaces on this machine and re-verified 2026-10-17
+(`.codegraph/` is ignored wholesale like upstream; SC4/SC5 now carry opt-in
+integration tests) — see its *Verification*. Row 08 was re-verified 2026-09-19
+on closure of its three recorded failures: `bash tests/run.sh` →
+`RESULT: PASSED` (135 unit + 16 integration; the e2e tier needs a container)
+with `bash scripts/verify-clone.sh` → `RESULT: PASSED — 34 check(s) passed`, and
+the `ops-drift` job green end to end under `act` in both modes — that job was
+retired 2026-11-04 with `ops/`; see its *Verification*.
 
-Row 24 (renumbered from 20 on 2026-11-15 — downstream numbering wins) was verified 2026-11-10 on `feat/autoresearch-as-a-service`: `python3 -m pytest
-tests/unit -q` → 353 passed, `python3 -m pytest tests/integration -q` → 26 passed,
-`bash scripts/verify-clone.sh` → `RESULT: PASSED — 33 check(s) passed`, `docker compose
-build` green, and one temp container exercised all four surfaces (see its *Verification*).
+Row 24 (renumbered from 20 on 2026-11-15 — downstream numbering wins) was
+verified 2026-11-10 on `feat/autoresearch-as-a-service`:
+`python3 -m pytest tests/unit -q` → 353 passed,
+`python3 -m pytest tests/integration -q` → 26 passed,
+`bash scripts/verify-clone.sh` → `RESULT: PASSED — 33 check(s) passed`,
+`docker compose build` green, and one temp container exercised all four surfaces
+(see its *Verification*).
 
-Row 21 (agent evals) was verified 2026-11-16 on `docs/agent-evals-record` at `bf33243`:
-`python3 -m pytest tests/unit -q` → 584 passed, `bash tests/run.sh` → `RESULT: PASSED`
-(584 unit + 45 integration; e2e skipped), and every SC was re-verified against a
-throwaway checkout at `--repeats 3/1` — a 2.0 improvement recorded `inconclusive`
-against a 2.0057 margin, a 4.0 improvement kept with its dispersion, provenance
-and null cost fields, a salvaged dead-agent keep, a `--max-wall 2000` refusal at
-exit 2, the tracked `scripts/legacy_grid.py` grid (3,584 one-repeat points, 0 keep
-mismatches, plus a 13,824-pair honest sweep at 0 keeps the legacy rule would have
-refused), and a pre-port ledger that replays valid. See its *Verification*.
+Row 21 (agent evals) was verified 2026-11-16 on `docs/agent-evals-record` at
+`bf33243`: `python3 -m pytest tests/unit -q` → 584 passed, `bash tests/run.sh` →
+`RESULT: PASSED` (584 unit + 45 integration; e2e skipped), and every SC was
+re-verified against a throwaway checkout at `--repeats 3/1` — a 2.0 improvement
+recorded `inconclusive` against a 2.0057 margin, a 4.0 improvement kept with its
+dispersion, provenance and null cost fields, a salvaged dead-agent keep, a
+`--max-wall 2000` refusal at exit 2, the tracked `scripts/legacy_grid.py` grid
+(3,584 one-repeat points, 0 keep mismatches, plus a 13,824-pair honest sweep at
+0 keeps the legacy rule would have refused), and a pre-port ledger that replays
+valid. See its *Verification*.
 
-`09` is `partial`, not `works`: the file is delivered whole under the cap, but this repo
-cannot preserve its contract regions byte-for-byte (the four protected regions total
-19,791 chars against a 19,500-char working budget), nothing guards those regions
-byte-for-byte, the tripwire asserts the 20,000-char flat floor (a lower host-pinned
-`context_file_max_chars` is invisible to it), and the remaining headroom is 536 chars (2026-10-16 measurement; re-measure per run)
-(2.7%). `09` files no `docs/prd/` PRD: the `AGENTS.md` doctrine it reports on is owned by
-`03`, and the guard expectations it recomputed live in `tests/unit/`.
+`09` is `partial`, not `works`: the file is delivered whole under the cap, but
+this repo cannot preserve its contract regions byte-for-byte (the four protected
+regions total 19,791 chars against a 19,500-char working budget), nothing guards
+those regions byte-for-byte, the tripwire asserts the 20,000-char flat floor (a
+lower host-pinned `context_file_max_chars` is invisible to it), and the
+remaining headroom is 536 chars (2026-10-16 measurement; re-measure per run)
+(2.7%). `09` files no `docs/prd/` PRD: the `AGENTS.md` doctrine it reports on is
+owned by `03`, and the guard expectations it recomputed live in `tests/unit/`.
 
-`01` is an intentional gap: the scaffold's CI-gate SCs are verified in `03`, and its
-service SCs in `05`/`06` — see
+`01` is an intentional gap: the scaffold's CI-gate SCs are verified in `03`, and
+its service SCs in `05`/`06` — see
 [docs/prd/01-template-scaffold-ci.md](prd/01-template-scaffold-ci.md).
 
 Resolved gaps are archived inside the repo, at the location and by the lifecycle
-stated in [docs/gaps/README.md](gaps/README.md) (*Lifecycle* — the single statement
-of it); the `Gaps` column records where one closed. A withdrawn gap leaves a
-tombstone at `docs/gaps/_archive/NN-<slug>.md` rather than returning its number to
-circulation.
+stated in [docs/gaps/README.md](gaps/README.md) (*Lifecycle* — the single
+statement of it); the `Gaps` column records where one closed. A withdrawn gap
+leaves a tombstone at `docs/gaps/_archive/NN-<slug>.md` rather than returning
+its number to circulation.
 
-**Verdict vocabulary** — copy the net verdict from the doc's own *Verdict* section:
+**Verdict vocabulary** — copy the net verdict from the doc's own *Verdict*
+section:
 
 | Verdict | Meaning |
 |---------|---------|
@@ -90,30 +103,30 @@ circulation.
 | `stale` | Last verification predates a change to the code it covers — re-verify before citing |
 | `retired` | A mechanism withdrawn by decision whose code no longer exists — read for the decision record and its replacement, not to re-verify |
 
-**Retirement lifecycle.** A retirement KEEPS the doc and its row here — the row is
-the decision record. If the mechanism is later re-instated, keep the retirement
-record and add the new decision on top: the history is the point.
+**Retirement lifecycle.** A retirement KEEPS the doc and its row here — the row
+is the decision record. If the mechanism is later re-instated, keep the
+retirement record and add the new decision on top: the history is the point.
 
 ## Rules
 
-1. **Every `docs/NN-*.md` has exactly one row.** A doc with no row is invisible to the
-   next agent; a row with no doc is a lie. Both are defects.
+1. **Every `docs/NN-*.md` has exactly one row.** A doc with no row is invisible
+to the next agent; a row with no doc is a lie. Both are defects.
 2. **`NN` is unique and shared across the funnel.** `docs/NN-slug.md`,
-   `docs/prd/NN-*.md`, and `docs/gaps/NN-*.md` reuse the same number for the same
-   topic, so an agent can walk intent → gap → reality by number alone. Numbers are
-   never reused: a withdrawn gap leaves a tombstone
-   (`docs/gaps/_archive/NN-<slug>.md`, `Status: withdrawn`, one-line reason) rather
-   than returning the number to circulation. **Amendment:** a downstream-pinned
-   stage-6 number wins when a downstream doc number for the same topic is already
-   canonical — `docs/21` is the agent-evals record whose PRD is `20`, because
-   vanilla-open-design's doc 21 is that record; `docs/20` was free here and
-   consistency with downstream was chosen over a gap-free numbering run. Same
-   precedent as `09` → PRD 03 and `12` → PRD 05, which also carry a doc number
-   their PRD does not.
-3. **`Updated` is the last *verification* date**, not the last text edit. Editing prose
-   does not refresh it; re-running the verification commands does.
-4. **A `stale`, `broken` or `retired` verdict is a required read** before touching the
-   code it covers — that is the point of this file.
-5. **A PRD whose stage-6 doc is not yet written carries the pending note in `PRD.md`
-   only — no placeholder row here.** The index lists docs that exist; a row for a doc
-   that does not is the same lie as a doc with no row (rule 1).
+`docs/prd/NN-*.md`, and `docs/gaps/NN-*.md` reuse the same number for the
+same topic, so an agent can walk intent → gap → reality by number alone.
+Numbers are never reused: a withdrawn gap leaves a tombstone
+(`docs/gaps/_archive/NN-<slug>.md`, `Status: withdrawn`, one-line reason)
+rather than returning the number to circulation. **Amendment:** a
+downstream-pinned stage-6 number wins when a downstream doc number for the
+same topic is already canonical — `docs/21` is the agent-evals record whose
+PRD is `20`, because vanilla-open-design's doc 21 is that record; `docs/20`
+was free here and consistency with downstream was chosen over a gap-free
+numbering run. Same precedent as `09` → PRD 03 and `12` → PRD 05, which also
+carry a doc number their PRD does not.
+3. **`Updated` is the last *verification* date**, not the last text edit.
+Editing prose does not refresh it; re-running the verification commands does.
+4. **A `stale`, `broken` or `retired` verdict is a required read** before
+touching the code it covers — that is the point of this file.
+5. **A PRD whose stage-6 doc is not yet written carries the pending note in
+`PRD.md` only — no placeholder row here.** The index lists docs that exist; a
+row for a doc that does not is the same lie as a doc with no row (rule 1).

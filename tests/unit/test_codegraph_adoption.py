@@ -39,6 +39,16 @@ def _read(path):
     return path.read_text(encoding="utf-8")
 
 
+def _prose(text):
+    """`text` with every run of whitespace collapsed to a single space.
+
+    `AGENTS.md` prose is hard-wrapped at 80 columns, so a phrase can straddle a
+    line break; a substring or regex assertion reads this, never the raw
+    layout, so a future re-wrap cannot break the test.
+    """
+    return re.sub(r"\s+", " ", text)
+
+
 def _section_body(text, heading):
     """The body of `## <heading>`, up to the next level-2 heading ('' if absent).
 
@@ -55,7 +65,7 @@ def test_agents_codegraph_section_names_primary_graph_search_and_prd():
     """AC-CG-001: `AGENTS.md` carries the `## codegraph` section, names CodeGraph
     the primary graph search, documents the one-tool `codegraph_explore` surface,
     and points at the stage-4 PRD (`docs/prd/07-codegraph-adoption.md`)."""
-    body = _section_body(_read(AGENTS_MD), "codegraph")
+    body = _prose(_section_body(_read(AGENTS_MD), "codegraph"))
     assert body, "AGENTS.md has no '## codegraph' section — the adoption is unstated"
     assert "primary graph search" in body, (
         "## codegraph no longer names CodeGraph the primary graph search"
@@ -75,7 +85,7 @@ def test_cli_twins_fallback_documented_for_a_harness_without_mcp():
     """AC-CG-002: the adapter documents the CLI-twins fallback for a harness with
     no MCP client — in `## codegraph` and in the Harness-Adapter per-harness row."""
     text = _read(AGENTS_MD)
-    body = _section_body(text, "codegraph")
+    body = _prose(_section_body(text, "codegraph"))
     assert re.search(r"without an MCP client", body, re.I), (
         "## codegraph no longer addresses harnesses without an MCP client"
     )

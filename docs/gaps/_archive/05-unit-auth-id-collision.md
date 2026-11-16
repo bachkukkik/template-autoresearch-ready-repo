@@ -2,8 +2,8 @@
 
 **Layers:** prd ↔ code
 **Status:** resolved
-**Opened:** 2026-09-18
-**Resolved:** 2026-09-18 — test IDs renumbered, PRD-05 mapping added
+**Opened:** 2026-09-18 **Resolved:**
+2026-09-18 — test IDs renumbered, PRD-05 mapping added
 
 ## Observation
 
@@ -24,16 +24,16 @@ grep -rn "AC-MCP-03" docs/prd/
 # docs/prd/06-multi-topic-concurrent-service.md: all 031..037 assigned to workspace/corpus tests
 ```
 
-The workspace suite's ownership is published in PRD-06; the auth suite's IDs were
-published nowhere — PRD-05 SC6 mapped auth to the integration block only
+The workspace suite's ownership is published in PRD-06; the auth suite's IDs
+were published nowhere — PRD-05 SC6 mapped auth to the integration block only
 (AC-MCP-221..223).
 
 ## Impact
 
-Two different behaviours answered to the same three IDs. A failing AC-MCP-031 gave
-no way to tell whether job isolation or token verification broke, and the unit auth
-tests — the only fail-closed coverage of `verify_token` and `AUTH_DISABLED` — were
-traceable to no success criterion at all.
+Two different behaviours answered to the same three IDs. A failing AC-MCP-031
+gave no way to tell whether job isolation or token verification broke, and the
+unit auth tests — the only fail-closed coverage of `verify_token` and
+`AUTH_DISABLED` — were traceable to no success criterion at all.
 
 ## Resolution
 

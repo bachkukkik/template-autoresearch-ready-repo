@@ -16,7 +16,8 @@
 
 ## Evidence
 
-Reproduced 2026-10-16; full record in [`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
+Reproduced 2026-10-16; full record in
+[`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
 
 ```bash
 grep -c '^permissions:' .github/workflows/*.yml
@@ -26,8 +27,10 @@ gh api repos/bachkukkik/template-autoresearch-ready-repo/rulesets --jq length   
 
 ## Impact
 
-Adopters inherit broad default token scope and mutable action tags; a red unit tier can merge as 'skipped'; a direct push to `main` bypasses CI.
+Adopters inherit broad default token scope and mutable action tags; a red unit
+tier can merge as 'skipped'; a direct push to `main` bypasses CI.
 
 ## Resolution
 
-Code change + test — PRD 16 (AC-QC-001..012) implemented on this branch; ruleset applied post-merge (AC-QC-011).
+Code change + test — PRD 16 (AC-QC-001..012) implemented on this branch; ruleset
+applied post-merge (AC-QC-011).

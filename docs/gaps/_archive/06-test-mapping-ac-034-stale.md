@@ -2,8 +2,8 @@
 
 **Layers:** prd ↔ code
 **Status:** resolved
-**Opened:** 2026-09-18
-**Resolved:** 2026-09-18 — PRD edit applied
+**Opened:** 2026-09-18 **Resolved:**
+2026-09-18 — PRD edit applied
 
 ## Observation
 
@@ -24,17 +24,18 @@ grep -n "3.0 < .*val_bpb" tests/unit/test_workspace.py
 # 146:    assert 3.0 < legacy["val_bpb"] < 4.5
 ```
 
-The default path now executes the canonical `contract/` (bigram baseline ≈3.795);
-no test asserts a `1.234` default.
+The default path now executes the canonical `contract/` (bigram baseline
+≈3.795); no test asserts a `1.234` default.
 
 ## Impact
 
-The mapping table described an assertion that does not exist. A reviewer using the
-table to decide what AC-MCP-034 pins would have believed the legacy path returns a
-vendored-stub metric, and would have missed the part the test really guarantees —
-that the legacy path omits the `topic`/`corpus` keys the workspace path adds.
+The mapping table described an assertion that does not exist. A reviewer using
+the table to decide what AC-MCP-034 pins would have believed the legacy path
+returns a vendored-stub metric, and would have missed the part the test really
+guarantees — that the legacy path omits the `topic`/`corpus` keys the workspace
+path adds.
 
 ## Resolution
 
-PRD edit — applied 2026-09-18: the row now reads "legacy default path unchanged (no
-topic/corpus keys, same ~3.7 contract baseline)". **Status: resolved.**
+PRD edit — applied 2026-09-18: the row now reads "legacy default path unchanged
+(no topic/corpus keys, same ~3.7 contract baseline)". **Status: resolved.**

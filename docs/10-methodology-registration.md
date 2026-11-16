@@ -5,22 +5,22 @@
 The registration of the autoresearch methodology into the knowledge base: a
 deep-research ingest dated 2026-09-26 that adds one raw article, five layer-2
 concept pages and two page updates, distilled from `karpathy/autoresearch`
-(upstream master, files sha256-verified) and its first real-world instance, a private
-commerce-pipeline instance. It registers the invariant pattern — three mutability
-classes inside one loop — rather than the ML training loop that carries it.
+(upstream master, files sha256-verified) and its first real-world instance, a
+private commerce-pipeline instance. It registers the invariant pattern — three
+mutability classes inside one loop — rather than the ML training loop that
+carries it.
 
 ## Why
 
 - The template's contract (`autoresearch/contract/`) and the vendored skill
-  state the loop, but nothing in `kb/` grounded *why* the three-role split is
-  the invariant or
-  what an instantiation is allowed to change.
-- The pattern's portability is a claim until the instance's `contract/` is
-  shown byte-identical to this template's — the registration records that proof
-  at the source, so an adopter can cite it.
+state the loop, but nothing in `kb/` grounded *why* the three-role split is
+the invariant or what an instantiation is allowed to change.
+- The pattern's portability is a claim until the instance's `contract/` is shown
+byte-identical to this template's — the registration records that proof at the
+source, so an adopter can cite it.
 - The optional scaling layers (queue, adversary, optimizer, watchdog) need a
-  rule for when each is added and a set of measured failure modes to warn
-  about; both are registered here and citable by name from any harness.
+rule for when each is added and a set of measured failure modes to warn about;
+both are registered here and citable by name from any harness.
 
 ## How
 
@@ -45,9 +45,9 @@ classes inside one loop — rather than the ML training loop that carries it.
 Two structural commitments sit beside the split: a **fixed resource budget per
 candidate** (iso-compute — no candidate wins by spending more) and an
 **append-only keep/discard ledger** (`results.tsv`, untracked) where the metric
-is read from the run LOG, never the agent's self-report. The loop is
-tune → commit → run → read scalar metric → strict improvement advances the
-branch, otherwise `git reset`; the first run is always the baseline.
+is read from the run LOG, never the agent's self-report. The loop is tune →
+commit → run → read scalar metric → strict improvement advances the branch,
+otherwise `git reset`; the first run is always the baseline.
 
 Evaluator/optimizer separation makes the objective **exogenous**: "make the
 metric easier" leaves the action space, and residual risk moves from cheating
@@ -55,9 +55,9 @@ metric easier" leaves the action space, and residual risk moves from cheating
 
 ### Portability proof
 
-The private commerce-pipeline instance changed the upstream `contract/` by exactly
-zero bytes — all three files byte-identical to this template's — and met its
-objective by re-instantiating the same shape one layer down in `pipeline/`.
+The private commerce-pipeline instance changed the upstream `contract/` by
+exactly zero bytes — all three files byte-identical to this template's — and met
+its objective by re-instantiating the same shape one layer down in `pipeline/`.
 Only the DATA side of an instantiation ever moves (embedded corpus, domain
 hooks, `--results` auto-append).
 
@@ -117,70 +117,71 @@ EOF
 # True
 ```
 
-All commands were run from the repo root on 2026-09-26. The corpus and
-synthesis tests are read-only, stdlib-only, and run on every CI `unit` job, so
-a sha drift or an orphaned page fails the PR rather than being read past.
+All commands were run from the repo root on 2026-09-26. The corpus and synthesis
+tests are read-only, stdlib-only, and run on every CI `unit` job, so a sha drift
+or an orphaned page fails the PR rather than being read past.
 
 ## What Works
 
 - The registration is a committed, test-gated raw source:
-  `kb/raw/articles/2026-09-26-autoresearch-methodology-registration.md` passes
-  `tests/unit/test_corpus_integrity.py` (4 passed), and recomputing
-  `sha256(body.strip())` matches the frontmatter stamp.
+`kb/raw/articles/2026-09-26-autoresearch-methodology-registration.md` passes
+`tests/unit/test_corpus_integrity.py` (4 passed), and recomputing
+`sha256(body.strip())` matches the frontmatter stamp.
 - Five new layer-2 pages (`methodology-registration`, `kanban-factory`,
-  `adversarial-optimization-layer`, `better-cheaper-faster-metrics`,
-  `formal-mapping-autoresearch`) plus two updates (`entities/karpathy-autoresearch`,
-  `concepts/evaluator-legitimacy`) are committed and indexed — `kb/index.md`
-  carries 16 `concepts/` rows and 26 total pages, and the registration article
-  appears exactly once under Raw Sources.
-- `tests/unit/test_kb_synthesis.py` passes (4 passed): every new page is
-  indexed with no orphans, wikilinks resolve, and each page traces to `raw/`.
-- The ingest landed as the two ingest commits — `4813d98` (registration + skill) and
-  `80b78b2` (stamp correction + worked examples), with unrelated commits between them —
-  `git log -1` over the raw path reports `80b78b2`, and the working tree is clean.
+`adversarial-optimization-layer`, `better-cheaper-faster-metrics`,
+`formal-mapping-autoresearch`) plus two updates
+(`entities/karpathy-autoresearch`, `concepts/evaluator-legitimacy`) are
+committed and indexed — `kb/index.md` carries 16 `concepts/` rows and 26 total
+pages, and the registration article appears exactly once under Raw Sources.
+- `tests/unit/test_kb_synthesis.py` passes (4 passed): every new page is indexed
+with no orphans, wikilinks resolve, and each page traces to `raw/`.
+- The ingest landed as the two ingest commits — `4813d98` (registration + skill)
+and `80b78b2` (stamp correction + worked examples), with unrelated commits
+between them — `git log -1` over the raw path reports `80b78b2`, and the
+working tree is clean.
 - The instantiation recipe travels as a skill at
-  `.agents/skills/autoresearch-methodology/SKILL.md`, with its canonical ingest
-  pointer held repo-relative so it resolves from any clone.
-- The provenance correction is recorded: `entities/karpathy-autoresearch.md`
-  now states the Goodhart / "always sample generated output" caveat is NOT
-  upstream but added by this template lineage's own `autoresearch/contract/`,
-  grounded in the 2026-09-26 sha verification of the upstream files.
+`.agents/skills/autoresearch-methodology/SKILL.md`, with its canonical ingest
+pointer held repo-relative so it resolves from any clone.
+- The provenance correction is recorded: `entities/karpathy-autoresearch.md` now
+states the Goodhart / "always sample generated output" caveat is NOT upstream
+but added by this template lineage's own `autoresearch/contract/`, grounded in
+the 2026-09-26 sha verification of the upstream files.
 
 ## What Fails
 
 - **First ingest stamp missed the `body.strip()` convention:** the raw article
-  was committed in `4813d98` with `sha256: f1264f80…`, a value that is not
-  `sha256(body.strip())` — AC-EXC-002 was red against it until `80b78b2`
-  re-stamped the frontmatter to `2879373f…`, the value it carries today.
+was committed in `4813d98` with `sha256: f1264f80…`, a value that is not
+`sha256(body.strip())` — AC-EXC-002 was red against it until `80b78b2`
+re-stamped the frontmatter to `2879373f…`, the value it carries today.
 - **`kb/log.md` still records the pre-correction hash:** the 2026-09-26 ingest
-  line carries `sha256 f1264f80…` while the article's frontmatter reads
-  `2879373f…`; because the log is append-only, the two disagree until a later
-  line supersedes the ingest entry.
+line carries `sha256 f1264f80…` while the article's frontmatter reads
+`2879373f…`; because the log is append-only, the two disagree until a later
+line supersedes the ingest entry.
 - **The game/optimizer layer is registered, not measured:** the dual regulator
-  is implemented-but-inert (λ = μ = 0 across 22 live cycles), the season / PBT
-  loop is designed-not-observed, and the Markov transition matrix was never
-  estimated from data — three of the five formal layers are structural
-  readings, not measured dynamics.
+is implemented-but-inert (λ = μ = 0 across 22 live cycles), the season / PBT
+loop is designed-not-observed, and the Markov transition matrix was never
+estimated from data — three of the five formal layers are structural readings,
+not measured dynamics.
 
 ## Resolution
 
 - **First ingest stamp missed the strip convention:** re-stamp over
-  `body.strip()`; AC-EXC-002 now enforces the convention on every `unit`-tier
-  run, so a fresh ingest that hashes the wrong body fails CI instead of being
-  read past — the same gate `docs/04-examples-corpus.md` documents.
+`body.strip()`; AC-EXC-002 now enforces the convention on every `unit`-tier
+run, so a fresh ingest that hashes the wrong body fails CI instead of being
+read past — the same gate `docs/04-examples-corpus.md` documents.
 - **`kb/log.md` still records the pre-correction hash:** the frontmatter
-  (test-enforced) is authoritative; the log is the historical record, and the
-  next entry written for this path records the correction — appending, never
-  editing, preserves the add-only contract.
+(test-enforced) is authoritative; the log is the historical record, and the
+next entry written for this path records the correction — appending, never
+editing, preserves the add-only contract.
 - **Game/optimizer layer unmeasured:** read the formal mapping as a structural
-  reading and apply the ladder rule before trusting a layer — verify the
-  multipliers actually move (λ, μ ≠ 0) and estimate the chain from data before
-  relying on the regulator or the season loop.
+reading and apply the ladder rule before trusting a layer — verify the
+multipliers actually move (λ, μ ≠ 0) and estimate the chain from data before
+relying on the regulator or the season loop.
 
 ## Verdict
 
-**works** — the methodology is registered as a committed, catalogued, test-gated corpus
-addition (4 corpus-integrity + 4 kb-synthesis tests green over 16 raw sources and 26
-indexed pages, `sha256(body.strip())` matching), with the one recorded drift already
-caught by AC-EXC-002 and the residual log-hash / unmeasured-layer items being
-record-and-scope limits rather than a broken path.
+**works** — the methodology is registered as a committed, catalogued, test-gated
+corpus addition (4 corpus-integrity + 4 kb-synthesis tests green over 16 raw
+sources and 26 indexed pages, `sha256(body.strip())` matching), with the one
+recorded drift already caught by AC-EXC-002 and the residual log-hash /
+unmeasured-layer items being record-and-scope limits rather than a broken path.
