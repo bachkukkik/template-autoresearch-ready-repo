@@ -223,6 +223,49 @@ def run_engine(*args, cwd=ROOT, timeout=180):
     )
 
 
+# ─── event builders for replay tests ─────────────────────────────────────────
+
+
+def baseline(metric=10.0, seq=1, commit="base0"):
+    """A baseline event: one measured metric, direction and noise floor."""
+    return {
+        "type": "baseline",
+        "seq": seq,
+        "metric": metric,
+        "commit": commit,
+        "direction": "lower",
+        "noise_floor": 0.01,
+    }
+
+
+def trial(seq, iteration, outcome, metric, guard=None, commit="cand0"):
+    """A trial event, ``guard`` only when the outcome claims one."""
+    event = {
+        "type": "trial",
+        "seq": seq,
+        "iteration": iteration,
+        "outcome": outcome,
+        "metric": metric,
+        "direction": "lower",
+        "noise_floor": 0.01,
+        "description": "a change",
+        "commit": commit,
+    }
+    if guard is not None:
+        event["guard"] = guard
+    return event
+
+
+def stop(seq, reason="target"):
+    """A stop event closing the current segment."""
+    return {"type": "stop", "seq": seq, "reason": reason, "iteration": 1}
+
+
+def resume(seq, iteration=1):
+    """A resume event opening the next segment."""
+    return {"type": "resume", "seq": seq, "iteration": iteration}
+
+
 # ─── self-check ──────────────────────────────────────────────────────────────
 
 

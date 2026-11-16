@@ -7,11 +7,21 @@ One iteration is a fixed sequence, and the order is the safety property:
 
 Nothing the agent does can reach the metric without passing scope, the protected
 hashes and the guard first, and nothing it does survives a rejection.
+
+The agent's *exit code* decides nothing. A timeout or a non-zero exit still
+leaves a tree, and that tree is an unvetted candidate like any other: it is
+committed, guarded, measured and judged, and is only reverted if the pipeline
+rejects it. A keep banked that way carries ``salvaged`` and the agent's exit
+code, so a win the agent never got to report is banked instead of thrown away;
+a dead agent's *rejection* carries its exit code and the metric it measured,
+but no ``salvaged`` — nothing was recovered and banked.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 import os
 import shutil
 import sys
@@ -20,6 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
+from . import __version__
 from . import config as config_mod
 from . import decide as decide_mod
 from . import gitops
@@ -32,9 +43,19 @@ from . import prompt as prompt_mod
 #: ledger by a megabyte per iteration.
 LOG_TAIL_LIMIT = 4000
 
+#: Fewest iterations a wall must fund. Below this the wall is a broken
+#: invocation, not a bound: the loop would measure a baseline it can never
+#: iterate on and exit 0, which reads as success and is not.
+MIN_FUNDED_ITERATIONS = 1
+
 #: Outcomes whose log tail explains a failure, and so is worth showing the next
 #: attempt: the agent's own output, the guard's, or the verify's.
 PROMPT_FAILURE_OUTCOMES = ("agent_error", "guard_failed", "crash")
+
+#: Outcomes that describe a *violation* rather than a judgement of a score. A
+#: dead agent that leaves one keeps its specific name: "the tree went outside
+#: the scope" is a fact the record must not bury under ``agent_error``.
+VIOLATION_OUTCOMES = ("scope_violation", "protected_violation")
 
 
 @dataclass
@@ -64,22 +85,32 @@ class State:
             kind = event.get("type")
             if kind == "baseline":
                 state.baseline = event
-                state.incumbent = {
-                    "metric": event.get("metric"),
-                    "commit": event.get("commit"),
-                }
+                state.incumbent = _incumbent_from(event)
             elif kind == "trial":
                 state.trials.append(event)
                 if event.get("outcome") == "keep":
-                    state.incumbent = {
-                        "metric": event.get("metric"),
-                        "commit": event.get("commit"),
-                    }
+                    state.incumbent = _incumbent_from(event)
         return state
 
     @property
     def next_iteration(self) -> int:
         return max((int(t.get("iteration", 0)) for t in self.trials), default=0) + 1
+
+
+def _incumbent_from(event: dict) -> dict:
+    """The incumbent as the ledger recorded it: metric, commit, and the raw
+    measured values.
+
+    The values are not decoration: the margin compares the candidate against the
+    incumbent's *dispersion* as well as its median, so a replay (or a resumed
+    run) must be able to rebuild the incumbent's measurement without re-running
+    the verify command.
+    """
+    return {
+        "metric": event.get("metric"),
+        "commit": event.get("commit"),
+        "values": list(event.get("values") or []),
+    }
 
 
 class Emitter:
@@ -161,6 +192,18 @@ def _cap(text: str, limit: int = LOG_TAIL_LIMIT) -> str:
     """Keep the last ``limit`` characters of a log tail."""
     text = text or ""
     return text if len(text) <= limit else text[-limit:]
+
+
+def _joined_tail(agent_tail: str, phase_tail: str) -> str:
+    """The agent's tail followed by a later phase's, capped.
+
+    Only used when the agent died: its tail is the sole record of *why* the tree
+    was left unverified (the adapter writes ``agent timeout after Ns`` into it),
+    so a guard failure or a verify traceback is appended to it rather than
+    allowed to replace it.
+    """
+    parts = [part for part in (agent_tail, phase_tail) if part]
+    return _cap("\n".join(parts))
 
 
 def _unlink(cfg, paths: Sequence[str]) -> None:
@@ -256,6 +299,128 @@ def _streak(trials: Sequence[dict], predicate) -> int:
     return count
 
 
+def _repeats_phrase(repeats: int) -> str:
+    """``3 repeats`` / ``1 repeat`` — a count and its noun agree.
+
+    ``--repeats 1`` is legal (a single arm), and the preflight and the wall note
+    both quote the reservation to a human: "1 repeats × verify" reads as a bug
+    in the arithmetic rather than a choice the operator made.
+    """
+    count = int(repeats)
+    return f"{count} repeat" if count == 1 else f"{count} repeats"
+
+
+def _iteration_reservation(cfg, opts: Options) -> float:
+    """Seconds one iteration can still owe once the wall check has passed.
+
+    The agent's own timeout, then the guard, then the verify — which runs
+    ``repeats`` times, so the worst case is ``agent_timeout + guard_timeout +
+    repeats × verify_timeout`` (3300 s at the shipped defaults: 900 + 600 +
+    3 × 600). A fixed tail under-reserved any repeat-multiplied verify, so the
+    number is derived from the run's own config rather than guessed.
+    """
+    return (
+        float(opts.agent_timeout)
+        + float(cfg.guard_timeout)
+        + int(cfg.repeats) * float(cfg.verify_timeout)
+    )
+
+
+def _require_wall_funds_an_iteration(cfg, opts: Options) -> None:
+    """Refuse a wall that cannot pay for :data:`MIN_FUNDED_ITERATIONS` iteration.
+
+    ``_wall_exhausted`` taken to ``elapsed = 0``: a wall at or below the
+    reservation would measure a baseline, find iteration 1 unaffordable and
+    exit 0 — a documented invocation that silently does nothing. That is a
+    precondition error (exit 2) naming the smallest usable wall, raised before
+    the baseline so no baseline-only ledger is left behind.
+    """
+    reservation = _iteration_reservation(cfg, opts)
+    if not opts.max_wall or opts.max_wall > reservation * MIN_FUNDED_ITERATIONS:
+        return
+    minimum = math.ceil(reservation * MIN_FUNDED_ITERATIONS) + 1
+    raise config_mod.ConfigError(
+        f"--max-wall {opts.max_wall:g}s cannot fund even "
+        f"{MIN_FUNDED_ITERATIONS} iteration: one reserves {reservation:g}s "
+        f"(agent timeout {opts.agent_timeout:g}s + guard {cfg.guard_timeout:g}s "
+        f"+ {_repeats_phrase(cfg.repeats)} × verify {cfg.verify_timeout:g}s) — the "
+        f"smallest usable wall is {minimum}s; pass --max-wall 0 for unlimited"
+    )
+
+
+def _wall_exhausted(cfg, opts: Options, started: float) -> bool:
+    """True when the wall cannot fund another whole iteration.
+
+    Two clauses, one rule. The first is the wall itself; the second is the
+    budget the iteration would *need*, :func:`_iteration_reservation`, so the
+    loop stops with a measured, decided iteration behind it instead of being
+    killed by whoever set ``timeout`` on the engine. Unset (``0``) means
+    unlimited, and is left exactly as it was.
+    """
+    if not opts.max_wall:
+        return False
+    elapsed = time.monotonic() - started
+    return (
+        elapsed >= opts.max_wall
+        or elapsed + _iteration_reservation(cfg, opts) >= opts.max_wall
+    )
+
+
+def _measurement_of(incumbent: dict) -> measure_mod.Measurement:
+    """Rebuild the incumbent's :class:`measure.Measurement` from the ledger.
+
+    The margin needs the incumbent's dispersion, not only its median, so the
+    baseline and every kept trial record their raw ``values``. A ledger written
+    before those were recorded reconstructs a one-repeat measurement: no sample,
+    no spread, so the margin falls back to the configured floor — exactly the
+    rule those runs were decided by.
+    """
+    metric = incumbent.get("metric")
+    values = [
+        float(value)
+        for value in (incumbent.get("values") or ())
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+    ]
+    if not values and metric is not None:
+        values = [float(metric)]
+    return measure_mod.Measurement(
+        value=None if metric is None else float(metric),
+        values=values,
+        ok=True,
+    )
+
+
+def _referee_version(cfg) -> str:
+    """The referee's identity: a digest of the verify command itself.
+
+    The engine has no separate referee binary — the verify command *is* the
+    thing that produces the number a keep is judged on — so its content is the
+    referee version. Two runs scored by different commands then carry different
+    versions without either of them trusting a hand-written label.
+    """
+    digest = hashlib.sha256(cfg.verify.encode("utf-8")).hexdigest()
+    return "verify:" + digest[:12]
+
+
+def _model_route(adapter) -> str:
+    """Which harness the run drove, as an identifier: the adapter's executable
+    *name*. Never a URL, so a route string cannot carry credentials into an
+    append-only ledger (``provenance_block`` refuses those outright)."""
+    binary = adapter.resolve_binary()
+    return os.path.basename(binary) if binary else adapter.name
+
+
+def _provenance(cfg, adapter) -> Dict[str, str]:
+    """The provenance block a keep/discard event owes (PRD 20 SC-evl-3)."""
+    return ledger_mod.provenance_block(
+        model=adapter.model or f"{adapter.name}:default",
+        model_route=_model_route(adapter),
+        engine_version=__version__,
+        referee_version=_referee_version(cfg),
+        profile_path=config_mod.run_json_path(cfg.repo),
+    )
+
+
 def _append_record(path: str, iteration: int, description: str, patch: str) -> None:
     record = {"iteration": iteration, "description": description, "patch": patch}
     parent = os.path.dirname(os.path.abspath(path))
@@ -303,7 +468,11 @@ def _baseline(cfg, ledger: ledger_mod.Ledger, state: State, emit: Emitter) -> No
         }
     )
     state.baseline = event
-    state.incumbent = {"metric": measurement.value, "commit": commit}
+    state.incumbent = {
+        "metric": measurement.value,
+        "commit": commit,
+        "values": list(measurement.values),
+    }
     emit(event)
 
 
@@ -325,7 +494,16 @@ def _one_iteration(
         "guard": None,
         "description": f"iteration {iteration}",
         "log_tail": "",
+        # Cost is recorded even when it is unknown (PRD 20 SC-evl-6): a JSON null
+        # says "not exposed" where a 0 would claim the agent was free.
+        "agent_tokens": None,
+        "agent_api_calls": None,
     }
+
+    # Provenance is built *before* anything is committed: nothing in the block
+    # depends on the commit sha, and a failure here must abort on a clean tree
+    # rather than after HEAD moved to a candidate no event records.
+    provenance = _provenance(cfg, adapter)
 
     def done(outcome: str, **extra) -> dict:
         fields.update(extra)
@@ -364,15 +542,47 @@ def _one_iteration(
         ignored_before, gitops.ignored_snapshot(repo, cfg.scope)
     )
 
-    if not result.ok:
-        _revert(cfg, incumbent["commit"], extra_untracked=ignored_added)
-        return done("agent_error", exit_code=result.exit_code)
+    # A dead agent is not a dead candidate: a non-zero exit used to revert the
+    # tree *unread*, discarding work the verify would have kept. It now falls
+    # through the same pipeline; only the *reporting* differs, below.
+    dead = not result.ok
+
+    def rejected(outcome: str, **extra) -> dict:
+        """Report a pipeline rejection as what actually happened.
+
+        With a live agent this is the outcome the pipeline chose. With a dead
+        one the pipeline still decides *keep or not* — and a keep is banked by
+        the caller — but every rejection stays an ``agent_error``: the agent
+        died, whatever the tree it left would have scored, and a record that
+        read ``discard`` would claim a judgement nobody made. A violation keeps
+        its own name; it is about the tree, not about the score. The measured
+        ``metric``/``values`` fields ride along untouched, so the orphan tree's
+        score is on the record even when it is reverted, and no provenance block
+        is owed because no keep was adjudicated.
+
+        ``agent_exit_code`` rides along on every dead rejection — the death is
+        a fact about the iteration. ``salvaged`` does not: it marks a
+        measurement the engine recovered and *banked*, so only a keep carries
+        it. Stamped on every death, it read as "value recovered" where the tree
+        had measured nothing at all.
+        """
+        if not dead:
+            return done(outcome, **extra)
+        if outcome in VIOLATION_OUTCOMES:
+            return done(outcome, agent_exit_code=result.exit_code, **extra)
+        extra.pop("provenance", None)
+        return done(
+            "agent_error",
+            exit_code=result.exit_code,
+            agent_exit_code=result.exit_code,
+            **extra,
+        )
 
     if ignored_changed or ignored_added:
         # `git status` cannot see an ignored path, so a write to one inside the
         # scope used to read as `no_change` and survive the revert unguarded.
         _revert(cfg, incumbent["commit"], extra_untracked=ignored_added)
-        return done(
+        return rejected(
             "scope_violation",
             paths=sorted(set(ignored_changed) | set(ignored_added))[:20],
             reason="ignored file changed",
@@ -384,17 +594,17 @@ def _one_iteration(
         # loop's single way back to the incumbent, and it is what makes
         # "no_change" a statement about the tree rather than about git's view.
         _revert(cfg, incumbent["commit"])
-        return done("no_change")
+        return rejected("no_change")
 
     outside = [p for p in changed if not config_mod.under_scope(p, cfg.scope)]
     if outside:
         _revert(cfg, incumbent["commit"])
-        return done("scope_violation", paths=outside[:20])
+        return rejected("scope_violation", paths=outside[:20])
 
     mismatched = config_mod.protected_mismatches(cfg)
     if mismatched:
         _revert(cfg, incumbent["commit"])
-        return done("protected_violation", paths=mismatched)
+        return rejected("protected_violation", paths=mismatched)
 
     gitops.add(repo, changed)
     patch = gitops.staged_diff(repo, incumbent["commit"]) if opts.record else None
@@ -412,8 +622,12 @@ def _one_iteration(
     fields["guard"] = "pass" if guard_ok else "fail"
     if not guard_ok:
         _revert(cfg, incumbent["commit"])
-        fields["log_tail"] = _cap(guard_log or fields["log_tail"])
-        return done("guard_failed")
+        fields["log_tail"] = (
+            _joined_tail(fields["log_tail"], guard_log)
+            if dead
+            else _cap(guard_log or fields["log_tail"])
+        )
+        return rejected("guard_failed")
 
     measurement = measure_mod.measure(cfg)
     fields["values"] = measurement.values
@@ -421,19 +635,58 @@ def _one_iteration(
     fields["seconds"] = round(measurement.seconds, 3)
     if not measurement.ok:
         _revert(cfg, incumbent["commit"])
-        fields["log_tail"] = _cap(measurement.log_tail or fields["log_tail"])
-        return done("crash")
+        fields["log_tail"] = (
+            _joined_tail(fields["log_tail"], measurement.log_tail)
+            if dead
+            else _cap(measurement.log_tail or fields["log_tail"])
+        )
+        return rejected("crash")
 
-    decision = decide_mod.decide(
-        measurement.value, incumbent["metric"], cfg.direction, cfg.noise_floor
+    # The decision rule (PRD 20 SC-evl-2): beat the *margin*, ``max(floor,
+    # 1.96 * SE)``; inside it is ``inconclusive``, not a coin-flip keep. The
+    # relative floor keeps ``margin >= floor``, so every margin keep was legal.
+    incumbent_measurement = _measurement_of(incumbent)
+    # One margin, one answer: the threshold is computed once and handed back as
+    # an absolute floor, which reproduces it exactly (``Z * SE`` is inside it).
+    threshold = decide_mod.margin(
+        measurement, incumbent_measurement, cfg.noise_floor, mode="relative"
     )
-    if decision == decide_mod.KEEP:
-        state.incumbent = {"metric": measurement.value, "commit": commit}
+    verdict = decide_mod.decide_with_margin(
+        measurement, incumbent_measurement, cfg.direction, threshold
+    )
+    # What the loop applied, not what a reader would recompute: the event
+    # records the margin alongside the dispersion it was derived from.
+    judged = {
+        "repeats": measurement.repeats,
+        "spread": measurement.spread,
+        "honest": measurement.honest,
+        "se": measure_mod.standard_error_of_difference(
+            measurement, incumbent_measurement
+        ),
+        "margin": threshold,
+    }
+
+    if verdict == decide_mod.KEEP:
+        state.incumbent = {
+            "metric": measurement.value,
+            "commit": commit,
+            "values": list(measurement.values),
+        }
         _sweep_artifacts(cfg, before_measure)
-        return done("keep")
+        # A keep is the only outcome that recovers and *banks* a measurement,
+        # so it is the only one that may claim salvage.
+        salvaged = (
+            {"salvaged": True, "agent_exit_code": result.exit_code} if dead else {}
+        )
+        return done("keep", provenance=provenance, **judged, **salvaged)
 
     _revert(cfg, incumbent["commit"])
-    return done("discard")
+    if verdict == decide_mod.INCONCLUSIVE:
+        # Reverted exactly like a discard: the margin could not separate the two
+        # runs, so the candidate is not kept — and no provenance block is owed,
+        # because no claim about the candidate was made.
+        return rejected(decide_mod.INCONCLUSIVE, **judged)
+    return rejected("discard", provenance=provenance, **judged)
 
 
 def _planned_stops(cfg, opts: Options) -> List[str]:
@@ -563,6 +816,11 @@ def run(cfg, adapter, ledger: ledger_mod.Ledger, opts: Options, emit: Emitter) -
 
     config_mod.require_clean(cfg.repo, what="working tree")
 
+    # Before the baseline and before a dry run: a wall that cannot fund one
+    # iteration is a broken invocation, and refusing here keeps the documented
+    # invocation from measuring a baseline and exiting 0 having done nothing.
+    _require_wall_funds_an_iteration(cfg, opts)
+
     if opts.dry_run:
         return _dry_run(cfg, adapter, state, opts, emit)
 
@@ -612,8 +870,11 @@ def run(cfg, adapter, ledger: ledger_mod.Ledger, opts: Options, emit: Emitter) -
 
     try:
         while True:
-            if opts.max_wall and (time.monotonic() - started) >= opts.max_wall:
-                return _finish(cfg, ledger, state, emit, "max_wall", iteration - 1)
+            if _wall_exhausted(cfg, opts, started):
+                return _finish(
+                    cfg, ledger, state, emit, "max_wall", iteration - 1,
+                    opts=opts, started=started,
+                )
             if iteration > opts.max_iterations:
                 return _finish(cfg, ledger, state, emit, "max_iterations", iteration - 1)
 
@@ -637,7 +898,10 @@ def run(cfg, adapter, ledger: ledger_mod.Ledger, opts: Options, emit: Emitter) -
 
             reason = _stop_reason(cfg, state, opts, iteration, started)
             if reason:
-                return _finish(cfg, ledger, state, emit, reason, iteration)
+                return _finish(
+                    cfg, ledger, state, emit, reason, iteration,
+                    opts=opts, started=started,
+                )
             iteration += 1
     except KeyboardInterrupt:
         _revert(cfg, state.incumbent["commit"])
@@ -656,7 +920,7 @@ def _stop_reason(cfg, state: State, opts: Options, iteration: int, started: floa
         return "plateau"
     if iteration >= opts.max_iterations:
         return "max_iterations"
-    if opts.max_wall and (time.monotonic() - started) >= opts.max_wall:
+    if _wall_exhausted(cfg, opts, started):
         return "max_wall"
     return None
 
@@ -669,7 +933,16 @@ def _write_log(cfg, log_tail: str) -> None:
         pass
 
 
-def _finish(cfg, ledger: ledger_mod.Ledger, state: State, emit: Emitter, reason: str, iteration: int) -> int:
+def _finish(
+    cfg, ledger: ledger_mod.Ledger, state: State, emit: Emitter, reason: str,
+    iteration: int, *, opts: Optional[Options] = None, started: Optional[float] = None,
+) -> int:
+    """Append the final stop and, for a wall stop, say why in one line.
+
+    The stop event carries the reason for a script; the note is for the human
+    reading the run output, who otherwise sees "max_wall" and has to recompute
+    the reservation to believe it.
+    """
     event = ledger.append(
         {
             "type": "stop",
@@ -680,4 +953,12 @@ def _finish(cfg, ledger: ledger_mod.Ledger, state: State, emit: Emitter, reason:
         }
     )
     emit(event)
+    if reason == "max_wall" and opts is not None and started is not None:
+        emit.note(
+            f"wall: {time.monotonic() - started:.0f}s of {opts.max_wall:g}s spent; "
+            f"one iteration reserves {_iteration_reservation(cfg, opts):g}s "
+            f"(agent {opts.agent_timeout:g}s + guard {cfg.guard_timeout:g}s + "
+            f"{_repeats_phrase(cfg.repeats)} × verify {cfg.verify_timeout:g}s) — "
+            f"not starting iteration {iteration + 1}"
+        )
     return 0

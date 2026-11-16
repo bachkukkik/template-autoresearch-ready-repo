@@ -1,8 +1,11 @@
 """Per-job run repos + concurrent multi-topic service (PRD-06 SC1-SC5).
 
-IDs: AC-MCP-031..037 — spec: docs/prd/06-multi-topic-concurrent-service.md.
+IDs: AC-MCP-031..037, AC-SVC-006 — spec: docs/prd/06-multi-topic-concurrent-service.md.
+AC-SVC-006 (PRD-24 SC7) pins the workspaces root: a relative
+RESEARCH_WORKSPACES_DIR resolves against the service root, and a blank one is
+unset — never the root itself (which would scatter `<job_id>/` into the tree).
 
-Retargeted (PRD-20 W2): provisioning now produces a *git repo* per job and the
+Retargeted (PRD-24 W2): provisioning now produces a *git repo* per job and the
 loop is the engine's, so each ID pins the same behaviour on the engine-backed
 path — a disjoint ``<job_id>/repo`` per job, corpus delivery, the report fields,
 concurrent measurements, the scheduler cap, and sync handlers.
@@ -240,6 +243,80 @@ def test_concurrent_jobs_cap_honors_env(tmp_path):
         assert max_workers == main.MAX_CONCURRENT_JOBS
     else:
         assert main.MAX_CONCURRENT_JOBS >= 1  # constant-only fallback
+
+
+def _resolved_workspaces_dir(cwd: Path, value: str | None) -> str:
+    """DEFAULT_WORKSPACES_DIR as a *fresh* interpreter at ``cwd`` resolves it.
+
+    The module reads the env at import, so a second working directory needs a
+    second process; ``value`` None deletes the var, anything else sets it.
+    """
+    env = dict(os.environ)
+    env.pop("RESEARCH_WORKSPACES_DIR", None)
+    if value is not None:
+        env["RESEARCH_WORKSPACES_DIR"] = value
+    env["PYTHONPATH"] = os.pathsep.join(
+        [
+            str(REPO_ROOT / "autoresearch" / "service"),
+            str(REPO_ROOT / "autoresearch" / "engine"),
+        ]
+    )
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from autoresearch_service import workspace; "
+            "print(workspace.DEFAULT_WORKSPACES_DIR)",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=str(cwd),
+        env=env,
+        timeout=60,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return proc.stdout.strip()
+
+
+def test_workspace_paths_resolve_against_the_service_root(tmp_path):
+    """AC-SVC-006: RESEARCH_WORKSPACES_DIR resolves like RESEARCH_JOBS_DB.
+
+    A relative value anchors at the service root (``autoresearch/service``), so
+    the container's ``data/workspaces`` and a host shell's name the same
+    directory; a blank value is unset rather than the service root or
+    ``Path('')`` — the cwd — which would scatter ``<job_id>/`` into the tracked
+    service tree. Both are checked from two working directories in fresh
+    interpreters: a cwd-anchored default would give two answers.
+    """
+    service_root = REPO_ROOT / "autoresearch" / "service"
+    assert workspace.SERVICE_ROOT == service_root
+    assert workspace._service_path("data/workspaces") == service_root / "data" / "workspaces"
+    # An absolute value passes through.
+    assert workspace._service_path(tmp_path) == tmp_path
+
+    default = service_root / "data" / "workspaces"
+    elsewhere = tmp_path / "somewhere-else"
+    elsewhere.mkdir()
+
+    # Unset: one absolute answer, the default, whichever cwd the process has.
+    unset_here = _resolved_workspaces_dir(tmp_path, None)
+    unset_there = _resolved_workspaces_dir(elsewhere, None)
+    assert unset_here == unset_there == str(default)
+    assert Path(unset_here).is_relative_to(service_root)
+
+    # Relative: the same directory from either cwd, never cwd/data/workspaces.
+    rel_here = _resolved_workspaces_dir(tmp_path, "data/workspaces")
+    rel_there = _resolved_workspaces_dir(elsewhere, "data/workspaces")
+    assert rel_here == rel_there == str(default)
+
+    # Blank (empty or whitespace) is unset — not the service root itself, which
+    # is what a blank value becomes when it is handed straight to _service_path.
+    for blank in ("", "   "):
+        resolved = Path(_resolved_workspaces_dir(tmp_path, blank))
+        assert resolved == default
+        assert resolved != service_root
+        assert resolved.parent != service_root  # never <service-root>/<job_id>
+        assert resolved.is_relative_to(service_root)
 
 
 def test_handlers_are_sync_def():

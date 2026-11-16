@@ -30,6 +30,7 @@ from test_engine_support import (  # noqa: E402
 
 from autoresearch import config as config_mod  # noqa: E402
 from autoresearch import ledger as ledger_mod  # noqa: E402
+from autoresearch import loop as loop_mod  # noqa: E402
 
 SCORE_DIVIDES = '''"""A score that explodes on 0 — guard still passes, so this is a crash."""
 import pathlib
@@ -410,7 +411,13 @@ sys.exit(1)
 def test_agent_error_removes_untracked_files_outside_the_scope(tmp_path):
     """AC-ENG-055b: an agent that dies still leaves its files behind. Every
     non-keep reset must clean them, or the next run refuses to start because
-    the tree it inherits is dirty."""
+    the tree it inherits is dirty.
+
+    Since the salvage port (AC-ENG-082c) a dead agent's tree is *inspected*
+    rather than reverted unread, so this tree is rejected by name — a write
+    outside the scope is a ``scope_violation``, not a generic ``agent_error`` —
+    and the trial carries the agent's exit code as evidence.
+    """
     repo = make_target(tmp_path)
     script = write_agent(tmp_path, FAIL_OUTSIDE)
     assert init_run(repo) == 0
@@ -418,7 +425,10 @@ def test_agent_error_removes_untracked_files_outside_the_scope(tmp_path):
 
     assert run_cli(run_args(repo, script, extra=["--max-iterations", "2"])) == 0
 
-    assert outcomes(repo) == ["agent_error", "agent_error"]
+    assert outcomes(repo) == ["scope_violation", "scope_violation"]
+    trial = [e for e in read_events(repo) if e.get("type") == "trial"][0]
+    assert "salvaged" not in trial           # a breach recovers no measurement
+    assert trial["agent_exit_code"] == 1
     assert head(repo) == before
     assert value(repo) == 10
     assert not (repo / "notes.txt").exists()
@@ -776,3 +786,358 @@ def test_run_rejects_non_finite_limits(tmp_path, capsys):
         assert run_cli(run_args(repo, script, extra=extra)) == 2, extra
         assert "finite" in capsys.readouterr().err
     assert outcomes(repo) == []
+
+
+# ─── a dead agent's tree is still a candidate (AC-ENG-082..082d) ─────────────
+
+#: What a timed-out agent leaves behind: the edit lands, then the call hangs
+#: until the adapter's timeout kills it (exit 124). ``TIMEOUT_SECONDS`` is long
+#: enough for the write to reach disk (a loaded runner can be slow to fork).
+TIMEOUT_VALUE = '''
+import pathlib, sys, time
+
+path = pathlib.Path(sys.argv[1]) / "src" / "value.txt"
+path.write_text("{value}")
+print("CHANGE: value {value}, then hang")
+time.sleep(30)
+'''
+
+TIMEOUT_OUTSIDE = '''
+import pathlib, sys, time
+
+repo = pathlib.Path(sys.argv[1])
+(repo / "src" / "value.txt").write_text("2")
+(repo / "notes.txt").write_text("out of scope\\n")
+print("CHANGE: improve, escape and hang")
+time.sleep(30)
+'''
+
+#: Seconds the agent is given before the adapter kills it.
+TIMEOUT_SECONDS = "1.0"
+
+
+def timed_out_run(repo, script, extra=()):
+    """Drive the engine with an agent that hangs, so the call ends in exit 124."""
+    return run_cli(
+        run_args(repo, script, extra=["--agent-timeout", TIMEOUT_SECONDS, *extra])
+    )
+
+
+def trial_event(repo, index=0):
+    return [e for e in read_events(repo) if e.get("type") == "trial"][index]
+
+
+def test_a_timed_out_agent_whose_tree_improves_is_banked_as_a_keep(tmp_path):
+    """AC-ENG-082: the season's headline defect. A seat solved the metric inside
+    its worktree, its agent call hit the timeout, and the engine reverted the
+    tree unread — so the league measured a win it could not bank (``keeps: 0``).
+
+    The tree an agent leaves behind is a candidate whether or not the agent
+    exited cleanly, so a salvageable tree is committed, guarded, measured and
+    judged exactly like a live one. The event then says both things: it kept,
+    and the agent died doing it.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, TIMEOUT_VALUE.format(value=2))
+    assert init_run(repo) == 0
+    before = head(repo)
+
+    assert timed_out_run(repo, script, ["--max-iterations", "1"]) == 0
+
+    trial = trial_event(repo)
+    assert trial["outcome"] == "keep"
+    assert trial["salvaged"] is True
+    assert trial["agent_exit_code"] == 124          # the adapter's timeout exit
+    assert trial["metric"] == 2.0
+    assert trial["guard"] == "pass"
+    assert trial["margin"] is not None              # judged by the normal rule
+    assert "agent timeout after" in trial["log_tail"]
+    # A salvaged keep is a normal keep: HEAD moved, the incumbent moved, and the
+    # ledger still replays.
+    assert head(repo) == trial["commit"]
+    assert head(repo) != before
+    assert value(repo) == 2
+    assert stop_reason(repo) == "max_iterations"
+    assert ledger_mod.validate(read_events(repo)) == []
+    assert git(repo, "status", "--porcelain").stdout == ""
+
+
+def test_a_timed_out_agents_worse_tree_is_reverted_but_still_measured(tmp_path):
+    """AC-ENG-082b: salvage is not a licence to keep. A tree that does not clear
+    the margin is reverted exactly as before — but the outcome is
+    ``agent_error``, not ``discard``: nobody adjudicated a discarded candidate,
+    and the event carries the score the orphan tree actually measured. The death
+    is on the record as ``agent_exit_code``; ``salvaged`` is not, because
+    nothing was banked.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, TIMEOUT_VALUE.format(value=11))
+    assert init_run(repo) == 0
+    before = head(repo)
+    commits = commit_count(repo)
+
+    assert timed_out_run(repo, script, ["--max-iterations", "1"]) == 0
+
+    trial = trial_event(repo)
+    assert trial["outcome"] == "agent_error"
+    assert "salvaged" not in trial                   # no measurement was banked
+    assert trial["agent_exit_code"] == 124
+    assert trial["exit_code"] == 124
+    assert trial["metric"] == 11.0                  # what the tree measured
+    assert trial["values"] == [11.0]
+    assert trial["guard"] == "pass"
+    assert trial["margin"] is not None
+    assert "agent timeout after" in trial["log_tail"]
+    assert "provenance" not in trial                # no keep was adjudicated
+    assert head(repo) == before
+    assert commit_count(repo) == commits            # the candidate commit is gone
+    assert value(repo) == 10
+    assert git(repo, "status", "--porcelain").stdout == ""
+    assert ledger_mod.validate(read_events(repo)) == []
+
+
+def test_a_timed_out_agents_out_of_scope_tree_is_a_scope_violation(tmp_path):
+    """AC-ENG-082c: the death does not launder the breach. A tree that reaches
+    outside the scope keeps the outcome git's own view names — ``agent_error``
+    would bury a real violation — while the dead agent's exit code rides along.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, TIMEOUT_OUTSIDE)
+    assert init_run(repo) == 0
+    before = head(repo)
+
+    assert timed_out_run(repo, script, ["--max-iterations", "1"]) == 0
+
+    trial = trial_event(repo)
+    assert trial["outcome"] == "scope_violation"
+    assert "salvaged" not in trial                   # a breach is not a salvage
+    assert trial["agent_exit_code"] == 124
+    assert "notes.txt" in trial["paths"]
+    assert head(repo) == before
+    assert value(repo) == 10
+    assert not (repo / "notes.txt").exists()
+    assert git(repo, "status", "--porcelain").stdout == ""
+
+
+def test_a_live_agents_keep_carries_no_salvage_marker(tmp_path):
+    """AC-ENG-082d: ``salvaged`` is evidence, so an ordinary keep must not have
+    it — a reader has to be able to tell "the agent said so" from "the tree said
+    so" without reading the log.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, DECREMENT.format(step=2))
+    assert init_run(repo) == 0
+
+    assert run_cli(run_args(repo, script, extra=["--max-iterations", "1"])) == 0
+
+    trial = trial_event(repo)
+    assert trial["outcome"] == "keep"
+    assert "salvaged" not in trial
+    assert "agent_exit_code" not in trial
+
+
+#: A dead agent that left the tree alone: the call hangs, nothing is written.
+TIMEOUT_NO_CHANGE = '''
+import time
+
+print("CHANGE: nothing to do, then hang")
+time.sleep(30)
+'''
+
+
+def test_a_timed_out_agents_no_change_is_not_a_salvage(tmp_path):
+    """AC-ENG-082e: ``salvaged`` marks a measurement the engine recovered and
+    banked. A dead agent that changed nothing recovered nothing, so its trial
+    reports ``agent_error`` with no metric, the exit code that is the death, and
+    no salvage claim a reader would take for value recovered.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, TIMEOUT_NO_CHANGE)
+    assert init_run(repo) == 0
+
+    assert timed_out_run(repo, script, ["--max-iterations", "1"]) == 0
+
+    trial = trial_event(repo)
+    assert trial["outcome"] == "agent_error"     # the dead-agent bucket
+    assert trial["agent_exit_code"] == 124
+    assert trial["metric"] is None               # nothing was measured
+    assert "salvaged" not in trial
+    assert ledger_mod.validate(read_events(repo)) == []
+
+
+# ─── the wall funds a whole iteration or starts none (AC-ENG-083..083d) ─────
+
+
+def _freeze_loop_clock(monkeypatch, *, started=0.0, then=900.0):
+    """A clock only the loop reads: ``started`` on its first read, ``then`` after.
+
+    The loop's own reads are ``started = time.monotonic()`` and the wall check,
+    so this simulates "900 s of the wall are already gone" without patching the
+    global ``time`` module — which every subprocess timeout in the engine uses.
+    """
+    import types
+
+    from autoresearch import loop as loop_mod
+
+    first = [started]
+    monkeypatch.setattr(
+        loop_mod,
+        "time",
+        types.SimpleNamespace(monotonic=lambda: first.pop() if first else then),
+    )
+
+
+#: The documented `/ar-run` invocation: 3600 s against the engine's own defaults.
+AR_RUN_DEFAULT_WALL = 3600.0
+
+
+def _iteration_budget(repo, wall, agent_timeout=None):
+    """The cfg-derived reservation, read from the run this test configured."""
+    opts = loop_mod.Options(max_wall=wall)
+    if agent_timeout is not None:
+        opts.agent_timeout = agent_timeout
+    return loop_mod._iteration_reservation(config_mod.load(repo), opts)
+
+
+def test_a_wall_that_cannot_fund_one_iteration_is_refused_loudly(tmp_path, capsys):
+    """AC-ENG-083c: 900 s of agent plus a repeats-multiplied verify reserves
+    3300 s, so a 2000 s wall funds nothing at all — and under a fixed 120 s tail
+    the same wall looked affordable, so the run measured a baseline, could not
+    start iteration 1 and exited 0 having done nothing. It is now a
+    precondition error (exit 2) naming the smallest usable wall, raised before
+    the baseline so no baseline-only ledger is left behind.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, DECREMENT.format(step=2))
+    assert init_run(repo, repeats=3) == 0
+    before = head(repo)
+
+    assert run_cli(run_args(repo, script, extra=["--max-wall", "2000"])) == 2
+
+    err = capsys.readouterr().err
+    assert "--max-wall 2000s" in err
+    assert "reserves 3300s" in err            # cfg-derived, not a fixed tail
+    assert "smallest usable wall is 3301s" in err
+    assert read_events(repo) == []            # no baseline was measured
+    assert head(repo) == before
+
+
+def test_the_wall_refusal_states_the_count_it_enforces(tmp_path, capsys):
+    """AC-ENG-083c: the preflight quotes the reservation to a human, so its
+    noun agrees with the number — ``--repeats 1`` is a legal single arm, and
+    "1 repeats × verify" reads as broken arithmetic rather than a choice.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, DECREMENT.format(step=2))
+    assert init_run(repo, repeats=1) == 0  # 900 + 600 + 1 × 600 = 2100 s
+    capsys.readouterr()
+
+    assert run_cli(run_args(repo, script, extra=["--max-wall", "2000"])) == 2
+
+    err = capsys.readouterr().err
+    assert "reserves 2100s" in err
+    assert "1 repeat × verify" in err
+    assert "1 repeats" not in err
+
+
+def test_the_documented_ar_run_wall_funds_an_iteration(tmp_path, monkeypatch):
+    """AC-ENG-083d: the shipped `/ar-run` command (``--max-wall 3600``) must run
+    at least one iteration under the engine's default timeouts. At the old 900
+    the documented invocation was a silent no-op: the reservation is 3300 s, so
+    the loop would have stopped before iteration 1 and exited 0.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, DECREMENT.format(step=2))
+    assert init_run(repo, repeats=3) == 0
+    prompts = _capture_prompts(monkeypatch)
+
+    reservation = _iteration_budget(repo, AR_RUN_DEFAULT_WALL)
+    assert reservation == 900 + 600 + 3 * 600      # agent + guard + 3 × verify
+    assert loop_mod.MIN_FUNDED_ITERATIONS == 1
+    assert reservation * loop_mod.MIN_FUNDED_ITERATIONS < AR_RUN_DEFAULT_WALL
+
+    assert run_cli(
+        run_args(
+            repo,
+            script,
+            extra=["--max-wall", "3600", "--max-iterations", "1"],
+        )
+    ) == 0
+
+    assert len(prompts) == 1
+    assert outcomes(repo) == ["keep"]
+    assert stop_reason(repo) == "max_iterations"
+
+
+def test_the_wall_will_not_fund_an_iteration_it_cannot_finish(tmp_path, monkeypatch, capsys):
+    """AC-ENG-083: checked only at the top of the loop, the wall happily started
+    a 750 s agent with 100 s left, and the wrapper's ``timeout`` then killed the
+    engine mid-iteration — so the measurement, and any salvage of it, never
+    happened. A bound may never kill the run it bounds (season 2, R1).
+
+    The stop event says ``max_wall`` for a script; the human reading the run
+    output also gets one line with the arithmetic behind the refusal (the
+    ``emit.note`` in ``loop._finish``), so "max_wall" is not a number to
+    recompute — the note names the iteration that was not started.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, DECREMENT.format(step=2))
+    # A short guard and verify keep the reservation at 750 + 20 + 30 = 800 s, so
+    # a 1000 s wall is fundable at t=0 and unaffordable with 100 s left.
+    assert init_run(repo, extra=["--guard-timeout", "20", "--verify-timeout", "30"]) == 0
+    before = head(repo)
+    prompts = _capture_prompts(monkeypatch)
+    assert _iteration_budget(repo, 1000.0, agent_timeout=750.0) == 800.0
+    capsys.readouterr()  # drop init's own banner
+
+    _freeze_loop_clock(monkeypatch, started=0.0, then=900.0)
+    assert run_cli(
+        run_args(
+            repo,
+            script,
+            extra=[
+                "--max-wall", "1000",
+                "--agent-timeout", "750",
+                "--max-iterations", "5",
+            ],
+        )
+    ) == 0
+
+    assert prompts == []                 # the adapter was never invoked
+    assert outcomes(repo) == []
+    assert stop_reason(repo) == "max_wall"
+    assert head(repo) == before
+    assert ledger_mod.validate(read_events(repo)) == []
+
+    out = capsys.readouterr().out
+    assert "one iteration reserves 800s" in out      # the cfg-derived arithmetic
+    assert "not starting iteration 1" in out         # what was not funded
+
+
+def test_the_wall_funds_an_iteration_when_the_budget_is_there(tmp_path, monkeypatch):
+    """AC-ENG-083b: the refusal is arithmetic, not a blanket ban — with room for
+    a whole iteration the agent is invoked and the iteration completes.
+    """
+    repo = make_target(tmp_path, value=10)
+    script = write_agent(tmp_path, DECREMENT.format(step=2))
+    assert init_run(repo, extra=["--guard-timeout", "20", "--verify-timeout", "30"]) == 0
+    prompts = _capture_prompts(monkeypatch)
+
+    # The same 900 s gone, but a 4000 s wall leaves 3100 s — far more than the
+    # 800 s one iteration reserves.
+    _freeze_loop_clock(monkeypatch, started=0.0, then=900.0)
+    assert run_cli(
+        run_args(
+            repo,
+            script,
+            extra=[
+                "--max-wall", "4000",
+                "--agent-timeout", "750",
+                "--max-iterations", "1",
+            ],
+        )
+    ) == 0
+
+    assert len(prompts) == 1
+    assert outcomes(repo) == ["keep"]
+    assert stop_reason(repo) == "max_iterations"

@@ -19,7 +19,7 @@
 
 ## Evidence
 
-Reproduced 2026-10-16; full record in [`kb/raw/articles/2026-10-16-template-self-audit.md`](../../kb/raw/articles/2026-10-16-template-self-audit.md).
+Reproduced 2026-10-16; full record in [`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
 
 ```bash
 cp -r contract/examples/ex1-music-abc "$TMPDIR/ex1" && cd "$TMPDIR/ex1" && rm results.tsv \

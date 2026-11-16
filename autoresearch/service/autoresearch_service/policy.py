@@ -1,4 +1,4 @@
-"""What the API will run, and for whom — safe by default (PRD-20 SC4).
+"""What the API will run, and for whom — safe by default (PRD-24 SC4).
 
 Over REST/MCP the only agent allowed without configuration is ``replay``: it
 needs no harness binary, no credentials and no network, and it replays a patch

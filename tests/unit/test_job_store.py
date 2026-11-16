@@ -1,7 +1,9 @@
-"""Unit tier — durable SQLite job store. IDs: AC-MCP-011..014.
+"""Unit tier — durable SQLite job store. IDs: AC-MCP-011..014, AC-SVC-006.
 
 Contract (PRD-05 SC4): job-id/poll over a durable SQLite store that survives a
 service restart, with idempotent dispatch via an explicit idempotency_key.
+AC-SVC-006 (PRD-24 SC7) pins the store's path: a relative RESEARCH_JOBS_DB
+resolves against the service root, and a blank one is unset, never the root.
 """
 import os
 import threading
@@ -224,6 +226,67 @@ def test_db_path_fallback_is_service_data(tmp_path, monkeypatch):
         assert store.db_path == str(tmp_path / "data" / "jobs.db")
         assert os.path.isdir(tmp_path / "data")
         assert os.path.isfile(tmp_path / "data" / "jobs.db")
+    finally:
+        store.close()
+
+
+def test_a_relative_env_db_path_resolves_against_the_service_root(tmp_path, monkeypatch):
+    """AC-SVC-006: a *relative* RESEARCH_JOBS_DB is service-root-relative.
+
+    The container (`WORKDIR /app`) and a host shell are two working directories
+    for one config: resolving the env value against the process cwd wrote
+    `data/jobs.db` beside whichever directory the process started in — one job
+    store with two homes. The path is asserted, not opened, so the test never
+    writes into the tracked tree.
+    """
+    monkeypatch.setenv("RESEARCH_JOBS_DB", "data/jobs.db")
+    service_data = REPO_ROOT / "autoresearch" / "service" / "data" / "jobs.db"
+
+    other = tmp_path / "somewhere-else"
+    other.mkdir()
+    monkeypatch.chdir(tmp_path)
+    from_tmp = jobs._default_db_path()
+    monkeypatch.chdir(other)
+    assert jobs._default_db_path() == from_tmp  # cwd does not decide it
+    assert from_tmp == str(service_data)
+
+    # An absolute value still wins, untouched.
+    monkeypatch.setenv("RESEARCH_JOBS_DB", str(tmp_path / "mine.db"))
+    assert jobs._default_db_path() == str(tmp_path / "mine.db")
+
+
+def test_a_blank_env_db_path_is_unset_not_the_service_root(tmp_path, monkeypatch):
+    """AC-SVC-006: `RESEARCH_JOBS_DB=` (or whitespace) is unset.
+
+    Treated as a path, a blank value resolves to the service root itself, so the
+    store would land at `autoresearch/service/jobs.db` inside the tracked tree.
+    """
+    for blank in ("", "   "):
+        monkeypatch.setenv("RESEARCH_JOBS_DB", blank)
+        monkeypatch.chdir(tmp_path)
+        assert jobs._default_db_path() == jobs.DEFAULT_DB_PATH
+        assert jobs._default_db_path() != jobs.SERVICE_ROOT
+
+
+def test_claim_takes_a_queued_job_exactly_once(tmp_path):
+    """claim(): True for a queued job once, False for a taken or unknown id.
+
+    Dispatch is idempotent only because of this one guarded UPDATE: the second
+    caller gets False and runs nothing, and losing that race is not an error —
+    unlike `set_status`, where `running -> running` is an illegal transition.
+    """
+    store = JobStore(str(tmp_path / "claim.db"))
+    try:
+        job_id = store.create_job("claimable", {})["id"]
+
+        assert store.claim(job_id) is True
+        assert store.get_job(job_id)["status"] == "running"
+        assert store.claim(job_id) is False  # already taken
+        assert store.claim("no-such-job") is False  # unknown id
+
+        store.set_status(job_id, "completed")
+        assert store.claim(job_id) is False  # terminal is not claimable
+        assert store.get_job(job_id)["status"] == "completed"  # and is untouched
     finally:
         store.close()
 

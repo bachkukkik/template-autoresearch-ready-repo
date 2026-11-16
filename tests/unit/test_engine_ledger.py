@@ -216,3 +216,81 @@ def test_a_bad_line_before_the_end_is_still_fatal(tmp_path):
     )
     with pytest.raises(ledger_mod.LedgerError):
         ledger_mod.Ledger(path).read()
+
+
+# ─── replay re-checks the recorded margin (AC-EVL-005) ───────────────────────
+
+
+def test_a_keep_that_did_not_clear_its_recorded_margin_is_a_violation():
+    """AC-EVL-005: 9.6 beats the 1% floor around 10 (0.1) but not the margin the
+    event claims was applied (0.5) — a plausible fabricated margin must not
+    validate just because the delta clears the floor.
+
+    A keep that records the margin it was granted makes the stronger claim — the
+    delta cleared *that* number too — so replay holds it to it. A ledger written
+    before PRD 20 has no ``margin`` and is replayed by the legacy floor rule
+    alone, which is what keeps old histories valid.
+    """
+    event = {**trial(2, 1, "keep", 9.6, guard="pass"), "margin": 0.5}
+    problems = ledger_mod.validate([baseline(10.0), event, stop(3)])
+    assert problems == [
+        "seq 2: keep's improvement 0.4 does not exceed its recorded margin 0.5"
+    ]
+    # The same keep with a margin it does clear replays clean.
+    event["margin"] = 0.39
+    assert ledger_mod.validate([baseline(10.0), event, stop(3)]) == []
+
+
+def test_a_keep_without_a_recorded_margin_still_replays_by_the_legacy_rule():
+    """AC-EVL-005: a pre-PRD-20 event has no ``margin`` field; it must replay
+    unchanged (here — and for every ledger those runs wrote). An explicit
+    ``null`` claims nothing, exactly like an absent field."""
+    for label in (None, "null"):
+        event = trial(2, 1, "keep", 9.6, guard="pass")
+        if label:
+            event["margin"] = None
+        assert ledger_mod.validate([baseline(10.0), event, stop(3)]) == [], label
+    # And the legacy rule still bites where it always did.
+    inside_floor = trial(2, 1, "keep", 9.95, guard="pass")
+    assert any(
+        "not better than the incumbent" in p
+        for p in ledger_mod.validate([baseline(10.0), inside_floor, stop(3)])
+    )
+
+
+def test_a_keep_with_an_unusable_margin_is_a_violation():
+    """AC-EVL-005: a margin is an amount of improvement. NaN compares false
+    against everything (so it would *approve* the keep), a negative value
+    approves any move at all, an infinity could never be cleared, and a string
+    is not a number — each is a broken claim, not a legacy event."""
+    for bad in (float("nan"), -0.5, float("inf"), "0.5"):
+        event = {**trial(2, 1, "keep", 9.0, guard="pass"), "margin": bad}
+        problems = ledger_mod.validate([baseline(10.0), event, stop(3)])
+        assert problems, bad
+        assert "margin" in problems[0], (bad, problems)
+
+
+def test_an_inconclusive_trial_replays_clean_and_never_moves_the_incumbent():
+    """AC-EVL-005: ``inconclusive`` is a recorded outcome, not a keep and not a
+    penalty — the incumbent stands, so the next keep is judged against the
+    baseline, not against the reverted candidate."""
+    events = [
+        baseline(10.0),
+        trial(2, 1, "inconclusive", 9.0),
+        trial(3, 2, "discard", 9.0, guard="pass"),
+        stop(4, "plateau"),
+    ]
+    assert ledger_mod.validate(events) == []
+
+    # The replay still holds a keep that only beats the reverted candidate: the
+    # inconclusive run sat marginally *above* the baseline (inside the floor),
+    # so a keep at 9.99 is legal against it but not against the standing 10.0.
+    wrong = [
+        baseline(10.0),
+        trial(2, 1, "inconclusive", 10.05),
+        trial(3, 2, "keep", 9.99, guard="pass"),
+        stop(4),
+    ]
+    assert any(
+        "not better than the incumbent" in p for p in ledger_mod.validate(wrong)
+    )

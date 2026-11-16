@@ -1,6 +1,6 @@
 """SC5 — bounded, sandboxed measurement. IDs: AC-MCP-021..024.
 
-Retargeted (PRD-20 W2): the service no longer owns a subprocess loop or a metric
+Retargeted (PRD-24 W2): the service no longer owns a subprocess loop or a metric
 parser — the engine's ``measure`` module does. These IDs now pin the same
 behaviours on that engine-backed path: a completed baseline with a numeric
 metric, a timeout that is bounded and mapped, a failure when the workload cannot

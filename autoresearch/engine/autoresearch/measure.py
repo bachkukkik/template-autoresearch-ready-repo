@@ -9,6 +9,7 @@ ever logged, only names.
 
 from __future__ import annotations
 
+import math
 import os
 import re
 import statistics
@@ -24,6 +25,11 @@ SCRUB_PATTERN = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.IGNOREC
 FLOAT_RE = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
 
 TAIL_LINES = 40
+
+#: ``measure()`` reduces repeats to a **median**, whose SE is ``1.2533 * s /
+#: sqrt(n)`` (the factor is ``sqrt(pi/2)``). A margin built on the mean's
+#: ``s / sqrt(n)`` would be ~20% too narrow to be honest.
+MEDIAN_CONSISTENCY = 1.2533
 
 
 @dataclass
@@ -41,13 +47,62 @@ class CommandResult:
 
 @dataclass
 class Measurement:
-    """One verify run (or a repeat series reduced by median)."""
+    """One verify run (or a repeat series reduced by median).
+
+    ``repeats`` and ``spread`` are facts about ``values``, filled in here rather
+    than trusted from the caller: the spread is the sample standard deviation,
+    and below two repeats there is no sample, so it is ``None`` and the
+    measurement is not ``honest`` evidence of anything.
+
+    ``honest`` has exactly one definition, derived here and never assigned by a
+    caller: at least two repeats *and* a point estimate to talk about. A repeat
+    series that failed on its second run has several values but no result, and
+    claiming it as evidence would be a lie.
+    """
 
     value: Optional[float]
     values: List[float] = field(default_factory=list)
     seconds: float = 0.0
     ok: bool = False
     log_tail: str = ""
+    repeats: int = 0
+    spread: Optional[float] = None
+    honest: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.repeats:
+            self.repeats = len(self.values)
+        if self.spread is None and len(self.values) >= 2:
+            self.spread = statistics.stdev(self.values)
+        self.honest = self.repeats >= 2 and self.value is not None
+
+
+def standard_error_of_difference(
+    candidate: Measurement, incumbent: Measurement
+) -> Optional[float]:
+    """SE of the difference of two **medians**: ``sqrt(k^2 s1^2/n1 + k^2 s2^2/n2)``.
+
+    This is an **independent two-sample** standard error — nothing here is
+    paired: the two runs share no seed, no ordering and no data, so no
+    covariance term is available to subtract. ``k`` is
+    :data:`MEDIAN_CONSISTENCY`, because the point estimates the margin compares
+    are medians, not means.
+
+    ``None`` when either side is not honest (fewer than two repeats, i.e. no
+    sample to measure dispersion from, or no point estimate at all): the caller
+    must fall back to a fixed floor instead of inventing a zero. The gate is the
+    repeat count — the single source of truth for whether something was
+    measured — not ``spread``, so a hand-built measurement that reports repeats
+    but no recorded dispersion is treated as *no observed dispersion* (variance
+    0), exactly like a series of identical repeats.
+    """
+    if not candidate.honest or not incumbent.honest:
+        return None
+    first_spread = 0.0 if candidate.spread is None else candidate.spread
+    second_spread = 0.0 if incumbent.spread is None else incumbent.spread
+    return MEDIAN_CONSISTENCY * math.sqrt(
+        first_spread**2 / candidate.repeats + second_spread**2 / incumbent.repeats
+    )
 
 
 def scrub_env(env: Optional[Mapping[str, str]] = None) -> Dict[str, str]:

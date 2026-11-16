@@ -58,7 +58,7 @@ autoresearch/engine/bin/autoresearch init --repo . ... --force
 ```bash
 # 1. a local harness, small bound, record for replay
 autoresearch/engine/bin/autoresearch run --agent claude --model claude-sonnet-4-5 \
-  --max-iterations 5 --max-wall 900 --record .autoresearch/replay.jsonl
+  --max-iterations 5 --max-wall 3600 --record .autoresearch/replay.jsonl
 
 # 2. replay a recorded run anywhere, no harness installed: needs a --record JSONL
 autoresearch/engine/bin/autoresearch run --agent replay --replay .autoresearch/replay.jsonl
@@ -100,7 +100,7 @@ fails at baseline, no metric) · `3` ledger does not replay — `run`/`report` r
 ## Agent-less surfaces (API callers)
 
 An API, MCP client or CI job must **not** shell out to this binary. Go through the service
-(PRD-20), which bounds the agent allowlist and runs on a per-job copy of a bundled workload:
+(PRD-24), which bounds the agent allowlist and runs on a per-job copy of a bundled workload:
 `POST /api/v1/runs`, `GET /api/v1/runs/{job_id}`, `GET /api/v1/runs/{job_id}/report`,
 `DELETE /api/v1/runs/{job_id}`, plus the MCP `run_start` / `run_status` / `run_report` /
 `run_cancel` tools. See `autoresearch/service/README.md`.

@@ -3,7 +3,7 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-11-04 | Total pages: 45
+> Last updated: 2026-11-15 | Total pages: 50
 
 ## Concepts
 
@@ -18,6 +18,7 @@
 | Document Funnel Doctrine | [concepts/document-funnel-doctrine.md](concepts/document-funnel-doctrine.md) | high |
 | Domain Adaptation | [concepts/domain-adaptation.md](concepts/domain-adaptation.md) | medium |
 | Evaluator Legitimacy | [concepts/evaluator-legitimacy.md](concepts/evaluator-legitimacy.md) | medium |
+| Fair-Competition Invariants | [concepts/fair-competition-invariants.md](concepts/fair-competition-invariants.md) | medium |
 | Fixed Time Budget | [concepts/fixed-time-budget.md](concepts/fixed-time-budget.md) | high |
 | Formal Mapping (optimization theory, Markov chains, game theory) | [concepts/formal-mapping-autoresearch.md](concepts/formal-mapping-autoresearch.md) | medium |
 | GitHub Merge Gates | [concepts/github-merge-gates.md](concepts/github-merge-gates.md) | high |
@@ -28,15 +29,19 @@
 | Loop Stop Conditions | [concepts/loop-stop-conditions.md](concepts/loop-stop-conditions.md) | high |
 | MCP Streamable HTTP Transport | [concepts/mcp-streamable-http-transport.md](concepts/mcp-streamable-http-transport.md) | high |
 | Methodology Registration (the reusable template pattern) | [concepts/methodology-registration.md](concepts/methodology-registration.md) | high |
+| Objective as Record | [concepts/objective-as-record.md](concepts/objective-as-record.md) | medium |
 | Output-medium escalation | [concepts/output-medium-escalation.md](concepts/output-medium-escalation.md) | medium |
 | Problem Selection | [concepts/problem-selection.md](concepts/problem-selection.md) | medium |
 | QC Test Tiers | [concepts/qc-test-tiers.md](concepts/qc-test-tiers.md) | high |
 | Quality Controls | [concepts/quality-controls.md](concepts/quality-controls.md) | high |
+| Relocation, Not Play | [concepts/relocation-not-play.md](concepts/relocation-not-play.md) | medium |
 | Research Job Pattern | [concepts/research-job-pattern.md](concepts/research-job-pattern.md) | high |
 | Reward-Hacking Countermeasures | [concepts/reward-hacking-countermeasures.md](concepts/reward-hacking-countermeasures.md) | high |
+| Run-Record Contract | [concepts/run-record-contract.md](concepts/run-record-contract.md) | medium |
 | Scanning Without Advanced Security | [concepts/scanning-without-advanced-security.md](concepts/scanning-without-advanced-security.md) | high |
 | Script-Owned Keep/Revert | [concepts/script-owned-keep-revert.md](concepts/script-owned-keep-revert.md) | high |
 | Skill Self-Improvement | [concepts/skill-self-improvement.md](concepts/skill-self-improvement.md) | medium |
+| Unattended Loop Recipe | [concepts/unattended-loop-recipe.md](concepts/unattended-loop-recipe.md) | medium |
 | Val-BPB Metric | [concepts/val-bpb-metric.md](concepts/val-bpb-metric.md) | high |
 | Verify/Guard Contract | [concepts/verify-guard-contract.md](concepts/verify-guard-contract.md) | high |
 
@@ -86,6 +91,9 @@
 | OSS autoresearch landscape — 19 MIT/Apache-2.0 implementations | [raw/articles/2026-10-16-autoresearch-oss-landscape.md](raw/articles/2026-10-16-autoresearch-oss-landscape.md) | 2026-10-16 |
 | Template self-audit — contract, examples, harness, integrity | [raw/articles/2026-10-16-template-self-audit.md](raw/articles/2026-10-16-template-self-audit.md) | 2026-10-16 |
 | Autoresearch engines that improve real code — 15-system evidence table, verify/guard contract, harness argv | [raw/articles/2026-10-28-autoresearch-real-world-engines.md](raw/articles/2026-10-28-autoresearch-real-world-engines.md) | 2026-10-28 |
+| PR-Agent — OSS AI PR reviewer: licence path, self-host matrix, cost traps | [raw/articles/2026-11-04-pr-agent-research.md](raw/articles/2026-11-04-pr-agent-research.md) | 2026-11-04 |
+| Downstream frontier distillation — 42-PR league record: R28–R39, fair-competition invariants, fail-closed eval doctrine, run-record shape | [raw/articles/2026-11-15-downstream-frontier-distillation.md](raw/articles/2026-11-15-downstream-frontier-distillation.md) | 2026-11-15 |
+| Codified agent guardrails — potato (inverse) pyramid, 69 techniques across 6 research items | [raw/articles/potato-pyramid-codified-guardrails-research.md](raw/articles/potato-pyramid-codified-guardrails-research.md) | 2026-11-15 |
 | transcript — music AI model | [raw/transcripts/-Ip9EtoBjbk.txt](raw/transcripts/-Ip9EtoBjbk.txt) | 2026-09-04 |
 | transcript — can you autoresearch everything | [raw/transcripts/bMoNOb0iXpA.txt](raw/transcripts/bMoNOb0iXpA.txt) | 2026-09-04 |
 | transcript — best local LLM | [raw/transcripts/jCNeVZJAYGM.txt](raw/transcripts/jCNeVZJAYGM.txt) | 2026-09-04 |
@@ -97,13 +105,14 @@
 | transcript — playlist D&D fine-tune | [raw/transcripts/T6pQVgIt8ZY.txt](raw/transcripts/T6pQVgIt8ZY.txt) | 2026-09-04 |
 | transcript — playlist metrics vs code | [raw/transcripts/U4kZ0t7Onhw.txt](raw/transcripts/U4kZ0t7Onhw.txt) | 2026-09-04 |
 | transcript — playlist nanobot training | [raw/transcripts/jZB0VeXlETU.txt](raw/transcripts/jZB0VeXlETU.txt) | 2026-09-04 |
+| transcript — all code is slop except mine (Lauren Tan, AI Engineer Code Summit 2026-11-11) | [raw/transcripts/2026-11-11-all-code-is-slop-except-mine-lauren-tan.txt](raw/transcripts/2026-11-11-all-code-is-slop-except-mine-lauren-tan.txt) | 2026-11-15 |
 
 ## Stats
 
-- Concepts: 30
-- Entities: 6
+- Concepts: 35
+- Entities: 7
 - Comparisons: 8
 - Queries: 0
-- Raw sources: 22
+- Raw sources: 26
 - Archived: 4
-- Total: 44
+- Total: 50

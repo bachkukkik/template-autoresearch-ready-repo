@@ -1,4 +1,4 @@
-"""Dual-exposure autoresearch service, re-founded on the engine (PRD-20 SC1-SC4).
+"""Dual-exposure autoresearch service, re-founded on the engine (PRD-24 SC1-SC4).
 
 One ASGI app serves REST under ``/api/v1`` and MCP streamable HTTP at ``/mcp``
 from the same FastAPI/FastMCP process: each operation handler is defined once and
@@ -18,7 +18,7 @@ Two operation families:
     numeric ``val_bpb``. Execution is one engine measurement of the bundled
     ``contract`` workload.
 ``run_*`` / ``doctor``
-    PRD-20: a full keep/discard loop over a bundled workload driven by an
+    PRD-24: a full keep/discard loop over a bundled workload driven by an
     allowlisted agent (``replay`` by default), its report, and an inventory of
     what this instance can run.
 
@@ -36,6 +36,7 @@ no code-execution tool, and an agent allowlist (``policy``) that fails closed.
 """
 
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -63,10 +64,16 @@ from .workspace import (
 
 PORT = int(os.environ.get("PORT", "8000"))
 
+logger = logging.getLogger(__name__)
+
 # PRD-06: cap on concurrently executing jobs (scheduler thread pool).
 MAX_CONCURRENT_JOBS = max(1, int(os.environ.get("RESEARCH_MAX_CONCURRENT_JOBS", "4")))
 
-# The workload a research_* job measures: the bundled toy contract (PRD-20 SC3).
+# What a `running` job is failed with when the process that owned it stopped:
+# re-running it is not safe, because it may already have had side effects.
+INTERRUPTED_ERROR = "interrupted: the service restarted while this job was running"
+
+# The workload a research_* job measures: the bundled toy contract (PRD-24 SC3).
 RESEARCH_WORKLOAD = "contract"
 
 # Per-endpoint MCP tool flags: True means the operation is ALSO exposed as an
@@ -107,7 +114,7 @@ class ResearchRequest(BaseModel):
 
 
 class RunRequest(BaseModel):
-    """Body of POST /api/v1/runs (PRD-20 SC3/SC4)."""
+    """Body of POST /api/v1/runs (PRD-24 SC3/SC4)."""
 
     workload: str = RESEARCH_WORKLOAD
     agent: str = policy.REPLAY
@@ -142,9 +149,10 @@ def research_start(
     params = params or {}
     # Fail fast on missing corpus files (PRD-06 SC5): ValueError -> 400/tool error.
     validate_corpus_files(corpus_spec_from_params(params))
+    _job_target(params)  # an unknown kind is refused before a job row exists
     job = _store.create_job(topic, params, idempotency_key=idempotency_key)
     if job["status"] == "queued":  # an idempotent replay returns the existing job
-        _scheduler.add_job(_execute_research, args=[job["id"]])
+        _dispatch(job)
     return job
 
 
@@ -163,7 +171,7 @@ def research_cancel(job_id: str) -> dict:
     return _cancel(job_id)
 
 
-# -- run operations (PRD-20) -------------------------------------------------
+# -- run operations (PRD-24) -------------------------------------------------
 
 
 def run_start(
@@ -193,7 +201,7 @@ def run_start(
         idempotency_key=idempotency_key,
     )
     if job["status"] == "queued":
-        _scheduler.add_job(_execute_run, args=[job["id"]])
+        _dispatch(job)
     return job
 
 
@@ -280,10 +288,11 @@ def _execute_research(job_id: str) -> None:
     ``status`` is mapped from the measurement: ``completed`` | ``timeout`` |
     ``failed``.
     """
+    # One atomic claim, so a repeat dispatch (recovery racing a start, or
+    # APScheduler handing one job to two threads) runs nothing twice.
     job = _store.get_job(job_id)
-    if job is None or job["status"] != "queued":
-        return  # cancelled or unknown before the run began
-    _store.set_status(job_id, "running")
+    if job is None or not _store.claim(job_id):
+        return  # cancelled, already taken, or unknown before the run began
     topic = job["topic"]
     repo = repo_dir(job_id)
     try:
@@ -340,9 +349,8 @@ def _measure_once(repo: Path) -> dict:
 def _execute_run(job_id: str) -> None:
     """Scheduler entrypoint: drive the engine loop over a provisioned run repo."""
     job = _store.get_job(job_id)
-    if job is None or job["status"] != "queued":
+    if job is None or not _store.claim(job_id):
         return
-    _store.set_status(job_id, "running")
     params = job["params"]
     result: dict = {"status": "failed"}
     try:
@@ -411,6 +419,66 @@ def _engine_summary(repo: Path) -> dict | None:
         "outcomes": summary["outcomes"],
         "stop_reason": summary["stop_reason"],
     }
+
+
+def _job_target(params: dict | None):
+    """The executor a job's own ``kind`` names; an unknown kind is refused.
+
+    Research jobs carry no ``kind``; ``run_*`` params are stamped
+    ``"kind": "run"`` by ``policy.validate_run_request``. Anything else is a
+    caller mistake, so it raises instead of silently running a measurement.
+    """
+    kind = (params or {}).get("kind")
+    if kind is None:
+        return _execute_research
+    if kind == "run":
+        return _execute_run
+    raise ValueError(f"unknown job kind: {kind!r} — expected no kind or 'run'")
+
+
+def _dispatch(job: dict) -> None:
+    """Queue a stored job on the scheduler — the ONE dispatch path.
+
+    A newly created job and a `queued` job recovered at startup take the same
+    call, so a redeploy cannot strand work the durable store already holds.
+    Which executor runs it is the job's own ``kind`` (a ``run_*`` job's params
+    carry ``"kind": "run"``); each executor claims the job atomically, so a
+    duplicate dispatch runs nothing twice.
+    """
+    target = _job_target(job["params"])
+    if _scheduler is None:
+        raise RuntimeError(
+            "dispatch needs a scheduler: call create_app() first "
+            "(a job dispatched before it would sit `queued` for ever)"
+        )
+    _scheduler.add_job(target, args=[job["id"]])
+
+
+def recover_interrupted_jobs(store) -> dict:
+    """Settle the jobs a previous process left unfinished (PRD-24 SC7).
+
+    The store outlives a restart (the ``service-data`` volume), the in-process
+    scheduler does not: a job left `queued` never ran, so it is dispatched again
+    through `_dispatch` — the path a new job takes; a job left `running` was cut
+    off mid-run and may already have had side effects, so it is failed rather
+    than re-run. Called once from the app lifespan, after the scheduler starts,
+    and assumes this process is the only owner of the store: a second process
+    starting on the same ``jobs.db`` would fail the first process's live jobs
+    (docs/12-service-runtime-state.md).
+    """
+    interrupted = store.jobs_with_status("running")
+    for job in interrupted:
+        store.set_status(job["id"], "failed", INTERRUPTED_ERROR)
+    requeued = store.jobs_with_status("queued")
+    for job in requeued:
+        _dispatch(job)
+    counts = {"requeued": len(requeued), "interrupted": len(interrupted)}
+    logger.info(
+        "startup recovery: requeued %d, interrupted %d",
+        counts["requeued"],
+        counts["interrupted"],
+    )
+    return counts
 
 
 # Register the flagged operations as MCP tools (same handler objects).
@@ -502,7 +570,14 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         _scheduler.start()
+        # Everything after start() lives in the try: a scheduler left running
+        # here would make the NEXT start fail with SchedulerAlreadyRunningError
+        # and hide whatever actually went wrong, so recovery runs inside it.
         try:
+            # The store persists across a restart (the `service-data` volume), the
+            # scheduler does not: settle what the previous process left behind. A
+            # failure here still fails startup — an unreadable store is fatal.
+            recover_interrupted_jobs(_store)
             async with mcp_app.lifespan(app):
                 yield
         finally:

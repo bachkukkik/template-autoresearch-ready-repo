@@ -67,7 +67,9 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="run the keep/discard loop")
     run.add_argument("--repo", default=".")
     run.add_argument("--agent", required=True, choices=list(adapters_mod.AGENTS))
-    run.add_argument("--model", default=None)
+    run.add_argument("--model", default=None,
+                     help="model name recorded in provenance — a name, not a "
+                          "gateway URL carrying credentials")
     run.add_argument("--agent-cmd", default=None,
                      help="command adapter template; {prompt_file} and {repo} are substituted")
     run.add_argument("--agent-arg", action="append", default=[],
@@ -86,6 +88,11 @@ def build_parser() -> argparse.ArgumentParser:
     status = sub.add_parser("status", help="replay-validate the ledger and summarise the run")
     status.add_argument("--repo", default=".")
     status.add_argument("--json", dest="json_output", action="store_true")
+    status.add_argument(
+        "--require-provenance",
+        action="store_true",
+        help="fail (exit 3) when a keep/discard decision carries no provenance block",
+    )
     status.set_defaults(func=cmd_status)
 
     report = sub.add_parser("report", help="write report.md and results.tsv")
@@ -158,6 +165,12 @@ def cmd_run(args) -> int:
         raise config_mod.ConfigError("--agent-timeout must be a finite number > 0")
     if not math.isfinite(args.max_wall) or args.max_wall < 0:
         raise config_mod.ConfigError("--max-wall must be a finite number >= 0")
+    if args.model and ledger_mod.embeds_credentials(args.model):
+        # `--model` is recorded verbatim in an append-only ledger, so a secret
+        # there can only be rotated away. Refused in preflight, before any write.
+        raise config_mod.ConfigError(
+            "--model embeds credentials — pass the model name, not a URL with userinfo"
+        )
 
     adapter = adapters_mod.make_adapter(
         args.agent,
@@ -186,7 +199,9 @@ def cmd_run(args) -> int:
 
 def cmd_status(args) -> int:
     cfg = config_mod.load(args.repo)
-    events, problems = ledger_mod.load(cfg.events_path)
+    events, problems = ledger_mod.load(
+        cfg.events_path, require_provenance=args.require_provenance
+    )
     if args.json_output:
         payload = report_mod.summarize(cfg, events)
         payload["valid"] = not problems

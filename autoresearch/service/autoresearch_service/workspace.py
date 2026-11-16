@@ -1,4 +1,4 @@
-"""Per-job run repos for the engine-backed service (PRD-06 SC1/SC2, PRD-20 SC4).
+"""Per-job run repos for the engine-backed service (PRD-06 SC1/SC2, PRD-24 SC4).
 
 Every job — a ``research_*`` baseline measurement or a full ``run_*`` loop — gets
 its own repository at ``<workspaces_root>/<job_id>/repo``: a copy of a *bundled*
@@ -28,12 +28,24 @@ from autoresearch import gitops
 
 from .workloads import Workload, run_timeout
 
-# autoresearch/service/data/workspaces — that dir is gitignored; env override for compose.
-DEFAULT_WORKSPACES_DIR = Path(
-    os.environ.get(
-        "RESEARCH_WORKSPACES_DIR",
-        str(Path(__file__).resolve().parents[1] / "data" / "workspaces"),
-    )
+# The service root — the directory holding autoresearch_service/ (and the
+# Dockerfile). Runtime paths resolve against it, so a host run from any working
+# directory and the container name one runtime-state home.
+SERVICE_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _service_path(value: str | Path) -> Path:
+    """A relative path resolves against the service root, never the process cwd."""
+    path = Path(value)
+    return path if path.is_absolute() else SERVICE_ROOT / path
+
+
+# service root/data/workspaces — service/data/* is gitignored; env override for
+# compose. `or` (not `get(default)`) so an exported-empty value falls back to the
+# default: `Path('')` is the cwd, and that scatters `<job_id>/` into the tracked tree.
+DEFAULT_WORKSPACES_DIR = _service_path(
+    (os.environ.get("RESEARCH_WORKSPACES_DIR") or "").strip()
+    or str(SERVICE_ROOT / "data" / "workspaces")
 )
 # Repo root/kb/raw on the host, /kb-raw in the compose container (PRD-06).
 # parents[3]: this file is autoresearch/service/autoresearch_service/workspace.py.
@@ -108,7 +120,7 @@ def provision_run_repo(
 ) -> Path:
     """Copy a bundled workload into a committed, engine-configured repo.
 
-    Layout (PRD-20 SC4 — one repo per job, always under the workspaces root)::
+    Layout (PRD-24 SC4 — one repo per job, always under the workspaces root)::
 
         <workspaces_root>/<job_id>/
           repo/                      <- the job's git repo (the engine drives it)

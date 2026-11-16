@@ -1,4 +1,4 @@
-# PRD 20 — AutoResearch as a Service: One Engine, Four Surfaces
+# PRD 24 — AutoResearch as a Service: One Engine, Four Surfaces
 
 > Intent: one codebase drives the autoresearch loop from every surface an adopter
 > reaches for — **agent mode** (slash commands / skill), **CLI**, **REST API** and
@@ -8,7 +8,7 @@
 > [headless-harness-invocation](../../kb/concepts/headless-harness-invocation.md),
 > [autoresearch-engines-real-world](../../kb/comparisons/autoresearch-engines-real-world.md);
 > builds on PRD-05 (REST + MCP service), PRD-06 (multi-topic service) and PRD-17 (engine).
-> Gap: [20-three-loops-one-name](../gaps/20-three-loops-one-name.md).
+> Gap: [24-three-loops-one-name](../gaps/_archive/24-three-loops-one-name.md).
 
 ## Context
 
@@ -63,7 +63,15 @@ stays as a documented, separate methodology); multi-host job distribution.
 - **SC6 — Demonstrated live.** From a clean pull and a `docker compose up`, one bundled
   workload is driven through each surface (CLI, REST, MCP, a slash command) with recorded
   commands and outputs.
-  _Verify:_ `docs/20-autoresearch-as-a-service.md` (empirical; commands reproduced there).
+  _Verify:_ `docs/24-autoresearch-as-a-service.md` (empirical; commands reproduced there).
+- **SC7 — State survives the second `up --build`.** The job store lives on the
+  `service-data` named volume; a *relative* `RESEARCH_JOBS_DB` /
+  `RESEARCH_WORKSPACES_DIR` resolves against the service root, never the process cwd; and
+  startup reconciles what a stopped process left — `queued` jobs are dispatched again
+  through the ordinary path, `running` ones are failed as interrupted and never re-run.
+  _Verify:_ `tests/unit/test_job_store.py` + `tests/unit/test_workspace.py` (AC-SVC-006),
+  `tests/unit/test_startup_recovery.py` (AC-SVC-007), `tests/unit/test_service_layout.py`
+  (AC-SVC-008, compose text with a negative control) and `docker compose config -q`.
 
 ## Test Mapping
 
@@ -75,6 +83,7 @@ stays as a documented, separate methodology); multi-host job distribution.
 | agent allowlist, `command` refused, no host-path workloads | `tests/unit/test_service_engine.py` | AC-SVC-020..024 |
 | REST + MCP live over a socket / container | `tests/integration/*`, `tests/e2e/service.bats` | AC-MCP-*, AC-SVC-101..102, AC-SVC-201..202 |
 | skill + slash commands resolve for every harness | `tests/unit/test_harness_neutrality.py` | AC-HRN-019..020 |
+| runtime state: service-root path resolution, named volume, startup recovery | `tests/unit/test_{job_store,workspace,startup_recovery,service_layout}.py` | AC-SVC-006..008 |
 
 ## CI/CD Gate
 
