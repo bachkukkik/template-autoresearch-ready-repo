@@ -24,6 +24,12 @@ PR_AGENT_TOML = REPO_ROOT / ".pr_agent.toml"
 README = REPO_ROOT / "README.md"
 JOB = "pr_agent_job"
 
+# AC-PRA-004: the reviewed release commit (v0.49.0). Pinned by SHA only, not by
+# owner prefix: `The-PR-Agent/pr-agent` is canonical and `qodo-ai/pr-agent` is a
+# 301 alias to it, so asserting the owner would break on a rename that changes
+# nothing about the code being run.
+ACTION_SHA = "efdde4afe14aa401a3889012c7f3e9ef3081a430"
+
 # AC-PRA-005: the conventional names an adopter (or agent) already knows. The
 # mapping onto PR-Agent's own env lives inside the workflow only, so the surface
 # stays recognizable and no PR-Agent-specific knowledge is required to opt in.
@@ -33,8 +39,11 @@ SURFACE_NAMES = (
     "vars.OPENAI_DEFAULT_MODEL",
 )
 
-# AC-PRA-007: the keys the optional `.env.example` block must expose.
+# AC-PRA-007: the keys the optional `.env.example` block must expose. The gate is
+# a boolean flag, so it ships as a literal `false` — a placeholder like `changeme`
+# would read as an ambiguous, non-boolean value to anything parsing `.env`.
 ENV_KEYS = ("PR_AGENT_ENABLED", "OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_DEFAULT_MODEL")
+ENV_BOOL_KEYS = ("PR_AGENT_ENABLED",)
 
 
 def _read(path):
@@ -142,13 +151,16 @@ def test_ac_pra_004_action_is_sha_pinned_with_a_version_comment():
         f"pr-agent.yml must carry exactly one `uses:` (the reviewer action), got {refs}"
     )
     ref = refs[0]
-    assert ref.startswith("The-PR-Agent/pr-agent@"), (
-        f"the reviewer action must be The-PR-Agent/pr-agent, got {ref!r} (AC-PRA-004)"
-    )
     _, _, rev = ref.rpartition("@")
     assert re.fullmatch(r"[0-9a-f]{40}", rev), (
         f"{ref!r} is not SHA-pinned. A mutable tag can be re-pointed at attacker "
         "code; pin the full 40-hex commit SHA (AC-PRA-004 / AC-QC-002)"
+    )
+    assert rev == ACTION_SHA, (
+        f"the reviewer action must stay on the reviewed release commit "
+        f"{ACTION_SHA} (v0.49.0), got {ref!r} (AC-PRA-004). The owner prefix is "
+        "not asserted: `The-PR-Agent/pr-agent` is canonical and `qodo-ai/pr-agent` "
+        "301-redirects to it, so either name resolves to this same commit"
     )
     line = next(line for line in text.splitlines() if "uses:" in line)
     assert re.search(r"#\s*v\d+\.\d+\.\d+\s*$", line), (
@@ -217,6 +229,13 @@ def test_ac_pra_007_env_example_documents_the_optional_block():
             values[match.group(1)] = match.group(2)
     for key in ENV_KEYS:
         assert key in values, f".env.example is missing the `{key}=` line (AC-PRA-007)"
+        if key in ENV_BOOL_KEYS:
+            assert values[key] in ("true", "false"), (
+                f".env.example `{key}` must be the boolean literal 'true' or 'false', "
+                f"got {values[key]!r} — a flag reads as a flag, and only 'true' "
+                "enables the workflow job (AC-PRA-007)"
+            )
+            continue
         assert values[key] in ("", "changeme"), (
             f".env.example `{key}` must be a placeholder ('' or 'changeme'), got "
             f"{values[key]!r} — a tracked example never carries a live value "

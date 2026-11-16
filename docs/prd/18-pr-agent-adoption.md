@@ -19,7 +19,11 @@ model-agnostic via LiteLLM (any OpenAI-compatible endpoint), every-forge, active
 maintained (v0.49.0, 2026-10-25). Key benchmark finding adopted here: purpose-built
 single-call pipelines beat free-form agentic loops at defect finding, so PR-Agent is
 the every-PR reviewer; deep repo-wide questions stay with the agent harnesses of
-PRD-17.
+PRD-17. *(Upstream — the foundation template `template-agentic-ready-repo` — lists
+this action as `qodo-ai/pr-agent` and claims Apache-2.0 `[ASSUMPTION]`; verified
+2026-11-16 against the live GitHub API, the canonical repository is
+`The-PR-Agent/pr-agent` (`qodo-ai/pr-agent` 301-redirects to it) and the licence is
+MIT, consistent with `kb/raw/articles/2026-11-04-pr-agent-research.md`.)*
 
 **Why optional.** PR-Agent consumes an LLM budget on every PR event and posts bot
 comments; a template adopter must explicitly choose that. The mechanism is the
@@ -77,10 +81,13 @@ future PRD if wanted; changing any existing workflow, gate or AC from other doma
 - **SC3 — Agents detect the feature when secrets are mounted.**
   `.env.example` gains a commented `# ─── PR-Agent (optional) ───` block listing
   exactly the conventional names the workflow consumes — `OPENAI_API_KEY`,
-  `OPENAI_BASE_URL`, `OPENAI_DEFAULT_MODEL` (plus a local `PR_AGENT_ENABLED`
-  switch), values placeholder-only (`changeme` / empty) — consistent with
-  `scripts/gen-env.py` (PRD 14), which copies comments verbatim into `.env`.
-  _Verify:_ `tests/unit/test_pr_agent_adoption.py` (AC-PRA-007).
+  `OPENAI_BASE_URL`, `OPENAI_DEFAULT_MODEL`, values placeholder-only (`changeme` /
+  empty) — plus a local `PR_AGENT_ENABLED` switch carrying the boolean literal
+  `false` (a flag is not a credential, and a placeholder would parse as neither
+  true nor false) — consistent with `scripts/gen-env.py` (PRD 14), which copies
+  comments verbatim into `.env`.
+  _Verify:_ `tests/unit/test_pr_agent_adoption.py` (AC-PRA-007 — boolean literal for
+  the flag, placeholders for the credential names).
 - **SC4 — Tuning lives in one committable file.**
   Repo-root `.pr_agent.toml` exists, holds commented tuning knobs
   (`extra_instructions`, suggestion score threshold) and no credential-looking
