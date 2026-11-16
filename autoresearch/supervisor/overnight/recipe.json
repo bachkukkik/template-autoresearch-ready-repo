@@ -1,0 +1,17 @@
+{
+  "name": "autoresearch-overnight",
+  "schedule": "every 60m",
+  "script": "autoresearch-overnight-launch.py",
+  "no_agent": true,
+  "deliver": "local",
+  "timezone": "UTC",
+  "files": {
+    "launch.py": "autoresearch-overnight-launch.py",
+    "prompt.tmpl.txt": "autoresearch-overnight-prompt.tmpl.txt",
+    "charter.md": "autoresearch-overnight-charter.md"
+  },
+  "config_renames": {
+    "workspace": "repo"
+  },
+  "note": "interval schedule on purpose: a cron expression needs croniter, which some tickers lack (next_run_at null, errors after the first fire); the overnight window lives in launch.py and is a tested pure function"
+}

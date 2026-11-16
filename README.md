@@ -119,6 +119,8 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 │   ├── uv.lock            # one lock for both packages
 │   ├── contract/          # the contract: program.md / prepare.py / train.py + examples/
 │   ├── engine/            # generic harness-pluggable loop engine (PRD-17)
+│   ├── objective/         # the tracked objective record: legs, weights, rotation (PRD-22)
+│   ├── supervisor/        # the unattended-loop recipe: installer, guards, one scheduler binding (PRD-21)
 │   ├── target/            # target-profile contract: relativity split + evaluator guard (PRD-22)
 │   ├── targets/           # declared target profiles, one `<name>.json` each (PRD-22)
 │   └── service/           # REST + streamable-HTTP MCP service (PRD-05/06), Dockerfile here

@@ -1,0 +1,15 @@
+{
+  "profile": "default",
+  "repo": ".",
+  "engine": "autoresearch/engine/bin/autoresearch",
+  "binding": "hermes",
+  "target_profile": "example",
+  "webui_url": "http://127.0.0.1:8787",
+  "idle_minutes": 10,
+  "overnight_start_hour": 0,
+  "overnight_end_hour": 7,
+  "timezone": "UTC",
+  "state_dir": ".autoresearch",
+  "max_iterations": 5,
+  "max_wall_minutes": 45
+}

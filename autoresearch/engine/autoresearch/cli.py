@@ -27,6 +27,7 @@ from . import config as config_mod
 from . import gitops
 from . import ledger as ledger_mod
 from . import loop as loop_mod
+from . import marker as marker_mod
 from . import objective as objective_mod
 from . import record as record_mod
 from . import report as report_mod
@@ -250,7 +251,8 @@ def cmd_run(args) -> int:
     emit = loop_mod.Emitter(json_output=args.json_output)
     # One run per repo at a time: a second process would interleave commits and
     # resets with the first, so it is refused (exit 2) rather than serialised.
-    with config_mod.state_lock(cfg.repo, cfg.state):
+    # The marker is the same fact for a scheduler that cannot see this process.
+    with config_mod.state_lock(cfg.repo, cfg.state), marker_mod.round_marker(cfg):
         return loop_mod.run(cfg, adapter, ledger, opts, emit)
 
 
