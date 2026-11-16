@@ -3,7 +3,7 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-11-16 | Total pages: 51
+> Last updated: 2026-11-16 | Total pages: 52
 
 ## Concepts
 
@@ -14,6 +14,7 @@
 | Agent code-graph search | [concepts/agent-code-graph-search.md](concepts/agent-code-graph-search.md) | high |
 | Autoresearch Contract | [concepts/autoresearch-contract.md](concepts/autoresearch-contract.md) | high |
 | Better/Cheaper/Faster Metrics | [concepts/better-cheaper-faster-metrics.md](concepts/better-cheaper-faster-metrics.md) | high |
+| Command Registry | [concepts/command-registry.md](concepts/command-registry.md) | medium |
 | Deterministic Keep Gate | [concepts/deterministic-keep-gate.md](concepts/deterministic-keep-gate.md) | high |
 | Document Funnel Doctrine | [concepts/document-funnel-doctrine.md](concepts/document-funnel-doctrine.md) | high |
 | Domain Adaptation | [concepts/domain-adaptation.md](concepts/domain-adaptation.md) | medium |
@@ -96,6 +97,7 @@
 | Downstream frontier distillation — 42-PR league record: R28–R39, fair-competition invariants, fail-closed eval doctrine, run-record shape | [raw/articles/2026-11-15-downstream-frontier-distillation.md](raw/articles/2026-11-15-downstream-frontier-distillation.md) | 2026-11-15 |
 | Target-profile contract — relativity split, refusal-by-name, evaluator tamper guard (code capture, arena.py/referee.py) | [raw/articles/2026-11-16-target-profile-contract.md](raw/articles/2026-11-16-target-profile-contract.md) | 2026-11-16 |
 | Objective and run records — lineage validator, nine-field leg contract, close-record keys, readings row (code capture) | [raw/articles/2026-11-16-objective-and-run-records.md](raw/articles/2026-11-16-objective-and-run-records.md) | 2026-11-16 |
+| Command registry — one declaration, generated surfaces, no-orphan rule (code capture) | [raw/articles/2026-11-16-command-registry.md](raw/articles/2026-11-16-command-registry.md) | 2026-11-16 |
 | Unattended loop recipe — installer rules, guard ladder and round marker, implemented (code capture) | [raw/articles/2026-11-16-unattended-loop-recipe-implemented.md](raw/articles/2026-11-16-unattended-loop-recipe-implemented.md) | 2026-11-16 |
 | Process-scan doctrine — correction: `ROUND_PATTERN`, prefilter-only `pgrep`, dry runs not in flight | [raw/articles/2026-11-16-process-scan-correction.md](raw/articles/2026-11-16-process-scan-correction.md) | 2026-11-16 |
 | Codified agent guardrails — potato (inverse) pyramid, 69 techniques across 6 research items | [raw/articles/potato-pyramid-codified-guardrails-research.md](raw/articles/potato-pyramid-codified-guardrails-research.md) | 2026-11-15 |
@@ -114,10 +116,10 @@
 
 ## Stats
 
-- Concepts: 36
+- Concepts: 37
 - Entities: 7
 - Comparisons: 8
 - Queries: 0
-- Raw sources: 30
+- Raw sources: 31
 - Archived: 4
-- Total: 51
+- Total: 52

@@ -9,6 +9,8 @@ MCP. The service carries no loop or metric parser of its own — it imports the 
 autoresearch/
 ├── pyproject.toml        # ONE distribution: `autoresearch` (engine) + `autoresearch_service` [service]
 ├── uv.lock               # one lock for both packages
+├── bin/autoresearch      # the one command surface (PRD 23): `autoresearch <group> <verb>`
+├── commands/registry.py  # every command declared once: help, schema, cost, argv (PRD 23)
 ├── engine/
 │   ├── bin/autoresearch  # CLI wrapper (no PYTHONPATH needed)
 │   └── autoresearch/     # stdlib-only loop: cli, config, loop, measure, ledger, adapters, report
@@ -27,9 +29,29 @@ autoresearch/
 empty, and FastAPI, uvicorn, FastMCP, APScheduler and pydantic sit behind the `service`
 extra. `docker-compose.yml` builds from this directory.
 
-## Run it — CLI
+## Run it — the command catalog (start here)
+
+`autoresearch/bin/autoresearch` is the repo's one command surface: every user-facing
+command declared once in `commands/registry.py`, with a typed schema, its cost and the
+argv that reaches the real tool.
 
 ```bash
+autoresearch/bin/autoresearch commands list                  # name, surfaces, cost flags, help
+autoresearch/bin/autoresearch commands describe engine run   # the schema, as JSON
+autoresearch/bin/autoresearch engine status --help           # generated from that schema
+```
+
+Groups: `engine` (init/run/status/report/doctor/objective-validate/objective-resolve),
+`target` (profile/import), `supervisor` (render/install/status/pause/resume) and `commands`
+(list/describe). `autoresearch/bin/autoresearch engine <args…>` is `engine/bin/autoresearch`
+unchanged, for anything the declared verbs do not cover; a command that mutates state or
+executes the target's code is CLI/agent only, and this cycle generates no REST or MCP
+surface at all. Intent: [PRD 23](../docs/prd/23-command-registry.md).
+
+## Run it — CLI (the engine's own runner, unchanged)
+
+```bash
+autoresearch/bin/autoresearch engine doctor        # or, the engine's runner directly:
 autoresearch/engine/bin/autoresearch doctor
 autoresearch/engine/bin/autoresearch init --repo <repo> \
   --verify "python3 -m train" --guard "python3 prepare.py" \

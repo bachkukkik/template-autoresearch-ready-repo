@@ -199,7 +199,7 @@ Report each step's *Done when* before the next; a surfacing problem re-enters D1
 
 ### 1. Mandated Skills
 
-Load on EVERY task: `karpathy-guidelines`, `security-best-practices`, `webapp-testing`, `coding-agents-docs-guideline` (docs — stage 6), `llm-wiki` (stage 3, its only writer), `root-cause`, `yeet` (git), `opencode-plan-build-orchestrator` (coding), the potato-pyramid set (9 skills — `README.md` § *Skills*). A mandated skill resolves wherever the harness provides it (host-level `~/.hermes/skills/`, `~/.claude/skills/`, `~/.config/opencode/skills/`; repo-scoped `.agents/skills/`; or its `SKILL.md` inlined — rule 8): a missing tool never waives the gate.
+Load on EVERY task: `karpathy-guidelines`, `security-best-practices`, `webapp-testing`, `coding-agents-docs-guideline` (docs — stage 6), `llm-wiki` (stage 3, its only writer), `root-cause`, `yeet` (git), `opencode-plan-build-orchestrator` (coding), the potato-pyramid set (9 skills — `README.md` § *Skills*). A mandated skill resolves wherever the harness provides it (host-level or repo-scoped `.agents/skills/`, or its `SKILL.md` inlined — rule 8): a missing tool never waives the gate.
 
 ### 2–3. Delegation & Code Quality
 
@@ -220,7 +220,11 @@ Every `docs/prd/` PRD: SC bullets with inline `_Verify:` annotations (test file 
 
 ### 7. Output-Medium Escalation
 
-For explanatory output, climb to the richest useful rung: prose → controlled English (ASD-STE100-style) → diagram → HTML page → explainer video — all code/text, verified by render → parse, never by looking (works for a non-visual engine). Large custom artifacts are **discardable**: build them in `scratchpads/` and never cite them (funnel rule 6). Skills: `simple-english`, `diagrams`, `render-verify`, `explainer-video`. → `docs/prd/13-output-medium-doctrine.md`; `kb/concepts/output-medium-escalation.md`
+For explanatory output, climb to the richest useful rung: prose → controlled English (ASD-STE100-style) → diagram → HTML page → explainer video — all code/text, verified by render → parse, never by looking. Large custom artifacts are **discardable**: build them in `scratchpads/` and never cite them (funnel rule 6). Skills: `simple-english`, `diagrams`, `render-verify`, `explainer-video`. → `docs/prd/13-output-medium-doctrine.md`; `kb/concepts/output-medium-escalation.md`
+
+### 8. Every Request Is a Repo Command
+
+Resolve each request to `autoresearch commands list` (one catalog, CLI and agent). None fits → add it to the registry with a test, by PR, first; no ad-hoc scripts. Crons and prompts render from commands. → `docs/prd/23-command-registry.md`
 
 ## Repository Structure
 
@@ -256,4 +260,4 @@ Non-code knowledge graph (docs, SQL, configs, PDFs): `graphify query|path|explai
 
 ## pr-agent
 
-[PR-Agent](https://github.com/The-PR-Agent/pr-agent) is the **optional, dormant AI PR reviewer** (MIT, donated by Qodo) — `/review` `/improve` `/describe` `/ask` on PRs, only after explicit opt-in: repo variable `PR_AGENT_ENABLED=true` + secret `OPENAI_API_KEY`; endpoint/model via conventional variables `OPENAI_BASE_URL` / `OPENAI_DEFAULT_MODEL` (mapped to PR-Agent internals in the SHA-pinned `.github/workflows/pr-agent.yml`). Local: same names in `.env` + `pip install "pr-agent[github]"`. Tuning: `.pr_agent.toml`. → `docs/prd/18-pr-agent-adoption.md`
+[PR-Agent](https://github.com/The-PR-Agent/pr-agent) is the **optional, dormant AI PR reviewer** (MIT, donated by Qodo) — `/review` `/improve` `/describe` `/ask` on PRs, only after explicit opt-in: repo variable `PR_AGENT_ENABLED=true` + secret `OPENAI_API_KEY`; endpoint and model on the conventional `OPENAI_BASE_URL` / `OPENAI_DEFAULT_MODEL` names. Local: same names in `.env` + `pip install "pr-agent[github]"`. → `docs/prd/18-pr-agent-adoption.md`

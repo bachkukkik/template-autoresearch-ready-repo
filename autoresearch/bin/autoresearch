@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# autoresearch — one command surface: `autoresearch <group> <verb>`.
+#
+# The registry (autoresearch/commands/registry.py) is imported by absolute path,
+# and `-P` keeps the working directory off sys.path: the engine's own package is
+# also called `autoresearch`, so a bare import from a checkout could resolve to
+# the wrong one in either direction. `autoresearch engine <args...>` is handed to
+# the engine's unchanged wrapper; it is the only part of this surface that plays
+# a round.
+set -euo pipefail
+
+COMMANDS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec python3 -P "$COMMANDS_DIR/commands/registry.py" "$@"
