@@ -77,10 +77,14 @@ artifacts; `autoresearch/service/data/` is gitignored).
   future refactor from moving `run_loop` inline). Rationale recorded in this
   PRD and in `autoresearch/service/README.md`. _Verify:_ `tests/unit/test_workspace.py`
   (AC-MCP-037), `autoresearch/service/README.md` review checklist.
-- **SC5** — **Corpus files fail fast**: a missing corpus file is rejected at
-  submit with a clear 400 (REST) / tool error (MCP), not discovered mid-run.
-  _Verify:_ `tests/unit/test_workspace.py` (AC-MCP-033),
-  `tests/integration/test_multi_topic.py` (AC-MCP-233).
+- **SC5** — **Corpus files fail fast and stay contained**: a missing corpus
+  file is rejected at submit with a clear 400 (REST) / tool error (MCP), not
+  discovered mid-run; a path that escapes the corpus root (absolute, `..`
+  segment, empty, backslash separator or symlink escape) is refused with the
+  same 400 before any read or write, and the workspace writer re-checks
+  containment itself rather than trusting its caller. _Verify:_
+  `tests/unit/test_workspace.py` (AC-MCP-033, AC-MCP-038),
+  `tests/integration/test_multi_topic.py` (AC-MCP-233..234).
 - **SC6** — **Agent-facing runbook**: `autoresearch/service/README.md` exists as the
   service runbook template — what the service is, how to run it (uv +
   compose), env vars (including the three new ones), REST + MCP API, job
@@ -103,6 +107,8 @@ artifacts; `autoresearch/service/data/` is gitignored).
 | Two topics concurrently over live REST, distinct results | `tests/integration/test_multi_topic.py` | AC-MCP-231 |
 | Corpus files from `kb/raw/transcripts` via corpus root | `tests/integration/test_multi_topic.py` | AC-MCP-232 |
 | Missing corpus file → 400 fail-fast | `tests/integration/test_multi_topic.py` | AC-MCP-233 |
+| Corpus path containment (absolute, `..`, empty, symlink) → rejected; writer re-checks | `tests/unit/test_workspace.py` | AC-MCP-038 |
+| Escaping corpus path → 400 at submit | `tests/integration/test_multi_topic.py` | AC-MCP-234 |
 | Multi-topic loop in the container | `tests/e2e/service.bats` | AC-MCP-104 |
 
 ## Assumptions

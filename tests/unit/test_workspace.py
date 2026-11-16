@@ -1,6 +1,6 @@
 """Per-job run repos + concurrent multi-topic service (PRD-06 SC1-SC5).
 
-IDs: AC-MCP-031..037, AC-SVC-006 — spec: docs/prd/06-multi-topic-concurrent-service.md.
+IDs: AC-MCP-031..038, AC-SVC-006 — spec: docs/prd/06-multi-topic-concurrent-service.md.
 AC-SVC-006 (PRD-24 SC7) pins the workspaces root: a relative
 RESEARCH_WORKSPACES_DIR resolves against the service root, and a blank one is
 unset — never the root itself (which would scatter `<job_id>/` into the tree).
@@ -17,6 +17,10 @@ concurrent measurements, the scheduler cap, and sync handlers.
   with sanitized slugs and verbatim contents.
 - AC-MCP-033 (SC2/SC5) — corpus files are copied from the corpus root under
   corpus/files/<path>, and validate_corpus_files() fails fast (ValueError).
+- AC-MCP-038 (SC5)  — corpus files are contained: absolute paths, '..'
+  segments, empty paths, backslash separators and symlink escapes are refused
+  by validate_corpus_files(), and _write_research_inputs() re-checks
+  containment itself (it never trusts its caller).
 - AC-MCP-034 (SC2)  — a provisioned repo measures once through the engine, and
   the job result carries topic + corpus stats.
 - AC-MCP-035 (SC3)  — two jobs with a 1.5s budget on a 5s-sleeping train.py
@@ -140,6 +144,98 @@ def test_corpus_files_copied_and_validated(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match=r"corpus file not found: does-not-exist\.txt"):
         validate_corpus_files(CorpusSpec(files=["does-not-exist.txt"]))
+
+
+def test_corpus_file_paths_outside_root_are_rejected(tmp_path):
+    """AC-MCP-038: a corpus path that escapes the corpus root is refused by
+    validate_corpus_files() with one clear ValueError naming the path and the
+    rule — absolute, '..' segment, empty and backslash tricks alike (SC5)."""
+    root = tmp_path / "corpus"
+    root.mkdir()
+    (tmp_path / "secret.txt").write_text("secret", encoding="utf-8")  # the prize
+
+    cases = {
+        "../secret.txt": "'..'",
+        "a/../../secret.txt": "'..'",
+        "/etc/passwd": "relative to the corpus root",
+        "": "empty",
+        "   ": "empty",
+        "a\\..\\b": "'/' separators",
+    }
+    for bad, rule in cases.items():
+        with pytest.raises(ValueError) as excinfo:
+            validate_corpus_files(CorpusSpec(files=[bad]), corpus_root=root)
+        message = str(excinfo.value)
+        assert rule in message, (bad, message)
+        if bad.strip():
+            assert bad in message, (bad, message)  # the path is named
+
+
+def test_corpus_file_symlink_escape_is_rejected(tmp_path):
+    """AC-MCP-038: a name inside the root that resolves outside it (symlink)
+    is refused — the containment check is on the resolved path."""
+    root = tmp_path / "corpus"
+    root.mkdir()
+    secret = tmp_path / "secret.txt"
+    secret.write_text("secret", encoding="utf-8")
+    (root / "link.txt").symlink_to(secret)
+
+    with pytest.raises(ValueError, match="resolves outside the corpus root"):
+        validate_corpus_files(CorpusSpec(files=["link.txt"]), corpus_root=root)
+
+
+def test_corpus_file_inside_root_copies_through(tmp_path):
+    """AC-MCP-038: the happy path stays — a nested relative path is copied into
+    corpus/files/<path> (parents preserved) with matching bytes."""
+    root = tmp_path / "corpus"
+    (root / "sub").mkdir(parents=True)
+    src = root / "sub" / "ok.txt"
+    src.write_text("hello corpus", encoding="utf-8")
+
+    spec = CorpusSpec(files=["sub/ok.txt"])
+    validate_corpus_files(spec, corpus_root=root)  # contained file passes
+    repo = provision_run_repo(
+        "jobA",
+        workloads.get_workload("contract"),
+        topic="T",
+        spec=spec,
+        workspaces_root=tmp_path / "ws",
+        corpus_root=root,
+    )
+
+    out = repo / "corpus" / "files" / "sub" / "ok.txt"
+    assert out.is_file()
+    assert out.read_text(encoding="utf-8") == "hello corpus"
+    assert out.read_bytes() == src.read_bytes()
+
+
+def test_writer_rechecks_containment_without_validation(tmp_path, monkeypatch):
+    """AC-MCP-038: _write_research_inputs() does not trust its caller — with the
+    source check stubbed to a pass-through, only the destination boundary stands,
+    and a path that clears corpus/files/ (yet stays inside the job repo) is still
+    refused before a byte is copied."""
+    root = tmp_path / "corpus"
+    root.mkdir()
+    (tmp_path / "x.txt").write_text("prize", encoding="utf-8")
+    (root / "ok.txt").write_text("hello corpus", encoding="utf-8")
+    repo = tmp_path / "job" / "repo"
+    repo.mkdir(parents=True)
+
+    # Source containment is a no-op here, so only the destination check can fire.
+    monkeypatch.setattr(workspace, "_contained_corpus_path", lambda p, r: Path(r) / p)
+
+    # '../x.txt' resolves to <repo>/corpus/x.txt: inside corpus/, outside files/.
+    with pytest.raises(ValueError, match="escapes the workspace"):
+        workspace._write_research_inputs(
+            repo, topic="T", spec=CorpusSpec(files=["../x.txt"]), corpus_root=root
+        )
+    assert not (repo / "corpus" / "x.txt").exists()  # nothing escaped files/
+
+    # ...and a contained path still passes, so the boundary does not over-reject.
+    workspace._write_research_inputs(
+        repo, topic="T", spec=CorpusSpec(files=["ok.txt"]), corpus_root=root
+    )
+    assert (repo / "corpus" / "files" / "ok.txt").is_file()
 
 
 def test_provisioned_repo_measures_with_topic_and_corpus(tmp_path):
