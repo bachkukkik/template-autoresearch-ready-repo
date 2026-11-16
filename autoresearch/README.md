@@ -15,6 +15,7 @@ autoresearch/
 ├── contract/             # program.md / prepare.py / train.py + examples/ (the bundled workload)
 ├── target/               # target-profile contract (PRD 22): relativity split + evaluator guard
 ├── targets/              # declared target profiles, one `<name>.json` each (PRD 22)
+├── objective/            # the tracked objective record — what a run optimises (PRD 22)
 └── service/
     ├── Dockerfile        # build context is this directory
     ├── README.md         # the service runbook (routes, env vars, workspace layout)
@@ -36,7 +37,18 @@ autoresearch/engine/bin/autoresearch init --repo <repo> \
 autoresearch/engine/bin/autoresearch run --repo <repo> --agent claude --max-iterations 8
 autoresearch/engine/bin/autoresearch status --repo <repo>
 autoresearch/engine/bin/autoresearch report --repo <repo>
+autoresearch/engine/bin/autoresearch objective validate
+autoresearch/engine/bin/autoresearch objective resolve
+autoresearch/engine/bin/autoresearch report --repo <repo> --record   # close record + readings
+autoresearch/engine/bin/autoresearch report --repo <repo> --check    # re-render, exit 0 on identity
 ```
+
+`init --objective PATH` (plus `--objective-leg NAME` when the active objective prices more
+than one leg) derives `--verify`, `--metric-name`, `--direction`, `--repeats`,
+`--noise-floor` and `--guard` from the objective's active leg; an explicit flag still wins.
+`report --record` writes `record.json` and `record.md` beside the report and refuses a
+record that fails its own honest-verdict checks; `report --check` exits 0 only when both
+re-render byte for byte.
 
 Every command that reads or writes run state — `init`, `run`, `status`, `report` — takes
 `--state-dir PATH`. Without it the engine keeps using `<repo>/.autoresearch` exactly as

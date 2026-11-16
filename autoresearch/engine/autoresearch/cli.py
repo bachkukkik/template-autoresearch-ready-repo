@@ -3,6 +3,7 @@
 Exit codes are part of the contract, so a wrapper script can branch on them:
 
     0   stopped normally
+    1   an objective record is invalid (every problem listed)
     2   configuration or precondition error
     3   ledger invalid
 """
@@ -14,6 +15,7 @@ import contextlib
 import json
 import math
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -25,9 +27,12 @@ from . import config as config_mod
 from . import gitops
 from . import ledger as ledger_mod
 from . import loop as loop_mod
+from . import objective as objective_mod
+from . import record as record_mod
 from . import report as report_mod
 
 EXIT_OK = 0
+EXIT_INVALID = 1
 EXIT_CONFIG = 2
 EXIT_LEDGER = 3
 
@@ -48,15 +53,23 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--state-dir", dest="state", default=None, metavar="PATH",
                       help="where run.json and the ledger live (default: <repo>/.autoresearch; "
                            "relative paths resolve against the current directory)")
-    init.add_argument("--verify", required=True, help="command that prints the metric")
-    init.add_argument("--metric-name", required=True)
-    init.add_argument("--direction", required=True, choices=list(config_mod.DIRECTIONS))
+    init.add_argument("--verify", default=None,
+                      help="command that prints the metric (derived from --objective when omitted)")
+    init.add_argument("--metric-name", default=None,
+                      help="the metric the verify command prints (derived from --objective)")
+    init.add_argument("--direction", default=None, choices=list(config_mod.DIRECTIONS),
+                      help="lower|higher (derived from --objective)")
+    init.add_argument("--objective", default=None, metavar="PATH",
+                      help="a tracked objective record to initialise from; its active leg "
+                           "derives --verify/--metric-name/--direction/--repeats/--noise-floor")
+    init.add_argument("--objective-leg", dest="objective_leg", default=None, metavar="NAME",
+                      help="the leg to measure when the active objective prices more than one")
     init.add_argument("--scope", action="append", required=True,
                       help="repo-relative path prefix the agent may edit (repeatable)")
     init.add_argument("--guard", default=None, help="command that must exit 0")
     init.add_argument("--target", type=float, default=None)
-    init.add_argument("--noise-floor", type=float, default=config_mod.DEFAULT_NOISE_FLOOR)
-    init.add_argument("--repeats", type=int, default=config_mod.DEFAULT_REPEATS)
+    init.add_argument("--noise-floor", type=float, default=None)
+    init.add_argument("--repeats", type=int, default=None)
     init.add_argument("--verify-timeout", type=float, default=config_mod.DEFAULT_VERIFY_TIMEOUT)
     init.add_argument("--guard-timeout", type=float, default=config_mod.DEFAULT_GUARD_TIMEOUT)
     init.add_argument("--protect", action="append", default=[],
@@ -107,7 +120,33 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--state-dir", dest="state", default=None, metavar="PATH",
                         help="the run's state directory (default: <repo>/.autoresearch)")
     report.add_argument("--out", default=None)
+    mode = report.add_mutually_exclusive_group()
+    mode.add_argument("--record", action="store_true",
+                      help="write record.json + record.md (the close record) beside the report")
+    mode.add_argument("--check", action="store_true",
+                      help="re-render the record and exit 0 only on byte identity")
     report.set_defaults(func=cmd_report)
+
+    objective = sub.add_parser(
+        "objective",
+        help="validate or resolve a tracked objective record "
+        "(exit 1: invalid record; exit 2: the file cannot be read)",
+    )
+    objective.set_defaults(func=lambda args: EXIT_CONFIG)
+    objective_modes = objective.add_subparsers(dest="objective_command", required=True)
+    validate = objective_modes.add_parser(
+        "validate",
+        help="list every problem in one pass (exit 1 invalid record, 2 unreadable file)",
+    )
+    validate.add_argument("--file", default=None, metavar="PATH",
+                          help="the record (default: autoresearch/objective/registry.json); "
+                               "a missing or unreadable file exits 2, invalid content exits 1")
+    validate.set_defaults(func=cmd_objective_validate)
+    resolve = objective_modes.add_parser("resolve", help="print the init arguments a leg implies")
+    resolve.add_argument("--file", default=None, metavar="PATH")
+    resolve.add_argument("--leg", default=None, metavar="NAME")
+    resolve.add_argument("--json", dest="json_output", action="store_true")
+    resolve.set_defaults(func=cmd_objective_resolve)
 
     doctor = sub.add_parser("doctor", help="report the harness binaries and their versions")
     doctor.set_defaults(func=cmd_doctor)
@@ -144,11 +183,15 @@ def cmd_init(args) -> int:
             program=args.program,
             goal=args.goal,
             force=args.force,
+            objective=args.objective,
+            objective_leg=args.objective_leg,
         )
     print(f"initialised run in {cfg.repo}")
     print(f"  verify : {cfg.verify}")
     print(f"  guard  : {cfg.guard or '(none)'}")
     print(f"  metric : {cfg.metric_name} ({cfg.direction} is better)")
+    if cfg.objective_id:
+        print(f"  objective: {cfg.objective_id} (leg {cfg.objective_leg})")
     print(f"  scope  : {', '.join(cfg.scope)}")
     if cfg.protected:
         print(f"  protect: {', '.join(cfg.protected_paths())}")
@@ -234,8 +277,66 @@ def cmd_status(args) -> int:
 
 def cmd_report(args) -> int:
     cfg = config_mod.load(args.repo, args.state)
+    if args.check:
+        record_mod.verify(cfg)
+        print(f"record: byte-identical under {cfg.state_dir}")
+        return EXIT_OK
+    if args.record:
+        paths = record_mod.write(cfg)
+        print(paths["record"])
+        return EXIT_OK
     paths = report_mod.write(cfg, args.out)
     print(paths["report"])
+    return EXIT_OK
+
+
+def cmd_objective_validate(args) -> int:
+    path = objective_mod.record_path(args.file)
+    try:
+        data = objective_mod.read(path)
+    except objective_mod.ObjectiveReadError as exc:
+        # Exit 2: the operator named a path that cannot be opened. Exit 1 below is
+        # reserved for a record that was read and found inconsistent.
+        print(f"autoresearch objective: {exc}", file=sys.stderr)
+        return EXIT_CONFIG
+    except objective_mod.ObjectiveError as exc:
+        print(f"autoresearch objective: {exc}", file=sys.stderr)
+        return EXIT_INVALID
+    problems = objective_mod.validate(data)
+    if problems:
+        print(
+            f"objective record {path} is invalid ({len(problems)} problem(s)):",
+            file=sys.stderr,
+        )
+        for problem in problems:
+            print(f"  - {problem}", file=sys.stderr)
+        return EXIT_INVALID
+    print(f"objective record {path}: valid")
+    return EXIT_OK
+
+
+def cmd_objective_resolve(args) -> int:
+    try:
+        leg = objective_mod.resolve_leg(objective_mod.load(args.file), leg=args.leg)
+    except objective_mod.ObjectiveReadError as exc:
+        print(f"autoresearch objective: {exc}", file=sys.stderr)
+        return EXIT_CONFIG
+    except objective_mod.ObjectiveError as exc:
+        print(f"autoresearch objective: {exc}", file=sys.stderr)
+        return EXIT_INVALID
+    argv = [
+        "--verify", leg["command"],
+        "--metric-name", leg["name"],
+        "--direction", leg["direction"],
+        "--repeats", str(leg["repeats"]),
+        "--noise-floor", f"{leg['noise_floor']:g}",
+    ]
+    if leg["guard"]:
+        argv += ["--guard", leg["guard"]]
+    if args.json_output:
+        print(json.dumps({"leg": leg, "argv": argv}, sort_keys=True))
+    else:
+        print(shlex.join(argv))
     return EXIT_OK
 
 
@@ -303,3 +404,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except ledger_mod.LedgerError as exc:
         print(f"autoresearch: ledger invalid: {exc}", file=sys.stderr)
         return EXIT_LEDGER
+    except record_mod.RecordError as exc:
+        print(f"autoresearch: record: {exc}", file=sys.stderr)
+        return EXIT_CONFIG
+    except objective_mod.ObjectiveError as exc:
+        print(f"autoresearch: objective: {exc}", file=sys.stderr)
+        return EXIT_CONFIG

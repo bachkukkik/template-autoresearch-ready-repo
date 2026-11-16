@@ -1,10 +1,10 @@
 ---
 title: Run-Record Contract
 created: 2026-11-15
-updated: 2026-11-15
+updated: 2026-11-16
 type: concept
 tags: [autoresearch, data-model, research-method]
-sources: [raw/articles/2026-11-15-downstream-frontier-distillation.md]
+sources: [raw/articles/2026-11-15-downstream-frontier-distillation.md, raw/articles/2026-11-16-objective-and-run-records.md]
 confidence: medium
 ---
 
@@ -31,9 +31,10 @@ season  season_start_commit  weights_before  weights_after
 ```
 
 `referee` is the 19th key and the newest: it arrives with R37/#43, which scores the referee
-on its own job. A record that closed before that rule carries 18 keys — season 22's on-disk
-record does — so a 19-key record first appears at season 23 `[I]` (inference from R37/#43;
-no season-23 ledger exists yet).
+on its own job. Counted from the seven on-disk files `[M]`: seasons 17-18 carry **15** keys,
+19-22 carry **18** (they add `baselines`, `close_commit`, `season_start_commit`), and 23
+carries 19. A record that closed before the referee rule therefore lacks more than one key,
+not just the last one.
 
 `review` is a **record**, not prose: `review{means, previous, reason, weights}` — a close can
 be diffed key for key, and a zero-round season still writes a `reason` rather than nothing
@@ -103,13 +104,39 @@ Ten questions a record must answer before its number is called a win:
 
 ## In this repo
 
-The engine's ledger today records outcomes per trial but no period record, no per-leg reading
-row and no `provenance.json`; `displaced`/`held` judgements live in prose. This page is the
-contract to implement, not a description of shipped code. Salvage and the wall reservation
-that keep the record honest about a dead agent are on [[deterministic-keep-gate]] and
-[[loop-stop-conditions]].
+**Implemented** (PRD 22 Part B) as a *view of the ledger already written*, not a second
+store. `autoresearch/engine/autoresearch/record.py` builds `record.json` and `record.md`
+from the run's events and config; `report --record` writes them, `report --check`
+re-renders and exits 0 only on byte identity (missing, pending, drifted or gate-failing
+records exit 2).
+
+- **The close record carries** the objective id, the parent and close commits, one
+  `baselines` entry per measured leg (`commit`, `value`, and the pinned
+  `declared/credited/uncovered` trio when the objective declares one), `keeps`
+  (`commit`, `round`, `leg`), `review{means, previous, weights, reason}` written from the
+  ledger rather than copied by hand, the floors, the state directory, and the provenance
+  block of the last decision. This engine has no seats, banks or referee score, so those
+  keys are absent, not zero.
+- **A reading row is** `{name, unit, lower_is_better, before, after, command, raw, verdict,
+  note}`, and `verdict` is a **required enum** — `improved | held | displaced`, each with
+  its definition printed beside it. A `held` or `displaced` reading without a note fails:
+  downstream's prose-only verdict drifted (`faster` labelled `displaced` in season 18 and
+  `held` in season 19 for the same class of move), and an enum with a mandatory note is
+  the mechanical fix.
+- **`raw` is now captured at measurement time** — `measure.metric_line` returns the exact
+  stdout line the metric was parsed from, the baseline and trial events carry it, and a
+  ledger written before the field existed fails `--record` rather than rendering a hole.
+- **Four of the ten checklist questions are mechanical** and enforced by `--record` (which
+  refuses) and `--check`: baseline commits differ across legs; a keep is not an ancestor
+  of the close commit; a `held`/`displaced` reading has no note; a reading has no `raw`
+  line (or its `raw` does not reproduce the recorded value), a partial or non-summing
+  `declared/credited/uncovered` trio, or a pinned commit that is not the commit measured.
+  The other six need a reader and are listed in the PRD; `displaced` is expressible but
+  the single-instrument engine cannot detect it, because `verify` and the protected files
+  are fixed for a run's life.
 
 ^[raw/articles/2026-11-15-downstream-frontier-distillation.md]
+^[raw/articles/2026-11-16-objective-and-run-records.md]
 
 ## Related
 

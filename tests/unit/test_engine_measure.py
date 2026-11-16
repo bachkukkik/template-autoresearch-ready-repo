@@ -95,6 +95,45 @@ def test_run_command_timeout_kills_the_child(tmp_path):
     assert result.seconds < 3
 
 
+def test_the_raw_line_belongs_to_the_median_repeat(tmp_path):
+    """AC-ENG-005/AC-REC-002: with repeats, ``raw`` is the median run's own line.
+
+    The median is what the record's ``after`` reports, so the line kept beside it
+    must be that repeat's, never whichever repeat happened to run last.
+    """
+    from types import SimpleNamespace
+
+    repo = make_target(tmp_path)
+    counter = tmp_path / "repeats.count"
+    (repo / "jitter.py").write_text(
+        "import pathlib\n"
+        f"counter = pathlib.Path({str(counter)!r})\n"
+        "seen = int(counter.read_text()) if counter.exists() else 0\n"
+        "counter.write_text(str(seen + 1))\n"
+        "print('METRIC value=' + str([4, 9, 2][seen % 3]))\n",
+        encoding="utf-8",
+    )
+    cfg = SimpleNamespace(
+        verify=f"{sys.executable} jitter.py",
+        metric_name="value",
+        repeats=3,
+        verify_timeout=60,
+        repo=str(repo),
+    )
+
+    measurement = measure.measure(cfg)
+
+    assert measurement.values == [4.0, 9.0, 2.0]
+    assert measurement.value == 4.0
+    assert measurement.raw == "METRIC value=4"
+    assert measure.parse_metric(measurement.raw, "value") == measurement.value
+    assert measure.median_index([4.0, 9.0, 2.0]) == 0
+    assert measure.median_index([7.0, 6.0, 6.0]) == 2
+    # An even count: the median is an average, so the lower middle repeat is the
+    # one whose line is kept — a claim the record's gate then re-derives.
+    assert measure.median_index([6.0, 7.0]) == 0
+
+
 def test_measure_repeats_and_median(tmp_path):
     """AC-ENG-005: repeats are reduced by median, and a failing run is not ok."""
     from types import SimpleNamespace

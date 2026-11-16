@@ -19,9 +19,10 @@ import shutil
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from . import gitops
+from . import objective as objective_mod
 
 try:  # POSIX-only; a Windows run simply has no lock rather than no engine.
     import fcntl
@@ -139,6 +140,11 @@ class RunConfig:
     created_at: str = ""
     #: An absolute state directory when ``--state-dir`` moved it out of the repo.
     state: Optional[str] = None
+    #: The objective record this run was initialised from, and the leg it resolved.
+    objective: Optional[str] = None
+    objective_id: Optional[str] = None
+    objective_leg: Optional[str] = None
+    objective_unit: Optional[str] = None
 
     # -- views ---------------------------------------------------------------
 
@@ -173,6 +179,10 @@ class RunConfig:
             "goal": self.goal,
             "created_at": self.created_at,
             "state_dir": self.state,
+            "objective": self.objective,
+            "objective_id": self.objective_id,
+            "objective_leg": self.objective_leg,
+            "objective_unit": self.objective_unit,
         }
 
     @classmethod
@@ -201,6 +211,10 @@ class RunConfig:
                 goal=data.get("goal"),
                 created_at=str(data.get("created_at", "")),
                 state=data.get("state_dir"),
+                objective=data.get("objective"),
+                objective_id=data.get("objective_id"),
+                objective_leg=data.get("objective_leg"),
+                objective_unit=data.get("objective_unit"),
             )
         except KeyError as exc:
             raise ConfigError(f"run.json is missing the field {exc.args[0]!r}") from exc
@@ -387,17 +401,54 @@ def _read_program(root: Path, program: Optional[str]) -> Tuple[Optional[str], Op
     raise ConfigError(f"program file {program!r} does not exist")
 
 
+def _leg_contradictions(
+    leg: Mapping[str, Any],
+    *,
+    verify: Optional[str],
+    metric_name: Optional[str],
+    direction: Optional[str],
+    repeats: Optional[int],
+    noise_floor: Optional[float],
+    guard: Optional[str],
+) -> list[str]:
+    """Explicit flags that would make the run measure something other than its leg.
+
+    Deriving is a default, but a *contradiction* is not: a run initialised on a leg
+    while measuring another command, direction or floor produces a record that
+    disagrees with its own objective. Equal values are fine — the flag is a restatement.
+    """
+    where = f"leg {leg.get('name')!r} of objective {leg.get('objective_id')!r}"
+    problems: list[str] = []
+    if verify and verify.strip() != str(leg.get("command") or "").strip():
+        problems.append(f"--verify {verify!r} is not the leg's command {leg.get('command')!r}")
+    if metric_name and metric_name.strip() != str(leg.get("name") or ""):
+        problems.append(f"--metric-name {metric_name!r} is not the leg's name {leg.get('name')!r}")
+    if direction is not None and direction != leg.get("direction"):
+        problems.append(f"--direction {direction!r} is not the leg's {leg.get('direction')!r}")
+    if repeats is not None and int(repeats) != int(leg.get("repeats") or 0):
+        problems.append(f"--repeats {repeats!r} is not the leg's {leg.get('repeats')!r}")
+    if noise_floor is not None and float(noise_floor) != float(leg.get("noise_floor") or 0.0):
+        problems.append(
+            f"--noise-floor {noise_floor:g} is not the leg's {float(leg.get('noise_floor') or 0.0):g}"
+        )
+    if guard is not None and guard.strip() != str(leg.get("guard") or "").strip():
+        problems.append(f"--guard {guard!r} is not the leg's {leg.get('guard')!r}")
+    if problems:
+        return [f"{item} ({where})" for item in problems]
+    return problems
+
+
 def init_run(
     *,
     repo: os.PathLike | str,
-    verify: str,
-    metric_name: str,
-    direction: str,
+    verify: Optional[str] = None,
+    metric_name: Optional[str] = None,
+    direction: Optional[str] = None,
     scope: Sequence[str],
     guard: Optional[str] = None,
     target: Optional[float] = None,
-    noise_floor: float = DEFAULT_NOISE_FLOOR,
-    repeats: int = DEFAULT_REPEATS,
+    noise_floor: Optional[float] = None,
+    repeats: Optional[int] = None,
     verify_timeout: float = DEFAULT_VERIFY_TIMEOUT,
     guard_timeout: float = DEFAULT_GUARD_TIMEOUT,
     protect: Sequence[str] = (),
@@ -405,20 +456,51 @@ def init_run(
     goal: Optional[str] = None,
     force: bool = False,
     state: Optional[os.PathLike | str] = None,
+    objective: Optional[str] = None,
+    objective_leg: Optional[str] = None,
 ) -> RunConfig:
     """Validate the target repo and write its ``run.json`` (in ``--state-dir``)."""
     root = require_git_repo(repo)
     require_branch(root)
     require_clean(root)
 
-    verify = (verify or "").strip()
+    leg, objective_path = None, None
+    if objective:
+        try:
+            loaded = objective_mod.load(objective)
+            leg = objective_mod.resolve_leg(loaded, leg=objective_leg)
+        except objective_mod.ObjectiveError as exc:
+            raise ConfigError(f"--objective: {exc}") from exc
+        objective_path = objective_mod.record_path(objective).resolve()
+        contradictions = _leg_contradictions(
+            leg,
+            verify=verify,
+            metric_name=metric_name,
+            direction=direction,
+            repeats=repeats,
+            noise_floor=noise_floor,
+            guard=guard,
+        )
+        if contradictions:
+            raise ConfigError(
+                "--objective: an explicit flag cannot contradict the leg it names: "
+                + "; ".join(contradictions)
+            )
+
+    verify = (verify or (leg or {}).get("command") or "").strip()
     if not verify:
-        raise ConfigError("--verify must be a command")
-    metric_name = (metric_name or "").strip()
+        raise ConfigError("--verify must be a command (or --objective names a leg with one)")
+    metric_name = (metric_name or (leg or {}).get("name") or "").strip()
     if not metric_name or " " in metric_name:
         raise ConfigError("--metric-name must be a single token")
+    direction = direction or (leg or {}).get("direction")
     if direction not in DIRECTIONS:
         raise ConfigError(f"--direction must be one of {DIRECTIONS}")
+    if noise_floor is None:
+        noise_floor = float((leg or {}).get("noise_floor", DEFAULT_NOISE_FLOOR))
+    if repeats is None:
+        repeats = int((leg or {}).get("repeats", DEFAULT_REPEATS))
+    guard = guard or (leg or {}).get("guard")
     if not math.isfinite(noise_floor) or noise_floor < 0:
         raise ConfigError("--noise-floor must be a finite number >= 0")
     if target is not None and not math.isfinite(target):
@@ -476,6 +558,10 @@ def init_run(
         goal=goal,
         created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         state=str(where) if state else None,
+        objective=str(objective_path) if objective_path else None,
+        objective_id=(leg or {}).get("objective_id"),
+        objective_leg=(leg or {}).get("name"),
+        objective_unit=(leg or {}).get("unit"),
     )
 
     where.mkdir(parents=True, exist_ok=True)

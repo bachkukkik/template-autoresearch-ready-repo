@@ -95,6 +95,7 @@
 | PR-Agent — OSS AI PR reviewer: licence path, self-host matrix, cost traps | [raw/articles/2026-11-04-pr-agent-research.md](raw/articles/2026-11-04-pr-agent-research.md) | 2026-11-04 |
 | Downstream frontier distillation — 42-PR league record: R28–R39, fair-competition invariants, fail-closed eval doctrine, run-record shape | [raw/articles/2026-11-15-downstream-frontier-distillation.md](raw/articles/2026-11-15-downstream-frontier-distillation.md) | 2026-11-15 |
 | Target-profile contract — relativity split, refusal-by-name, evaluator tamper guard (code capture, arena.py/referee.py) | [raw/articles/2026-11-16-target-profile-contract.md](raw/articles/2026-11-16-target-profile-contract.md) | 2026-11-16 |
+| Objective and run records — lineage validator, nine-field leg contract, close-record keys, readings row (code capture) | [raw/articles/2026-11-16-objective-and-run-records.md](raw/articles/2026-11-16-objective-and-run-records.md) | 2026-11-16 |
 | Codified agent guardrails — potato (inverse) pyramid, 69 techniques across 6 research items | [raw/articles/potato-pyramid-codified-guardrails-research.md](raw/articles/potato-pyramid-codified-guardrails-research.md) | 2026-11-15 |
 | transcript — music AI model | [raw/transcripts/-Ip9EtoBjbk.txt](raw/transcripts/-Ip9EtoBjbk.txt) | 2026-09-04 |
 | transcript — can you autoresearch everything | [raw/transcripts/bMoNOb0iXpA.txt](raw/transcripts/bMoNOb0iXpA.txt) | 2026-09-04 |
@@ -115,6 +116,6 @@
 - Entities: 7
 - Comparisons: 8
 - Queries: 0
-- Raw sources: 27
+- Raw sources: 28
 - Archived: 4
 - Total: 51

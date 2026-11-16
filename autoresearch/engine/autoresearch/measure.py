@@ -16,7 +16,7 @@ import statistics
 import subprocess
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Mapping, Optional, Sequence
 
 #: Variable *names* matching this are removed from a measurement child's env.
 #: Only the name is inspected; values are never read, compared or logged.
@@ -68,6 +68,10 @@ class Measurement:
     repeats: int = 0
     spread: Optional[float] = None
     honest: bool = False
+    #: The evaluator's own output line the metric was read from — the record keeps
+    #: evidence, not a paraphrase, so a later reader can re-derive the number. With
+    #: repeats it is the line of the *median repeat*, never a later one.
+    raw: str = ""
 
     def __post_init__(self) -> None:
         if not self.repeats:
@@ -198,6 +202,32 @@ def run_command(
     )
 
 
+def _find(stdout: str, name: str) -> "tuple[Optional[float], Optional[str]]":
+    """The metric and the exact line it came from; ``(None, None)`` when absent."""
+    lines = [line.strip() for line in (stdout or "").splitlines() if line.strip()]
+    if not lines:
+        return None, None
+    escaped = re.escape(name)
+
+    tagged = re.compile(rf"^METRIC\s+{escaped}\s*=\s*({FLOAT_RE})$")
+    for line in reversed(lines):
+        match = tagged.match(line)
+        if match:
+            return float(match.group(1)), line
+
+    labelled = re.compile(rf"^{escaped}\s*:\s*({FLOAT_RE})$")
+    for line in reversed(lines):
+        match = labelled.match(line)
+        if match:
+            return float(match.group(1)), line
+
+    bare = re.compile(rf"^({FLOAT_RE})$")
+    match = bare.match(lines[-1])
+    if match:
+        return float(match.group(1)), lines[-1]
+    return None, None
+
+
 def parse_metric(stdout: str, name: str) -> Optional[float]:
     """Extract ``name`` from a verify command's stdout.
 
@@ -210,28 +240,24 @@ def parse_metric(stdout: str, name: str) -> Optional[float]:
     The *last* matching line wins in every case, so a script may log a header
     value and then the final one.
     """
-    lines = [line.strip() for line in (stdout or "").splitlines() if line.strip()]
-    if not lines:
-        return None
-    escaped = re.escape(name)
+    return _find(stdout, name)[0]
 
-    tagged = re.compile(rf"^METRIC\s+{escaped}\s*=\s*({FLOAT_RE})$")
-    for line in reversed(lines):
-        match = tagged.match(line)
-        if match:
-            return float(match.group(1))
 
-    labelled = re.compile(rf"^{escaped}\s*:\s*({FLOAT_RE})$")
-    for line in reversed(lines):
-        match = labelled.match(line)
-        if match:
-            return float(match.group(1))
+def metric_line(stdout: str, name: str) -> Optional[str]:
+    """The evaluator's own line for ``name`` — what a run record keeps as ``raw``."""
+    return _find(stdout, name)[1]
 
-    bare = re.compile(rf"^({FLOAT_RE})$")
-    match = bare.match(lines[-1])
-    if match:
-        return float(match.group(1))
-    return None
+
+def median_index(values: Sequence[float]) -> int:
+    """The repeat the median belongs to; the lower middle one for an even count.
+
+    A record keeps the evaluator's own line beside the number, and the median of an
+    even series is an average that no run printed. The point estimate stays
+    :func:`statistics.median`; this index only says which line is the median
+    *repeat*, so the pairing is stated rather than claimed.
+    """
+    order = sorted(range(len(values)), key=lambda index: values[index])
+    return order[(len(values) - 1) // 2]
 
 
 def measure(cfg, *, log=None) -> Measurement:
@@ -239,6 +265,7 @@ def measure(cfg, *, log=None) -> Measurement:
     values: List[float] = []
     seconds = 0.0
     tail = ""
+    lines: List[str] = []
     for _ in range(max(1, int(cfg.repeats))):
         try:
             result = run_command(cfg.verify, cfg.repo, cfg.verify_timeout)
@@ -261,8 +288,13 @@ def measure(cfg, *, log=None) -> Measurement:
                 False,
                 f"no {cfg.metric_name!r} metric in stdout\n{tail}".strip(),
             )
+        line = metric_line(result.stdout, cfg.metric_name) or ""
         values.append(value)
-    return Measurement(statistics.median(values), values, seconds, True, tail)
+        lines.append(line)
+    chosen = median_index(values)
+    return Measurement(
+        statistics.median(values), values, seconds, True, tail, raw=lines[chosen]
+    )
 
 
 def run_guard(cfg) -> "tuple[bool, str]":
