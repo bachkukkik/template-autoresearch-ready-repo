@@ -93,6 +93,34 @@ python3 scripts/audit-ste.py            # default: docs/*.md + README.md, 80% th
 python3 scripts/audit_pyramid.py        # codebase constraints + comment budget + test linkage
 ```
 
+## Repo Commands — one catalog, one way in
+
+Every user-facing command is declared once in
+[`autoresearch/commands/registry.py`](autoresearch/commands/registry.py) — a name, a
+one-line help, a typed argument schema, what it costs and the argv that reaches the real
+tool — and the CLI, its `--help` and the catalog are generated from those declarations:
+
+```bash
+./autoresearch/bin/autoresearch commands list            # the catalog: surfaces, cost flags, help
+./autoresearch/bin/autoresearch commands describe engine run
+./autoresearch/bin/autoresearch engine status --help     # generated from the schema
+./autoresearch/bin/autoresearch engine run --agent replay --max-iterations 3
+./autoresearch/bin/autoresearch engine doctor            # the engine's own CLI, passed through
+```
+
+Four groups: `engine` (init/run/status/report/doctor/objective-validate/objective-resolve),
+`target` (profile/import), `supervisor` (render/install/status/pause/resume) and `commands`
+(list/describe). `autoresearch engine <args…>` is the engine's CLI unchanged, for anything
+the declared verbs do not cover.
+
+A command that mutates state, executes the target's code or reads the host is **CLI/agent
+only**: this cycle generates no REST or MCP surface, and the catalog states the cost rather
+than implying a reachability. A target is a declared profile name, never a path. The rule
+behind the catalog — *every request is a repo command* — is `AGENTS.md` standing order 8,
+the procedure is [`.agents/skills/repo-commands/SKILL.md`](.agents/skills/repo-commands/SKILL.md),
+and an entry point with no command fails `tests/unit/test_commands_rule.py`. Intent:
+[docs/prd/23-command-registry.md](docs/prd/23-command-registry.md).
+
 ## PR-Agent (optional but dormant) — see AGENTS.md §pr-agent
 
 [PR-Agent](https://github.com/The-PR-Agent/pr-agent) (MIT) is an AI reviewer that posts
@@ -117,6 +145,8 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 ├── autoresearch/           # Autoresearch loop — CANONICAL, one pyproject + one uv.lock
 │   ├── pyproject.toml     # one distribution: `autoresearch` (engine) + `autoresearch_service`
 │   ├── uv.lock            # one lock for both packages
+│   ├── bin/               # `autoresearch` — the one command surface: `<group> <verb>` (PRD-23)
+│   ├── commands/          # the registry: every command declared once — help, schema, cost, argv (PRD-23)
 │   ├── contract/          # the contract: program.md / prepare.py / train.py + examples/
 │   ├── engine/            # generic harness-pluggable loop engine (PRD-17)
 │   ├── objective/         # the tracked objective record: legs, weights, rotation (PRD-22)
@@ -127,7 +157,7 @@ secrets on `pull_request`, so the reviewer does not run on forks.
 │       └── data/          # Service runtime state — gitignored except .gitkeep
 │                          #   (jobs.db + per-job workspaces/ are created at runtime)
 ├── .agents/               # Repo-scoped agent assets — CANONICAL
-│   ├── skills/            # Skills pinned here: root-cause, llm-wiki, coding-agents-docs-guideline, autoresearch, autoresearch-engine
+│   ├── skills/            # Skills pinned here: root-cause, llm-wiki, coding-agents-docs-guideline, autoresearch, autoresearch-engine, repo-commands
 │   └── commands/          # /ar-init, /ar-run, /ar-status, /ar-report — the engine's slash commands
 ├── .claude/               # skills, plugins, commands → symlinks into ../.agents/
 │   └── agents/            # investigator.md — root-cause gate as a sub-agent
@@ -157,6 +187,24 @@ secrets on `pull_request`, so the reviewer does not run on forks.
     ├── copilot-instructions.md  # symlink → ../AGENTS.md
     └── workflows/         # ci.yml + sources-readonly.yml
 ```
+
+### Three things named `autoresearch`
+
+The name appears three times for three different things. Nothing is renamed — this table is
+the map.
+
+| Path | What it is | How you run it |
+|---|---|---|
+| `autoresearch/` | The research folder: `contract/`, `engine/`, `objective/`, `supervisor/`, `target/`, `targets/`, `commands/`, `service/`. Stdlib logic plus one image. | read it, or call the command CLI |
+| `autoresearch/bin/autoresearch` | **The command CLI** — every user-facing command as `autoresearch <group> <verb>` (PRD 23), loaded from the one registry by absolute path. | `autoresearch/bin/autoresearch commands list` |
+| `autoresearch/engine/autoresearch` | **The loop engine's Python package** (PRD 17), imported as `autoresearch`; `autoresearch/engine/bin/autoresearch` is **the research-loop runner** — `init` → `run` → `status` → `report`. | `autoresearch/engine/bin/autoresearch --help`; see `autoresearch/engine/README.md` § *Commands* |
+| `autoresearch/service/` | The network layer: FastAPI REST + MCP over the engine (PRD 05/06/24), its own extras and base image. | `docker compose up -d --build` |
+
+The package name is why the wrappers look odd: the engine's package is itself called
+`autoresearch`, so a bare `import autoresearch` from a checkout can resolve to the wrong one
+in either direction. Both wrappers therefore run `python3 -P` (which keeps the cwd off
+`sys.path`), and the command CLI loads `commands/registry.py` by absolute path under a private
+module name — a name no package can shadow.
 
 ## Harness Support
 
@@ -203,6 +251,7 @@ pollute the working tree.
 | `root-cause` | **vendored** at [`.agents/skills/root-cause/SKILL.md`](.agents/skills/root-cause/SKILL.md) | Already present. Gates every "why does X fail / what does X require" answer; [`.claude/agents/investigator.md`](.claude/agents/investigator.md) is its Claude Code binding (other harnesses run it inline) |
 | `autoresearch` | **vendored** at [`.agents/skills/autoresearch/SKILL.md`](.agents/skills/autoresearch/SKILL.md); upstream [uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch) (MIT, LICENSE travels with it) | Already present — optional, not a mandated gate. Goal-directed modify → verify → keep/discard loop with subcommands (`plan`, `debug`, `fix`, `security`, `ship`, …). Discovered from `.agents/skills` by Hermes (trust the repo once), dsh, opencode and Codex; Claude Code via `.claude/skills`. Run logs `autoresearch/<sub>-<stamp>/` are gitignored |
 | `autoresearch-engine` | **vendored** at [`.agents/skills/autoresearch-engine/SKILL.md`](.agents/skills/autoresearch-engine/SKILL.md) — repo-native, no upstream | Already present — optional, **not a mandated gate**. The `bin/autoresearch` engine's own procedure: `init` → `run` → `status` → `report`, where the *script* commits, guards, verifies and reverts. Slash commands `/ar-init`, `/ar-run`, `/ar-status`, `/ar-report` live once in [`.agents/commands/`](.agents/commands/) and resolve for Claude Code (`.claude/commands`) and opencode (`.opencode/commands`); Hermes and dsh reach the same flow through this skill |
+| `repo-commands` | **vendored** at [`.agents/skills/repo-commands/SKILL.md`](.agents/skills/repo-commands/SKILL.md) — repo-native, no upstream | Already present — optional, **not a mandate**. The `AGENTS.md` standing-order-8 procedure: read `autoresearch commands list`, `describe` the command, run it on your surface; if nothing fits, add the registry entry plus its test, by PR, before the work. Reachable as `.claude/skills/repo-commands/`; a harness with no skill mechanism reads the same file |
 | `opencode-plan-build-orchestrator` | https://github.com/bachkukkik/opencode-plan-build-orchestrator | Plain skill — clone the whole repo (SKILL.md + `agents/` + `references/`) |
 | `karpathy-guidelines` | https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md | Plain skill — a single `SKILL.md`. **Not vendored** (the upstream carries no licence file): a copy is captured at [`kb/raw/articles/karpathy-guidelines-skill.md`](kb/raw/articles/karpathy-guidelines-skill.md) |
 | `security-best-practices` | https://github.com/openai/skills/tree/main/skills/.curated/security-best-practices | Plain skill — sparse-checkout `skills/.curated/security-best-practices` (SKILL.md + `references/`, `LICENSE.txt`). Python / JS-TS / Go only. Not vendored (large) |
