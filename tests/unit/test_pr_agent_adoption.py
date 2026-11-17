@@ -24,11 +24,11 @@ PR_AGENT_TOML = REPO_ROOT / ".pr_agent.toml"
 README = REPO_ROOT / "README.md"
 JOB = "pr_agent_job"
 
-# AC-PRA-004: the reviewed release commit (v0.49.0). Pinned by SHA only, not by
+# AC-PRA-004: the reviewed release commit (v0.50.0). Pinned by SHA only, not by
 # owner prefix: `The-PR-Agent/pr-agent` is canonical and `qodo-ai/pr-agent` is a
 # 301 alias to it, so asserting the owner would break on a rename that changes
 # nothing about the code being run.
-ACTION_SHA = "efdde4afe14aa401a3889012c7f3e9ef3081a430"
+ACTION_SHA = "e673a02076ce09a4726c3d0c3cc85780e59ca52b"
 
 # AC-PRA-005: the conventional names an adopter (or agent) already knows. The
 # mapping onto PR-Agent's own env lives inside the workflow only, so the surface
@@ -158,7 +158,7 @@ def test_ac_pra_004_action_is_sha_pinned_with_a_version_comment():
     )
     assert rev == ACTION_SHA, (
         f"the reviewer action must stay on the reviewed release commit "
-        f"{ACTION_SHA} (v0.49.0), got {ref!r} (AC-PRA-004). The owner prefix is "
+        f"{ACTION_SHA} (v0.50.0), got {ref!r} (AC-PRA-004). The owner prefix is "
         "not asserted: `The-PR-Agent/pr-agent` is canonical and `qodo-ai/pr-agent` "
         "301-redirects to it, so either name resolves to this same commit"
     )

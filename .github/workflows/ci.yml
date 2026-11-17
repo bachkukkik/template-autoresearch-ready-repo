@@ -37,6 +37,17 @@ jobs:
       - run: pip install --no-cache-dir -r tests/requirements.txt
       - run: python3 -m pytest tests/unit -v
 
+      # Upstream sizes at 20 KB, a cap built for its 91 tracked files; this
+      # repo has 423, so 60 KB. Exempt in-script: kb/raw/** (funnel rule 3),
+      # kb/log.md (append-only) and autoresearch/uv.lock (generated);
+      # docs/prd/27-file-size-audit.md. Other gates strict, no --advisory.
+      - name: Machine gates
+        run: |
+          set -euo pipefail
+          python3 scripts/audit_pyramid.py
+          python3 scripts/audit-chars.py
+          python3 scripts/audit-size.py --max-kb 60
+
   # ═══════════════════════════════════════════════════════════════
   # Tier 2: integration — cross-process / persistence, no container
   # ═══════════════════════════════════════════════════════════════

@@ -2,8 +2,8 @@
 
 **Layers:** prd ↔ code
 **Status:** resolved
-**Opened:** 2026-09-18
-**Resolved:** 2026-09-18 — test added, PRD-06 SC6 now names it
+**Opened:** 2026-09-18 **Resolved:**
+2026-09-18 — test added, PRD-06 SC6 now names it
 
 ## Observation
 
@@ -32,14 +32,16 @@ guards it.
 
 ## Impact
 
-SC6's whole content list was review-verified only. The runbook could lose its env
-table, its job-lifecycle diagram or its workspace layout — all machine-checkable —
-and every tier would stay green, which is the failure mode the PRD's own
-verification policy ("every SC carries a `_Verify:` test") exists to prevent.
+SC6's whole content list was review-verified only. The runbook could lose its
+env table, its job-lifecycle diagram or its workspace layout — all
+machine-checkable — and every tier would stay green, which is the failure mode
+the PRD's own verification policy ("every SC carries a `_Verify:` test") exists
+to prevent.
 
 ## Resolution
 
-Code change + test — applied 2026-09-18: `tests/unit/test_service_readme.py` added
-(**AC-MCP-044** — file exists and declares itself a runbook; **AC-MCP-045** — every
-SC6 section and the three PRD-06 env vars are present). PRD-06 SC6 now names that
-file. `bash tests/run.sh` → `RESULT: PASSED` (68 unit). **Status: resolved.**
+Code change + test — applied 2026-09-18: `tests/unit/test_service_readme.py`
+added (**AC-MCP-044** — file exists and declares itself a runbook;
+**AC-MCP-045** — every SC6 section and the three PRD-06 env vars are present).
+PRD-06 SC6 now names that file. `bash tests/run.sh` → `RESULT: PASSED` (68
+unit). **Status: resolved.**

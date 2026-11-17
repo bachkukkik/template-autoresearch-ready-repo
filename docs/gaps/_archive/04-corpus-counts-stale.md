@@ -2,8 +2,8 @@
 
 **Layers:** kb ↔ prd
 **Status:** resolved
-**Opened:** 2026-09-18
-**Resolved:** 2026-09-18 — PRD edit applied; see [docs/04](../../04-examples-corpus.md)
+**Opened:** 2026-09-18 **Resolved:**
+2026-09-18 — PRD edit applied; see [docs/04](../../04-examples-corpus.md)
 
 ## Observation
 
@@ -24,21 +24,21 @@ python3 -m pytest tests/unit/test_kb_synthesis.py tests/unit/test_corpus_integri
 # 8 passed  (AC-EXC-021 asserts the floor ≥8/≥2/≥4; AC-EXC-001/002 sha-verify all 15 raw files)
 ```
 
-The floor test is why this drift survived: AC-EXC-021 passes at 8/2/4, so nothing
-in CI forces the PRD's recorded counts back in line with the KB.
+The floor test is why this drift survived: AC-EXC-021 passes at 8/2/4, so
+nothing in CI forces the PRD's recorded counts back in line with the KB.
 
 ## Impact
 
 Stage 4 understated the corpus it governs by seven pages and two raw sources. A
-reader of SC3 could not tell whether the CodeGraph pages were sanctioned output or
-unreviewed drift, and the Confidence paragraph asserted a 14-page / 13-source state
-that no longer exists — the grounding direction (KB → PRD) was stale in the
-direction that matters for review.
+reader of SC3 could not tell whether the CodeGraph pages were sanctioned output
+or unreviewed drift, and the Confidence paragraph asserted a 14-page / 13-source
+state that no longer exists — the grounding direction (KB → PRD) was stale in
+the direction that matters for review.
 
 ## Resolution
 
 PRD edit — applied 2026-09-18: SC2 now names 4 articles, SC3 records 11/4/6 (21
 pages) and documents that AC-EXC-021 is a lower bound, Confidence cites the
-2026-09-18 state (21/21 pages, 15 raw sha-verified, tracked corpus 14/18 until the
-CodeGraph ingest is committed), and the Assumptions note the corpus is not frozen.
-**Status: resolved.**
+2026-09-18 state (21/21 pages, 15 raw sha-verified, tracked corpus 14/18 until
+the CodeGraph ingest is committed), and the Assumptions note the corpus is not
+frozen. **Status: resolved.**

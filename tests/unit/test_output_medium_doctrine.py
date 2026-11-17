@@ -52,6 +52,9 @@ def test_ac_om_001_agents_md_carries_output_medium_standing_order():
         "'### 7. Output-Medium Escalation' in AGENTS.md."
     )
     section = _section_body(text, SECTION_HEADING).lower()
+    # AGENTS.md prose is hard-wrapped at 80 columns, so a phrase may straddle a
+    # line break; match against the normalised text, not the raw layout.
+    section = re.sub(r"\s+", " ", section)
 
     missing = [
         token

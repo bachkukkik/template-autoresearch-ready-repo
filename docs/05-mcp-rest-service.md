@@ -10,11 +10,11 @@ job store, bearer auth, and a uv-managed container.
 ## Why
 
 - The loop needs two consumers: programs (REST/OpenAPI) and agent harnesses +
-  LiteLLM (MCP tools) — PRD-05 SC1.
+LiteLLM (MCP tools) — PRD-05 SC1.
 - Non-duplicated handler syntax: each operation is defined once and flagged into
-  MCP via `TOOL_FLAG` — an endpoint is a tool or not by one boolean.
+MCP via `TOOL_FLAG` — an endpoint is a tool or not by one boolean.
 - Batteries-included posture: `docker compose up` works with zero external infra
-  (SQLite job store, auth disabled by default for dev).
+(SQLite job store, auth disabled by default for dev).
 
 ## How
 
@@ -34,13 +34,13 @@ REST surface: `GET /health` (no auth), `POST /api/v1/research` (202 + job),
 `research_results`, `research_cancel` at `/mcp` (FastMCP v4 streamable HTTP,
 stateless 2026-07-28 path).
 
-**Host ports.** No tracked compose file declares a host `ports:` mapping: the stack
-comes up on the compose network only, so several derived projects can share one
-Docker host without a collision. Host access stays a per-deployment opt-in through
-the gitignored `docker-compose.override.yml`;
-`tests/unit/test_compose_no_host_ports.py` enforces both halves — the tracked files
-carry no `ports:` mapping (`AC-MCP-047`) and the override path stays ignored
-(`AC-MCP-048`; PRD-01 SC6).
+**Host ports.** No tracked compose file declares a host `ports:` mapping: the
+stack comes up on the compose network only, so several derived projects can
+share one Docker host without a collision. Host access stays a per-deployment
+opt-in through the gitignored `docker-compose.override.yml`;
+`tests/unit/test_compose_no_host_ports.py` enforces both halves — the tracked
+files carry no `ports:` mapping (`AC-MCP-047`) and the override path stays
+ignored (`AC-MCP-048`; PRD-01 SC6).
 
 ### Upgrade paths
 
@@ -76,52 +76,57 @@ bash tests/run.sh --with-e2e                         # RESULT: PASSED
 
 Verified 2026-09-18: 68 unit + 16 integration + 4 e2e green
 (`bash tests/run.sh --with-e2e` → `RESULT: PASSED`), all four act jobs report
-`Job succeeded` — verified with (as of this run): `act push -j unit && act push
--j integration && act push -j secret-scan && act push -j doctrine`; container
-healthy under `docker compose ps`; the unit count grew from 66 by the
-runbook-coverage test added with the PRD-06 SC6 fix — see
-[docs/06-multi-topic-concurrency.md](06-multi-topic-concurrency.md).
-Originally verified 2026-09-05 at 66 + 16 + 4.
+`Job succeeded` — verified with (as of this run):
+
+```bash
+act push -j unit && act push -j integration && act push -j secret-scan && act push -j doctrine
+```
+
+The container was healthy under `docker compose ps`; the unit count grew from
+66 by the runbook-coverage test added with the PRD-06 SC6 fix — see
+[docs/06-multi-topic-concurrency.md](06-multi-topic-concurrency.md). Originally
+verified 2026-09-05 at 66 + 16 + 4.
 
 ## What Works
 
 - Full job lifecycle over REST and over an MCP client: start → queued → running
-  → completed with `result.val_bpb ≈ 3.795` (canonical contract loop, ~0.1s)
-- Single source of truth: the service runs `autoresearch/contract/` directly — the runner
-  resolves `repo/autoresearch/contract` on the host and `/app/contract` in the container via
-  the compose read-only bind mount; no vendored workload copy. Custom workloads
-  override via `RESEARCH_WORKLOAD_DIR`; `resolve_workload_dir()` otherwise falls
-  back to `<service-root>/workload`, a directory this repo does not ship.
+→ completed with `result.val_bpb ≈ 3.795` (canonical contract loop, ~0.1s)
+- Single source of truth: the service runs `autoresearch/contract/` directly —
+the runner resolves `repo/autoresearch/contract` on the host and
+`/app/contract` in the container via the compose read-only bind mount; no
+vendored workload copy. Custom workloads override via `RESEARCH_WORKLOAD_DIR`;
+`resolve_workload_dir()` otherwise falls back to `<service-root>/workload`, a
+directory this repo does not ship.
 - Idempotent dispatch (same `idempotency_key` returns the existing job)
 - Cancel on queued and running jobs (queued→cancelled added, AC-MCP-014)
 - Bearer auth on REST and the `/mcp` guard: 401 + complete JSON body when
-  unauthenticated; `AUTH_DISABLED=1` for dev
+unauthenticated; `AUTH_DISABLED=1` for dev
 - Container boots healthy with `uv run --no-sync` after two-stage `uv sync`
 - `tools/list` over the stateless JSON-RPC path names all four tools
 
 ## What Fails
 
 - **run.sh does not start the stack:** `bash tests/run.sh --with-e2e` fails the
-  e2e tier with "service is not running" unless compose is up first.
+e2e tier with "service is not running" unless compose is up first.
 - **Host venv poisons the image:** without `service/.dockerignore`, `COPY . .`
-  ships the host `.venv` whose scripts carry host-path shebangs; `uv run
-  uvicorn` then cannot spawn ("Failed to spawn: uvicorn", exit 2).
+ships the host `.venv` whose scripts carry host-path shebangs;
+`uv run uvicorn` then cannot spawn ("Failed to spawn: uvicorn", exit 2).
 - **Runtime `uv run --locked` re-syncs:** it can uninstall/restore the project
-  mid-boot; non-deterministic startup.
+mid-boot; non-deterministic startup.
 - **e2e under act:** running `act push -j e2e` on a host that serves this
-  compose project replaces the live containers (AGENTS.md §6) — run the tier
-  directly instead.
+compose project replaces the live containers (AGENTS.md §6) — run the tier
+directly instead.
 
 ## Resolution
 
 - **run.sh stack:** start compose first (`docker compose up -d --build`) or run
-  tiers separately; CI's e2e job already starts the stack itself.
-- **Host venv:** `service/.dockerignore` excludes `.venv`, `data`,
-  `__pycache__` — keep it when adding build-context content.
+tiers separately; CI's e2e job already starts the stack itself.
+- **Host venv:** `service/.dockerignore` excludes `.venv`, `data`, `__pycache__`
+— keep it when adding build-context content.
 - **Re-sync at boot:** CMD runs the venv binary via `uv run --no-sync --no-dev`;
-  the image's final `uv sync --locked --no-editable` is the single source.
+the image's final `uv sync --locked --no-editable` is the single source.
 - **act e2e:** unchanged policy — local jobs are unit/integration/secret-scan/
-  doctrine only.
+doctrine only.
 
 ## Verdict
 

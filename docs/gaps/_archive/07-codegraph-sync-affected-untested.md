@@ -13,7 +13,8 @@
 
 ## Evidence
 
-Reproduced 2026-10-16; full record in [`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
+Reproduced 2026-10-16; full record in
+[`kb/raw/articles/2026-10-16-template-self-audit.md`](../../../kb/raw/articles/2026-10-16-template-self-audit.md).
 
 ```bash
 grep -n "no test yet" docs/prd/07-codegraph-adoption.md
@@ -26,4 +27,7 @@ Two SCs are both untested and untracked.
 
 ## Resolution
 
-GitHub issue [#29](https://github.com/bachkukkik/template-autoresearch-ready-repo/issues/29) — real, but needs a live `codegraph` binary on CI; PRD-07 SC4/SC5 now point at the issue.
+GitHub issue
+[#29](https://github.com/bachkukkik/template-autoresearch-ready-repo/issues/29)
+— real, but needs a live `codegraph` binary on CI; PRD-07 SC4/SC5 now point at
+the issue.

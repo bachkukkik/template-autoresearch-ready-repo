@@ -1,4 +1,4 @@
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 # The engine drives every run through git (init, commit, reset, apply), so git is
 # a runtime dependency of the service, not a build tool. Installed and cleaned in

@@ -2,8 +2,8 @@
 
 **Layers:** prd ↔ code
 **Status:** resolved
-**Opened:** 2026-09-18
-**Resolved:** 2026-09-18 — PRD edit applied; see [docs/05](../../05-mcp-rest-service.md)
+**Opened:** 2026-09-18 **Resolved:**
+2026-09-18 — PRD edit applied; see [docs/05](../../05-mcp-rest-service.md)
 
 ## Observation
 
@@ -28,13 +28,13 @@ grep -n "uv sync\|uv run" service/Dockerfile
 
 ## Impact
 
-An operator or agent following SC7 literally would reproduce the exact failure the
-stage-6 doc records as fixed ("Failed to spawn: uvicorn", exit 2). The PRD also
-contradicted the doc the same PRD points at for verified reality.
+An operator or agent following SC7 literally would reproduce the exact failure
+the stage-6 doc records as fixed ("Failed to spawn: uvicorn", exit 2). The PRD
+also contradicted the doc the same PRD points at for verified reality.
 
 ## Resolution
 
 PRD edit — applied 2026-09-18: SC7 now states that the image installs with
-`uv sync --locked` and the container starts with `uv run --no-sync --no-dev
-uvicorn`, linking *What Fails* in [docs/05](../../05-mcp-rest-service.md) for the
-rationale. **Status: resolved.**
+`uv sync --locked` and the container starts with
+`uv run --no-sync --no-dev uvicorn`, linking *What Fails* in
+[docs/05](../../05-mcp-rest-service.md) for the rationale. **Status: resolved.**
