@@ -21,7 +21,12 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from . import decide as decide_mod
 
-EVENT_TYPES = ("init", "baseline", "trial", "stop", "resume")
+EVENT_TYPES = ("init", "baseline", "trial", "stop", "resume", "attempt")
+
+#: ``attempt`` is an event kind, not a verdict: a verdict would change every
+#: reader that switches on one, while a new kind is skipped by readers that do
+#: not know it (PRD 30 SC-mcv-4). These are the phases it may name.
+ATTEMPT_PHASES = ("agent", "measure", "guard", "interrupted")
 
 OUTCOMES = (
     "keep",

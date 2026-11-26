@@ -121,6 +121,38 @@ The most useful table in this file. Nothing here is a rule — for every rule, r
 Deleting a funnel stage is not an option: a repo without `kb/` or without `docs/NN-slug.md`
 has no grounding direction, and the `doctrine` job will tell you so.
 
+## Layer model — inherit, parameterise, configure
+
+Before you replace anything, sort what you are adopting into three layers. The
+rule that saves the most work is the third: **a game layer is configured
+downstream, never forked.**
+
+| Layer | What it is | What you do |
+|---|---|---|
+| **0 — core** | the funnel, the CI gate, the three test tiers, the engine, the objective and run records, the command registry, the unattended recipe | **inherit verbatim**; replace the subject, not the mechanism |
+| **1 — instruments** | domain-neutral machinery for what a reading *is*: noise floors and margins, claim grading, cost beside score, attempt records | **inherit and parameterise** with your target profile and your metric |
+| **2 — game** | your domain's own economics: what scores, what pays, who competes, how a season closes | **configure downstream, never fork** |
+
+A layer-2 game is legitimate and expected. What it must not do is re-declare a
+layer-0 or layer-1 contract. It names three things the template gives it — a
+declared target profile, a referee command that prints one parseable number per
+leg, and the evaluator hash taken at both ends of a round — and it keeps its
+pricing, its seats and its seasons to itself.
+
+The failure this rule prevents is on record. A sibling repo built on this
+template grew its own referee, its own economy, its own round runner and its own
+supervisor as four new PRDs, re-deriving contracts this template already owns,
+because nothing said where the game layer lives. The register in
+[PRD 28](docs/prd/28-veteran-layer.md) is the answer: twenty decisions with the
+failure that earned each one, and one column saying whether this tree enforces it
+or defers it.
+
+Two consequences worth stating plainly. A layer-2 omission is **not** a template
+defect — a repo with no tournament does not need a referee, and the register marks
+those rules `declared` instead of pretending. And a layer-1 gap **is** a template
+defect, because every adopter pays it: that is why PRDs 29 and 30 exist.
+
+
 ## Step 4 — wire your harness
 
 **No vendor entry file or config needs to be created for any harness.** `AGENTS.md` is

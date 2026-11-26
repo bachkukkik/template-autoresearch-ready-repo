@@ -1,7 +1,7 @@
 ---
 title: Loop Stop Conditions
 created: 2026-10-28
-updated: 2026-11-15
+updated: 2026-11-26
 type: concept
 tags: [autoresearch, research-method]
 sources: [raw/articles/2026-10-28-autoresearch-real-world-engines.md, raw/articles/2026-11-15-downstream-frontier-distillation.md]
@@ -131,3 +131,5 @@ budget this composes with.
 - [[deterministic-keep-gate]] — the per-iteration decision, versus the per-run stop.
 - [[unattended-loop-recipe]] — who fires the loop when a human is not there, and the guards that stop it firing twice.
 - [[autoresearch-engines-real-world]] — the 15-system evidence.
+- [[veteran-decision-register]] — 20 rules from 38 played seasons, rows 02 and 11 on the wall
+  and the base.
