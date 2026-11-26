@@ -1,4 +1,7 @@
-"""Metric parsing, environment scrubbing and command execution. IDs: AC-ENG-001..005."""
+"""Metric parsing, environment scrubbing and command execution.
+
+IDs: AC-ENG-001..005, 001b.
+"""
 import sys
 from pathlib import Path
 
@@ -41,6 +44,51 @@ def test_last_matching_line_wins_and_missing_is_none():
     assert measure.parse_metric("", "value") is None
     # Integers, signs and exponents are all floats.
     assert measure.parse_metric("METRIC value=-1e3\n", "value") == -1000.0
+
+
+# ─── a referee's LEG line ─────────────────────────────────────────────────────
+
+
+def test_leg_line_is_read_with_its_direction_token():
+    """AC-ENG-001b: a league referee prints ``LEG <name> <value> <direction>``.
+
+    The direction is the referee's own declaration and is accepted as such —
+    read, never trusted over the operator's configured direction. The exact
+    line is kept, so a record can show what the referee actually said.
+    """
+    text = "loading data\nnoise: 3\nLEG better 6 lower\n"
+    assert measure.parse_metric(text, "better") == 6.0
+    assert measure.metric_line(text, "better") == "LEG better 6 lower"
+    assert measure.parse_metric("LEG speed 2.5 higher\n", "speed") == 2.5
+
+
+def test_leg_line_for_another_name_is_not_read():
+    """AC-ENG-001b: a LEG line is matched by name, like every other form."""
+    text = "loading data\nLEG faster 6 lower\nawaiting next round\n"
+    assert measure.parse_metric(text, "better") is None
+
+
+def test_leg_line_without_a_known_direction_is_not_read():
+    """AC-ENG-001b: the direction token is part of the shape — ``sideways`` is
+    not a shape the reader understands, so the line is not a metric."""
+    text = "loading data\nLEG better 6 sideways\nawaiting next round\n"
+    assert measure.parse_metric(text, "better") is None
+
+
+def test_metric_tag_still_beats_a_leg_line():
+    """AC-ENG-001b: adding a form must not disturb the priority order — a
+    ``METRIC`` tag stays the preferred shape, whatever line it sits on."""
+    text = "METRIC better=1\nLEG better 6 lower\n"
+    assert measure.parse_metric(text, "better") == 1.0
+
+
+def test_forms_are_tried_in_priority_order_not_by_position():
+    """AC-ENG-001b: a referee's ``LEG`` line outranks a plainer labelled line
+    even when the labelled line comes later; within one form the last line
+    still wins."""
+    text = "LEG better 6 lower\nbetter: 5\n"
+    assert measure.parse_metric(text, "better") == 6.0
+    assert measure.metric_line(text, "better") == "LEG better 6 lower"
 
 
 # ─── environment scrubbing ───────────────────────────────────────────────────

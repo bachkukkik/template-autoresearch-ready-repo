@@ -41,7 +41,7 @@ bounded stops, replay-validated ledger — the mechanics shared by the systems
 that report real-code wins) and serves
 [docs/prd/17-autoresearch-engine.md](prd/17-autoresearch-engine.md)
 (AC-ENG-000..079 unit, AC-ENG-201..203 integration; ex5 AC-EXA-040..050). Gap
-[17](gaps/17-loop-cannot-target-real-code.md) is the "why".
+[17](gaps/_archive/17-loop-cannot-target-real-code.md) is the "why".
 
 ## Why
 

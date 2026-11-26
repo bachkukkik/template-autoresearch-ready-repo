@@ -136,7 +136,7 @@ which is a [[harness-portability]] question; the invoked agent entry point is
 ## Implemented in this repo
 
 PRD 21 ships the mechanism, not only the pattern (code capture:
-[2026-11-16-unattended-loop-recipe-implemented](../../raw/articles/2026-11-16-unattended-loop-recipe-implemented.md)).
+[2026-11-16-unattended-loop-recipe-implemented](../raw/articles/2026-11-16-unattended-loop-recipe-implemented.md)).
 
 | Piece | Home | Rule it carries |
 |-------|------|-----------------|

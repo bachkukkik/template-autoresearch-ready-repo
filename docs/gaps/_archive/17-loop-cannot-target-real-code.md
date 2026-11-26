@@ -1,7 +1,7 @@
 # 17 — The loop described by the docs cannot be pointed at real code
 
 **Layers:** prd ↔ code
-**Status:** open
+**Status:** resolved
 **Opened:** 2026-10-28
 
 ## Observation
@@ -33,9 +33,9 @@ the driver posts raw JSON to a chat-completions endpoint (`agent_driver.py`,
 - No file under `engine/` existed before this gap opened; no adapter for Hermes
 / Claude Code / opencode / DeepSeek Harness existed anywhere.
 - Grounding for the fix: the 15-system study
-[kb/raw/articles/2026-10-28-autoresearch-real-world-engines.md](../../kb/raw/articles/2026-10-28-autoresearch-real-world-engines.md)
+[kb/raw/articles/2026-10-28-autoresearch-real-world-engines.md](../../../kb/raw/articles/2026-10-28-autoresearch-real-world-engines.md)
 and its synthesis
-[kb/comparisons/autoresearch-engines-real-world.md](../../kb/comparisons/autoresearch-engines-real-world.md).
+[kb/comparisons/autoresearch-engines-real-world.md](../../../kb/comparisons/autoresearch-engines-real-world.md).
 
 ## Impact
 

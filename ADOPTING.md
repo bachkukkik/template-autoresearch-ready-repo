@@ -69,8 +69,8 @@ Non-zero exit and a named failure per problem; the first FAIL is the one to fix 
 
 ## Step 2.5 — run one loop in 5 minutes
 
-Prove the autoresearch loop works before reading anything else — no Docker, no
-service, no harness wiring. From the repo root:
+Two proofs, in order. **First see the contract** — no Docker, no service, no
+harness wiring. From the repo root:
 
 ```bash
 python3 autoresearch/contract/prepare.py    # -> prepare.py OK — TIME_BUDGET=300s, vocab_size=31
@@ -85,6 +85,27 @@ upstream) and its columns are `commit` / `val_bpb` / `memory_gb` / `status` /
 `description`, with the note at the top of `autoresearch/contract/program.md` describing each.
 Prefer a throwaway copy? `cp -r autoresearch/contract /tmp/loop && cd /tmp/loop && python3
 prepare.py && python3 train.py` runs the same loop outside the repo.
+
+That is one measured run — no keep/discard, no engine. **Then run the engine**,
+where the script, not the agent, commits, measures and reverts:
+
+```bash
+autoresearch/engine/bin/autoresearch doctor   # each harness binary; key set/unset
+bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
+# setup.sh copies ex5, commits a baseline and runs init for it — the general form:
+#   init --repo <repo> --verify "python3 bench.py" --guard "python3 guard.py"
+#        --metric-name seconds --direction lower --scope target
+cd "$TMPDIR/ex5"                              # disposable repo, already init'd
+PYTHONPATH=<repo>/autoresearch/engine python3 -m autoresearch run --repo . \
+  --agent claude --dry-run                    # validate + print argv, no agent run
+PYTHONPATH=<repo>/autoresearch/engine python3 -m autoresearch run --repo . \
+  --agent claude --max-iterations 8           # the loop: keep | revert per trial
+PYTHONPATH=<repo>/autoresearch/engine python3 -m autoresearch status --repo .
+PYTHONPATH=<repo>/autoresearch/engine python3 -m autoresearch report --repo .
+```
+
+`run` needs an agent harness — `--agent claude|opencode|hermes|dsh|command|replay`
+— and `--dry-run` proves the wiring without calling it.
 
 ## Step 2.6 — start the example service (optional)
 
@@ -110,9 +131,14 @@ The most useful table in this file. Nothing here is a rule — for every rule, r
 |---|---|---|
 | The funnel itself (`kb/` → `PRD.md` → `docs/gaps/` → `docs/NN-slug.md`) | **KEEP** | it is the doctrine: the stage order, the skill gates and the one-way flow are what you came for |
 | `kb/raw/` + `kb/` | **REPLACE** | ingest your own sources into `kb/raw/`, then run the `llm-wiki` synthesis over `./kb/`; a layer-2 page is never hand-written |
-| `PRD.md` + `docs/prd/` | **REPLACE** | this template's intent, not yours — rewrite the master PRD and start your topic PRDs at `01` |
-| `docs/NN-slug.md` + `docs/README.md` | **REPLACE** | the empirical layer records what *this* project verified; start your own `NN` set at `01`, keep the catalog format |
+| `PRD.md` + `docs/prd/` | **REPLACE** | this template's intent, not yours — rewrite the master PRD and start your topic PRDs at `50` |
+| `docs/NN-slug.md` + `docs/README.md` | **REPLACE** | the empirical layer records what *this* project verified; start your own `NN` set at `50`, keep the catalog format |
 | `autoresearch/contract/` (the autoresearch loop) | **REPLACE** | the loop's objective and its immutable evaluator are this template's; keep the `program.md` / `train.py` / `prepare.py` shape, swap the subject |
+| `autoresearch/contract/examples/` (the worked runs) | **KEEP as reference** | reference, not scaffolding: ex5 is the engine's real-code demo; ex2–ex4 predate the engine and each carries its own copy of the keep/discard driver — do not copy those drivers (closed gap 17) |
+| `autoresearch/engine/` (the loop itself) | **KEEP** | layer 0 — the script owns commit/measure/revert, the margin and the bounded stops; inherit it verbatim and point it at your code (step 2.5) |
+| `autoresearch/objective/` + `autoresearch/targets/` (what a run optimises) | **KEEP the mechanism, REPLACE the records** | layer 0/1 — the validator and the relativity split are the contract; replace the example profile and the `template-val-bpb` objective with your own |
+| `autoresearch/commands/` (the command registry) | **KEEP** | layer 0 — one declaration per command (PRD 23); a new script outside the registry is a defect, not a shortcut |
+| `autoresearch/supervisor/` (the unattended recipe) | **KEEP** | layer 0 — the schema, the idempotent installer and the guard ladder; parameterise the target and the scheduler binding, never fork the recipe |
 | `autoresearch/service/` (the example harness) | **REPLACE-OR-DELETE** | the example service is not your product — keep it only if your project ships a service; if not, delete `autoresearch/service/`, `docker-compose.yml` and the `e2e` tier together |
 | `tests/` | **KEEP the shape, REPLACE the tests** | three tiers, each with a runner *and* a CI job, is the contract; the `AC-*` tests are this repo's |
 | `.github/workflows/` | **KEEP** | `ci.yml` is the gate; `sources-readonly.yml` enforces the add-only rule for `kb/raw/` |
@@ -147,11 +173,20 @@ because nothing said where the game layer lives. The register in
 failure that earned each one, and one column saying whether this tree enforces it
 or defers it.
 
+That register's `Source` paths (`docs/41-…`) point into the private downstream
+instance `vanilla-open-design-autoresearch`, not this tree; the load-bearing
+quotes are captured in `kb/raw/articles/2026-11-26-veteran-decisions.md`.
+
 Two consequences worth stating plainly. A layer-2 omission is **not** a template
 defect — a repo with no tournament does not need a referee, and the register marks
 those rules `declared` instead of pretending. And a layer-1 gap **is** a template
 defect, because every adopter pays it: that is why PRDs 29 and 30 exist.
 
+The numbers are part of the inheritance. PRD, `docs/NN` and `docs/gaps/` numbers
+`01`–`49` are reserved for the template's own core and instruments, which a later
+sync may extend; an adopter numbers its own PRDs, records and gaps from `50` up.
+A sibling that spent `28`–`31` on its game layer collided with the template's own
+`28`–`30` on the next pull, and the merge cost more than renumbering would have.
 
 ## Step 4 — wire your harness
 
@@ -183,12 +218,15 @@ symlinks plus a row in that table.
 
 ## Step 5 — the first change loop
 
-`AGENTS.md`'s *`/goal` Orchestration Workflow* is the entry point for a substantive
-request. `/goal` itself is a **Hermes-only** convenience: the canonical cross-harness
-contract is the **`sub1`–`sub4` phase blocks and their phase table**, and
-"go through sub1-4" is a valid instruction on any harness. Report each phase's *Done
-when* before starting the next; if a phase surfaces a problem, re-enter kickoff triage
-for that problem first.
+`AGENTS.md`'s *Lifecycle — Zero to Deployment* is the entry point for a
+substantive request: the development stage `D0`–`D4` (entry → prompt → gaps →
+implement → empirical docs), then the delivery stage `sub1`–`sub4`, with the UAT
+variant adding `sub5` to promote `uat` into `main`. `/goal` itself is a
+**Hermes-only** convenience: *Running the pipeline without `/goal`*, in the same
+section, is the canonical cross-harness contract — the `D0`–`D4` / `sub1`–`sub4`
+labels plus the phase table — so "go through sub1-4" is a valid instruction on
+any harness. Report each step's *Done when* before starting the next; if a step
+surfaces a problem, re-enter `D1` triage for that problem first.
 
 ## Step 6 — adding a tracked root
 
@@ -197,7 +235,7 @@ together. Checklist (the rule is `AGENTS.md` funnel rule 11):
 
 - [ ] the funnel stage table in `AGENTS.md`
 - [ ] the *Where does this text go?* table in `AGENTS.md`
-- [ ] the Repository Structure block in `AGENTS.md`
+- [ ] the *Repository Structure* block in `README.md`
 - [ ] the `doctrine` job's tracked-path list in `.github/workflows/ci.yml`
 - [ ] `AC-FUN-002`'s required-dirs list in `tests/unit/test_funnel_structure.py`, when
       the root is a funnel stage

@@ -2,10 +2,11 @@
 
 `docs/prd/28-veteran-layer.md` § *The register* lists twenty portable
 decisions, each with the failure that earned it, an enforcement cell and a
-source. This module holds that table to its own claims: AC-VET-001..006 here
-and AC-VET-008 for the layer model in `ADOPTING.md`; AC-VET-007 is the
-behavioural local-CI guard in `tests/unit/test_local_ci_guard.py`. Hermetic:
-three tracked file reads and stdlib parsing only.
+source. This module holds that table to its own claims: AC-VET-001..006 here,
+AC-VET-008 and AC-VET-010 for `ADOPTING.md`, and AC-VET-009 in
+`tests/unit/test_verify_payloads.py`; AC-VET-007 is the behavioural local-CI
+guard in `tests/unit/test_local_ci_guard.py`. Hermetic: three tracked file
+reads and stdlib parsing only.
 """
 import re
 from pathlib import Path
@@ -14,6 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PRD = REPO_ROOT / "docs" / "prd" / "28-veteran-layer.md"
 GAP = REPO_ROOT / "docs" / "gaps" / "28-veteran-rules-unenforced.md"
 ADOPTING = REPO_ROOT / "ADOPTING.md"
+PRD_DIR = REPO_ROOT / "docs" / "prd"
 
 # The five cells of a register row, in table order.
 FIELDS = ("id", "rule", "earned-by", "enforcement", "source")
@@ -31,6 +33,12 @@ LAYER_ALIASES = {
     2: ("Layer 2", "2 — game"),
 }
 LAYER_RULE = "configured downstream, never forked"
+# An adopter numbers its own PRD / docs / gap set from here; below is the
+# template's inherited core and instruments, which a later sync may extend.
+# Both halves are the rule: a start with no reserved band is a guess.
+RESERVED_FROM = 50
+RESERVATION = "from `50`"
+RESERVED_BAND = "`01`–`49` are reserved"
 
 
 # --- table parsing ---------------------------------------------------------
@@ -166,7 +174,8 @@ def check_declared_listed(rows, gap_text):
     Forward: every `declared: none` row is named in the gap file by id.
     Reverse: every id the gap file lists belongs to a row this repo does not
     fully enforce — `declared`, or a `test-partial` row whose gap line says
-    which half is partial. VD-18 is the one partial row the gap lists.
+    which half is partial. VD-18 and VD-19 are the partial rows the gap
+    lists.
     """
     declared = {
         row["id"] for row in rows
@@ -257,6 +266,39 @@ def check_layer_model(text):
             findings.append(f"does not name layer {number} ({aliases})")
     if LAYER_RULE not in flat:
         findings.append(f"does not say a game layer is {LAYER_RULE}")
+    return findings
+
+
+def prd_numbers(prd_dir=PRD_DIR):
+    """The `NN` of every `docs/prd/NN-*.md`, as integers."""
+    return sorted(int(path.name[:2]) for path in
+                  Path(prd_dir).glob("[0-9][0-9]-*.md"))
+
+
+def check_numbering_policy(text, prd_dir=PRD_DIR):
+    """Findings for the adopter numbering reservation (AC-VET-010).
+
+    `ADOPTING.md` must reserve `01`-`49` for the template's own core and
+    instruments, tell an adopter to number its own PRDs, records and gaps
+    from `50`, and no PRD this template ships may sit at or above it.
+    """
+    findings = []
+    flat = " ".join(text.split())
+    if RESERVATION not in flat:
+        findings.append(
+            f"ADOPTING.md does not state the reservation ('{RESERVATION}')"
+        )
+    if RESERVED_BAND not in flat:
+        findings.append(
+            "ADOPTING.md does not reserve `01`-`49` for the core "
+            "and instruments"
+        )
+    over = [n for n in prd_numbers(prd_dir) if n >= RESERVED_FROM]
+    if over:
+        findings.append(
+            f"PRD number(s) at or above {RESERVED_FROM}: "
+            f"{[f'{n:02d}' for n in over]}"
+        )
     return findings
 
 
@@ -408,3 +450,26 @@ def test_layer_model_check_requires_three_layers():
     assert any("layer 2" in finding for finding in findings), findings
     assert any(LAYER_RULE in finding for finding in findings), findings
     assert check_layer_model("## Nothing\n"), "a missing section must fail"
+
+
+def test_adopter_numbers_start_at_fifty():
+    """AC-VET-010: `ADOPTING.md` reserves `01`-`49` and tells an adopter to
+    number its own artifacts from `50`; no shipped PRD sits at or above it."""
+    numbers = prd_numbers()
+    assert len(numbers) >= 20, f"only {len(numbers)} PRD(s) parsed"
+    findings = check_numbering_policy(ADOPTING.read_text(encoding="utf-8"))
+    assert findings == [], "; ".join(findings)
+
+
+def test_numbering_check_reports_a_collision(tmp_path):
+    """AC-VET-010: negative control — prose without the reservation, prose
+    that states only the start and not the reserved band, and a PRD
+    numbered `50` in the set, are each reported."""
+    silent = check_numbering_policy("## Layer model\n", prd_dir=tmp_path)
+    assert any("does not state" in finding for finding in silent), silent
+    half = check_numbering_policy(f"start at {RESERVATION}", prd_dir=tmp_path)
+    assert any("`01`-`49`" in finding for finding in half), half
+    (tmp_path / "50-game.md").write_text("# game\n", encoding="utf-8")
+    collided = check_numbering_policy(f"start at {RESERVATION}",
+                                      prd_dir=tmp_path)
+    assert any("50" in finding for finding in collided), collided

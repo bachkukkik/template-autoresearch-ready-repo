@@ -64,7 +64,7 @@ autoresearch/engine/bin/autoresearch init \
 |---|---|---|
 | `--repo PATH` | `.` | Target repo. Must be a git repo on a named branch with a clean tree. |
 | `--state-dir PATH` | `<repo>/.autoresearch` | Where `run.json`, the ledger and the report live. Accepted by `init`, `run`, `status` and `report`; the absolute path is recorded in `run.json` so a round can keep its state in the harness and leave the measured checkout untouched. |
-| `--verify CMD` | required* | Prints the metric (`METRIC name=1.5`, `name: 1.5`, or a bare final float). *Derived from `--objective`'s active leg when omitted. |
+| `--verify CMD` | required* | Prints the metric (`METRIC name=1.5`, `name: 1.5`, a bare final float, or a referee's `LEG name 1.5 lower`). *Derived from `--objective`'s active leg when omitted. |
 | `--metric-name NAME` | required* | The token `parse_metric` looks for. *Derived from the leg. |
 | `--direction {lower,higher}` | required* | Which way is better. *Derived from the leg. |
 | `--objective PATH` | none | A tracked objective record (PRD 22): the active leg derives `--verify`, `--metric-name`, `--direction`, `--repeats`, `--noise-floor` and `--guard`; the record's path, id, leg and unit are stored in `run.json`. An explicit flag wins. |

@@ -108,4 +108,4 @@ An API, MCP client or CI job must **not** shell out to this binary. Go through t
 ## Reference
 
 `autoresearch/engine/README.md` — every flag, the metric parser, the ledger format, the
-security notes and the exit codes. `docs/prd/17-harness-pluggable-engine.md`.
+security notes and the exit codes. `docs/prd/17-autoresearch-engine.md`.
