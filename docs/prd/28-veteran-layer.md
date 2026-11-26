@@ -5,9 +5,13 @@
 > portable decisions as a numbered register, sorts every capability into three
 > layers so an adopter knows what to inherit and what to configure, and makes the
 > register mechanically checkable so it cannot rot into prose.
-> **Domain:** `vet` — the veteran layer. **Canonical test:**
-> `tests/unit/test_veteran_register.py` (`AC-VET-001..008`).
-> **Stage 6:** `docs/28-veteran-layer.md` (pending).
+> **Domain:** `vet` — the veteran layer. **Canonical tests:**
+> `tests/unit/test_veteran_register.py` (`AC-VET-001..006`, `008`, `010`)
+> and `tests/unit/test_verify_payloads.py` (`AC-VET-009`).
+> **Stage 6:**
+> [`docs/28-veteran-layer.md`](../28-veteran-layer.md) — **written 2026-11-26**
+> from a verification run, not from this plan; verdict `works`, with the limits
+> that run found recorded there.
 > **Grounding:**
 > [veteran-decision-register](../../kb/concepts/veteran-decision-register.md),
 > [claim-reader-alignment](../../kb/concepts/claim-reader-alignment.md),
@@ -67,8 +71,13 @@ said where the game lives.
 
 ## The register
 
-Twenty rules. `Earned by` is the failure that taught the rule; `Enforcement` is
-the only place this repo may claim the rule is live.
+Twenty rules: eight `test:`, five `test-partial:`, seven `declared: none`.
+`Earned by` is the failure that taught the rule; `Enforcement` is the only
+place this repo may claim the rule is live. The `Source` paths
+(`docs/41-league-season35.md` and its siblings) point into the private
+downstream instance `vanilla-open-design-autoresearch`, not this tree; the
+load-bearing quotes are captured in
+`kb/raw/articles/2026-11-26-veteran-decisions.md`.
 
 | ID | Rule | Earned by | Enforcement | Source |
 |---|---|---|---|---|
@@ -80,7 +89,7 @@ the only place this repo may claim the rule is live.
 | VD-06 | Size a brief to its own gate's margin. | one annotation asked against a 4.3-bullet margin | `declared: none` | `docs/41-league-season35.md` |
 | VD-07 | A metric declares direction, unit, command, floor, exploit, probe. | a leg priced with no noise floor and no probe | `test-partial: tests/unit/test_engine_objective.py` | `docs/25-league-season18.md` |
 | VD-08 | Retire a metric a census shows unwinnable. | zero honestly winnable services, rejected as a leg three times | `declared: none` | `docs/41-league-season35.md` |
-| VD-09 | A pointer is not proof: the verifier must cite the same AC id. | five payloads naming one test that asserts nothing about the criterion | `declared: none` | `docs/43-league-season37.md` |
+| VD-09 | A pointer is not proof: the verifier must cite the same AC id. | five payloads naming one test that asserts nothing about the criterion | `test: tests/unit/test_verify_payloads.py` | `docs/43-league-season37.md` |
 | VD-10 | Price what moved, not what was attempted. | a close that priced the moving leg down and the unmoved leg up | `test-partial: tests/unit/test_engine_decide.py` | `docs/41-league-season35.md` |
 | VD-11 | Re-establish and re-measure the base before paying. | a promote PR deleted the trunk the round was measured on | `declared: none` | `docs/42-league-season36.md` |
 | VD-12 | One writer per target: consolidate mutating jobs onto one router. | two hourly schedulers firing into one repo, blind to each other | `declared: none` | `docs/45-cron-overlap-consolidation.md` |
@@ -90,7 +99,7 @@ the only place this repo may claim the rule is live.
 | VD-16 | Facts fail closed: a missing fact never satisfies a rule. | an unclassified reading that would have silenced a red gate | `declared: none` | `docs/43-steward-uat-red-accuracy.md` |
 | VD-17 | Digest the facts so a repeat fire is recognised and stopped. | one unchanged fact set re-fired eight times in 24 h | `declared: none` | `docs/43-steward-uat-red-accuracy.md` |
 | VD-18 | Landed gates payment; a reverted seat settles unpaid. | both seats paid for a trunk that failed its guard | `test-partial: tests/unit/test_engine_loop.py` | `docs/27-league-season22.md` |
-| VD-19 | Salvage a dead agent's tree, measure it, never read it as a refutation. | a seat's 30 to 0 win reverted unread because its agent timed out | `test: tests/unit/test_engine_loop.py` | `docs/40-league-season34.md` |
+| VD-19 | Salvage a dead agent's tree, measure it, never read it as a refutation. | a seat's 30 to 0 win reverted unread because its agent timed out | `test-partial: tests/unit/test_engine_loop.py` | `docs/40-league-season34.md` |
 | VD-20 | The record measures itself: fidelity, coverage, attempt ledger. | a retried round overwrote its own token ledger | `test-partial: tests/unit/test_engine_record.py` | `docs/46-measurement-coverage.md` |
 
 Two entries correct the brief that requested this register, and the correction
@@ -149,6 +158,16 @@ per-domain metric.
   skip marker (expect exit 1, `FAIL`), one exits 0 having written a clean log
   (expect exit 0, `pass`). _Verify:_ `tests/unit/test_local_ci_guard.py`
   (AC-VET-007).
+- **SC-vet-9 — A `_Verify:` payload is checked against the test it names.** A
+  payload in `docs/prd/NN-*.md` that cites both a test file and an AC id cites
+  a file that exists and an id that file carries; a range expands, a
+  struck-through payload is retired, and a payload with no AC id is out of
+  scope. _Verify:_ `tests/unit/test_verify_payloads.py` (AC-VET-009).
+- **SC-vet-10 — An adopter's numbers cannot collide with a template sync.**
+  `ADOPTING.md` reserves `01`–`49` for the inherited core and instruments and
+  tells an adopter to number its own PRDs, `docs/NN` records and gaps from
+  `50`; every `docs/prd/NN-*.md` this template ships is below `50`. _Verify:_
+  `tests/unit/test_veteran_register.py` (AC-VET-010).
 
 ## Test Mapping
 
@@ -162,12 +181,15 @@ per-domain metric.
 | SC-vet-6 | AC-VET-008 | `tests/unit/test_veteran_register.py` | unit |
 | SC-vet-7 | AC-VET-007 | `tests/unit/test_local_ci_guard.py` | unit |
 | SC-vet-8 | AC-VET-007 | `tests/unit/test_local_ci_guard.py` | unit |
+| SC-vet-9 | AC-VET-009 | `tests/unit/test_verify_payloads.py` | unit |
+| SC-vet-10 | AC-VET-010 | `tests/unit/test_veteran_register.py` | unit |
 
 ## CI/CD Gate
 
-- Both tests are stdlib-only and hermetic: the register test reads two tracked
-  files; the guard test builds a throwaway `PATH` with a stub `act` shell script
-  and asserts exit codes. No Docker, no network.
+- The three tests are stdlib-only and hermetic: the register test and the
+  payload checker read tracked files (the checker opens the test files each PRD
+  payload cites); the guard test builds a throwaway `PATH` with a stub `act`
+  shell script and asserts exit codes. No Docker, no network.
 - No new CI job: the unit ACs run in the existing `unit` job.
 - `scripts/local-ci.sh` stays under the file-size gate; the added check is three
   lines plus one reason string.
@@ -181,13 +203,14 @@ per-domain metric.
   `test_docs_template.py` holds every file there to the eight-section shape.
   The register is intent — rules adopted, not runs observed — so it lives in its
   PRD and the stage-6 record for this PRD cites it.
-- [ASSUMPTION] **A `declared` row is honest, not a failure.** Eight of the twenty
-  rules presuppose a league, a payment, or a steward that this template does not
-  ship. Marking them `declared` with a named gap is the honest record; shipping
-  them as `test:` would be the lie.
-- [ASSUMPTION] **`test-partial` is needed as a third kind.** VD-07, VD-10, VD-18
-  and VD-20 have a mechanical half that runs today and a settlement half that does
-  not exist without a game. The gap file names the missing half per row.
+- [ASSUMPTION] **A `declared` row is honest, not a failure.** Seven of the
+  twenty rules presuppose a league, a payment, or a steward that this template
+  does not ship. Marking them `declared` with a named gap is the honest record;
+  shipping them as `test:` would be the lie.
+- [ASSUMPTION] **`test-partial` is needed as a third kind.** VD-07, VD-10,
+  VD-18, VD-19 and VD-20 have a mechanical half that runs today and a
+  settlement half that does not exist without a game. The gap file names the
+  missing half for VD-18 and VD-19, the two whose half is a payment.
 
 ## Confidence
 

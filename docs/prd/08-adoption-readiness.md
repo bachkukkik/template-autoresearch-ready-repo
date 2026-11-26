@@ -88,7 +88,8 @@ unset; gating the configured target when it is set).~~ **Retired 2026-11-04:
 doc has exactly one row in `docs/README.md`, every `docs/prd/NN-*.md` appears
 in `PRD.md`'s Quick Reference and vice versa, and every `NN` under
 `docs/gaps/` — live or archived — has a topic file at that number. _Verify:_
-`tests/unit/test_docs_template.py` (AC-DOC-001..016).
+`tests/unit/test_docs_template.py`
+(AC-DOC-001..007, AC-DOC-011..016).
 
 - **SC3** — **A new tracked root cannot pass CI silently.** The `doctrine` job
 derives every tracked top-level directory and root file from the git index and
@@ -198,7 +199,7 @@ collide with the tracked `autoresearch/` engine root. _Verify:_
 
 | Expected behavior | Test file | Test IDs |
 |---|---|---|
-| Documentary invariants enforced (eight-section order, fails↔resolution parity, catalog rows, cross-layer `NN`) | `tests/unit/test_docs_template.py` | AC-DOC-001..016 |
+| Documentary invariants enforced (eight-section order, fails↔resolution parity, catalog rows, cross-layer `NN`) | `tests/unit/test_docs_template.py` | AC-DOC-001..007, AC-DOC-011..016 |
 | A new tracked root cannot pass the `doctrine` job silently; the job's list and `AC-FUN-002` cannot drift | `tests/unit/test_funnel_structure.py` + `.github/workflows/ci.yml` (`doctrine`) | AC-FUN-003 + the `doctrine` tracked-root coverage step |
 | Gap lifecycle: a legitimately empty open set still reports a malformed gap | `tests/unit/test_gaps_lifecycle.py` | AC-FUN-021 |
 | Closed gaps 03/07 archived with their records; re-ingested `kb/raw` articles sha-verified | `tests/unit/test_docs_template.py`, `tests/unit/test_corpus_integrity.py` | AC-DOC-004, AC-DOC-006, AC-EXC-001/002 |
@@ -262,7 +263,8 @@ guard lands in an existing job (`unit`, `integration`, `doctrine`) or in
 ## Confidence
 
 **High** — the change set shipped and green: `tests/unit/test_docs_template.py`
-(AC-DOC-001..016), `tests/unit/test_funnel_structure.py` +
+(AC-DOC-001..007, AC-DOC-011..016),
+`tests/unit/test_funnel_structure.py` +
 `tests/unit/test_gaps_lifecycle.py` (AC-FUN-001..004, 021),
 `tests/unit/test_harness_neutrality.py` (AC-HRN-001..014),
 `tests/unit/test_verify_clone.py` (AC-VC-001..008) and

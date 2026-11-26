@@ -41,7 +41,7 @@ bounded stops, replay-validated ledger — the mechanics shared by the systems
 that report real-code wins) and serves
 [docs/prd/17-autoresearch-engine.md](prd/17-autoresearch-engine.md)
 (AC-ENG-000..079 unit, AC-ENG-201..203 integration; ex5 AC-EXA-040..050). Gap
-[17](gaps/17-loop-cannot-target-real-code.md) is the "why".
+[17](gaps/_archive/17-loop-cannot-target-real-code.md) is the "why".
 
 ## Why
 
@@ -79,8 +79,9 @@ PYTHONPATH=engine python3 -P -m autoresearch status --repo <repo>
 PYTHONPATH=engine python3 -P -m autoresearch report --repo <repo>
 
 # the worked example, end to end
-bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
-cd "$TMPDIR/ex5"
+bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh \
+  "${TMPDIR:-/tmp}/ex5"
+cd "${TMPDIR:-/tmp}/ex5"
 PYTHONPATH=<repo>/engine python3 -P -m autoresearch run --repo . --agent claude \
   --max-iterations 8 --plateau 3
 ```

@@ -167,7 +167,7 @@ the docs/12 pre-move `git ls-files` block, the docs/10 commit quote
 `at afcab6c` gap evidence table still print the old paths; a repo-wide grep
 reports them and a reader can mistake them for live claims.
 - **A changelog link is read as a catalog row.** Writing the 2.3.0 PRD row as
-  `[docs/18](docs/18-root-layout-refactor.md)` made `AC-DOC-005`
+  `[docs/18](18-root-layout-refactor.md)` made `AC-DOC-005`
   (`test_prd_quick_reference_rows`) treat the changelog line as a Quick
   Reference row and fail:
 

@@ -94,9 +94,8 @@ the file that now owns the number.
 
 | # | Gap | Layers | Status | Opened |
 |---|-----|--------|--------|--------|
-| 17 | [The loop described by the docs cannot be pointed at real code](17-loop-cannot-target-real-code.md) | prd ↔ code | open | 2026-10-28 | closed by PRD-17: the `autoresearch/engine/` package + ex5 (NLTK 3.9.1 under a four-stage isolated guard); verified in [docs/17](../17-autoresearch-engine.md) |
 | 27 | [The 20 KB file-size cap cannot hold in this repo](27-file-size-cap-cannot-hold.md) | prd ↔ code | open | 2026-11-16 | convergence path: shrink the 22 measured files in waves (W1–W4), then drop `--max-kb 60` from the `Machine gates` step and `ADOPTED_KB` from `tests/unit/test_audit_size.py`; the gap closes when PRD 27's default is the gate — see [docs/27](../27-file-size-audit.md) |
-| 28 | [Nine veteran rules are declared, not enforced](28-veteran-rules-unenforced.md) | prd ↔ code | open | 2026-11-26 | one row at a time: a capability lands, its PRD moves the register row from `declared:` to `test:`, and its line goes; cheapest first is VD-09 (a `_Verify:` payload checker, test-only) — see [PRD 28](../prd/28-veteran-layer.md) |
+| 28 | [Seven veteran rules are declared, not enforced](28-veteran-rules-unenforced.md) | prd ↔ code | open | 2026-11-26 | one row at a time: a capability lands, its PRD moves the register row from `declared:` to `test:`, and its line goes; VD-09 closed that way, so the cheapest candidates are VD-18 then VD-19 (one settlement, twice), then VD-06 — see [PRD 28](../prd/28-veteran-layer.md) |
 
 Resolved gaps leave this directory but stay in the repo, their path structure
 preserved under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a
@@ -128,6 +127,12 @@ moved to
 [`_archive/24-three-loops-one-name.md`](_archive/24-three-loops-one-name.md).
 Renumbered 20 → 24 on 2026-11-15 with the topic files (downstream numbering
 wins).
+- **Archived 2026-11-26** — resolution landed in PRD-17 (the
+`autoresearch/engine/` package + the real-OSS target ex5; verified in
+[docs/17](../17-autoresearch-engine.md)): `17-loop-cannot-target-real-code.md`
+moved to [`_archive/`](_archive/), path preserved. Its `Status:` still read
+`open` while its own Resolution had said closed since PRD-17 landed, so it is
+archived as `resolved` (rule 5), not withdrawn.
 - **Withdrawn tombstones** — `02-contract-files-missing.md`,
 `03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
 `05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`.

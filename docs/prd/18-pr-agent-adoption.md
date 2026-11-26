@@ -72,8 +72,9 @@ runs **only** when `vars.PR_AGENT_ENABLED == 'true'` **and**
 `github.event.sender.type != 'Bot'`; top-level `permissions: {}`; the job
 elevates to `contents: read`, `issues: write`, `pull-requests: write` only;
 the action ref is SHA-pinned with a version comment. _Verify:_
-`tests/unit/test_pr_agent_adoption.py` (AC-PRA-001..004) + existing
-AC-QC-001..004 + the `zizmor` CI job.
+`tests/unit/test_pr_agent_adoption.py` (AC-PRA-001..004) +
+`tests/unit/test_quality_controls.py` (AC-QC-001..004) + the `zizmor`
+CI job.
 - **SC2 — Endpoint, key and model are customizable, never hardcoded.** The
 configuration surface uses the conventional OpenAI names so any adopter (or
 agent) recognizes them without PR-Agent-specific knowledge: repo **secret**

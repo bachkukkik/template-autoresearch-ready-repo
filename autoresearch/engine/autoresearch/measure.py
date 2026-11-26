@@ -215,6 +215,16 @@ def _find(stdout: str, name: str) -> "tuple[Optional[float], Optional[str]]":
         if match:
             return float(match.group(1)), line
 
+    # A league referee prints `LEG <name> <value> <direction>`; the direction
+    # is the referee's own declaration: read, never trusted over config.
+    leg = re.compile(
+        rf"^LEG\s+{escaped}\s+({FLOAT_RE})\s+(?:lower|higher)$"
+    )
+    for line in reversed(lines):
+        match = leg.match(line)
+        if match:
+            return float(match.group(1)), line
+
     labelled = re.compile(rf"^{escaped}\s*:\s*({FLOAT_RE})$")
     for line in reversed(lines):
         match = labelled.match(line)
@@ -231,14 +241,17 @@ def _find(stdout: str, name: str) -> "tuple[Optional[float], Optional[str]]":
 def parse_metric(stdout: str, name: str) -> Optional[float]:
     """Extract ``name`` from a verify command's stdout.
 
-    Three accepted shapes, in priority order:
+    Four accepted shapes, in priority order:
 
     (a) ``METRIC name=1.5``      — preferred, unambiguous;
-    (b) ``name: 1.5``            — a plain labelled line;
-    (c) a final bare ``1.5``     — last resort for one-number scripts.
+    (b) ``LEG name 1.5 lower``   — referee's direction: read, not trusted;
+    (c) ``name: 1.5``            — a plain labelled line;
+    (d) a final bare ``1.5``     — last resort for one-number scripts.
 
-    The *last* matching line wins in every case, so a script may log a header
-    value and then the final one.
+    The forms are tried in the order listed, so a `METRIC` tag outranks a
+    `LEG` line, which outranks a labelled line, which outranks a bare final
+    float. Within one form the *last* matching line wins, so a script may
+    log a header value and then the final one.
     """
     return _find(stdout, name)[0]
 

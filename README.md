@@ -45,13 +45,15 @@ instruction.
 
 ## Knowledge Base — what is in `kb/` now
 
-Ingested 2026-09-04 from a deep-research run on the autoresearch pattern (each
-`kb/raw/` file names its sources in its frontmatter):
+Each `kb/raw/` file names its sources in its frontmatter. A 2026-09-04
+deep-research run on the autoresearch pattern seeded the corpus; later ingests
+were added since (the dated record is `kb/log.md`). Today `kb/raw/` holds 32
+sources — 12 transcripts and 20 articles; `papers/` and `assets/` ship empty.
 
 | Layer | Content |
 |-------|---------|
-| `kb/raw/transcripts/` | 11 YouTube transcripts — tutorial, domain adaptations (music, D&D, code), local-LLM bake-off, Claude Code integration, skill self-improvement, playlist series |
-| `kb/raw/articles/` | upstream `program.md` (verbatim), the research conclusions, and the output-medium / Karpathy-guidelines sources |
+| `kb/raw/transcripts/` | 12 YouTube transcripts — tutorial, domain adaptations (music, D&D, code), local-LLM bake-off, Claude Code integration, skill self-improvement, playlist series, and the 2026-11-11 `all-code-is-slop-except-mine` talk |
+| `kb/raw/articles/` | 20 articles — upstream `program.md` (verbatim), the research conclusions, the code-capture series (target profile, objective and run records, command registry, process scan, veteran decisions) and the output-medium / Karpathy-guidelines sources |
 | `kb/concepts/`, `kb/entities/`, `kb/comparisons/` | synthesized pages — [[autoresearch-contract]], [[val-bpb-metric]], [[fixed-time-budget]], [[evaluator-legitimacy]], [[document-funnel-doctrine]], [[domain-adaptation]], [[problem-selection]], [[skill-self-improvement]], [[karpathy-autoresearch]], [[template-agentic-ready-repo]], plus the ecosystem/platform/agent comparisons |
 
 Query the KB via `kb/index.md`; run `llm-wiki ./kb/` after any `kb/raw/` change.
@@ -238,8 +240,9 @@ through a symlinked entry point, or (Aider) through an explicit `--read`; only
 Gemini CLI insists on its own filename, which `GEMINI.md` supplies as a symlink.
 Adding a harness never forks the content. The pipeline is harness-neutral: every
 harness runs the `sub1`–`sub4` phase blocks by prompting them in order
-(`AGENTS.md` § *The `/goal` Orchestration Workflow*); `/goal` is a Hermes-only
-convenience and **"go through sub1-4"** is valid everywhere.
+(`AGENTS.md` § *Lifecycle — Zero to Deployment*, *Running the pipeline without
+`/goal`*); `/goal` is a Hermes-only convenience and **"go through sub1-4"** is
+valid everywhere.
 
 | Harness | Entry point | Skills | Run the `sub1`–`sub4` phases |
 |---|---|---|---|
@@ -336,8 +339,7 @@ worked examples, output medium, gen-env, STE audit, quality controls
 - [x] Autoresearch contract implemented (`program.md` / `prepare.py` /
 `train.py` + `AC-TPL-*` tests)
 - [x] Governance + corpus integrity tests (`AC-FUN-*`, `AC-EXC-*`) — unit tier
-green (count of record: run `bash tests/run.sh`; 187 unit tests at the
-2026-10-16 improvement wave)
+green (count of record: run `bash tests/run.sh`)
 - [x] One-command onboarding — `ADOPTING.md` + `scripts/verify-clone.sh`
 (read-only clone health check). Funnel stage 7 is GitHub issues: there is no
 examples stage
@@ -352,5 +354,30 @@ clobber) + `AC-GEN-001..005`
 - [x] `scripts/audit_pyramid.py` (the potato-pyramid 3-foundations gate:
 codebase constraints, comment budget, test linkage) + `AC-PYR-001..007` — runs
 in the unit tier, PRD 16
-
-<!-- pr-agent smoke test: optional AI reviewer fires on a real PR -->
+- [x] PRD 17 Autoresearch Engine — `autoresearch/engine/` (init / run / status /
+report / doctor, script-owned keep/revert) + the real-OSS target ex5
+(`AC-ENG-*`)
+- [x] PRD 18 optional PR-Agent adoption — `.github/workflows/pr-agent.yml`,
+opt-in via `PR_AGENT_ENABLED` + the conventional `OPENAI_*` names
+(`AC-PRA-001..009`)
+- [x] PRD 20 Agent Evals — `measure.py` / `decide.py`: the margin, the
+`inconclusive` verdict, six-field provenance (`AC-EVL-*`)
+- [x] PRD 21 Unattended Loop Recipe — `autoresearch/supervisor/` (recipe,
+idempotent installer, guard ladder, one scheduler binding; `AC-URC-*`)
+- [x] PRD 22 Target Profile — `autoresearch/targets/` profiles + the `target/`
+contract, the objective and the run record (`AC-TPR-*`, `AC-OBJ-*`,
+`AC-REC-*`)
+- [x] PRD 23 Command Registry — `autoresearch/commands/registry.py`: one
+declaration per command, catalog and `--help` generated (`AC-CMD-*`)
+- [x] PRD 24 AutoResearch as a Service — one `autoresearch/` distribution
+(engine + contract + service), REST/MCP re-founded on the engine (`AC-SVC-*`)
+- [x] PRD 26 Char-Per-Line Audit — `scripts/audit-chars.py`: the strict
+80-column gate with its shrink-only unbreakable ratchet (`AC-CHARS-001..006`)
+- [x] PRD 27 File-Size Audit — `scripts/audit-size.py`, `--max-kb 60` in CI and
+`EXEMPT_PATHS` for the three unshrinkable classes (`AC-SIZE-001..006`)
+- [x] PRD 28 Veteran Layer — the 20-row register in `docs/prd/28-veteran-layer.md`
+and the *Layer model* in `ADOPTING.md` (`AC-VET-*`)
+- [x] PRD 29 Hypothesis-Driven Trial — opt-in `--hypotheses` and
+`--margin-quantile {z,t}`; the off path stays byte-identical (`AC-HYP-*`)
+- [x] PRD 30 Measurement Coverage — cost beside score, `attempt` events,
+`scripts/ci_metrics.py`; no cost can move a verdict (`AC-MCV-*`)
