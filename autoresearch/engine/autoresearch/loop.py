@@ -31,12 +31,14 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
 from . import __version__
+from . import claim as claim_mod
 from . import config as config_mod
 from . import decide as decide_mod
 from . import gitops
 from . import ledger as ledger_mod
 from . import measure as measure_mod
 from . import prompt as prompt_mod
+from . import usage as usage_mod
 
 #: Longest log tail kept. The tail is *stored* — in the ledger and in
 #: ``last_agent.log`` — so an agent that prints a megabyte must not grow the
@@ -57,6 +59,26 @@ PROMPT_FAILURE_OUTCOMES = ("agent_error", "guard_failed", "crash")
 #: the scope" is a fact the record must not bury under ``agent_error``.
 VIOLATION_OUTCOMES = ("scope_violation", "protected_violation")
 
+#: The outcomes that settle a trial: a verdict was reached about a candidate.
+#: Only these carry a claim, and only these can refute one (PRD 29 SC-hyp-5).
+SETTLED_OUTCOMES = (decide_mod.KEEP, decide_mod.DISCARD, decide_mod.INCONCLUSIVE)
+
+#: The stages an iteration passes through, as an ``attempt`` event names the one
+#: it died in: ``agent`` is where every iteration starts (scope, protected
+#: hashes, commit), and ``interrupted`` is the signal that killed one.
+PHASES = ("agent", "measure", "guard", "interrupted")
+
+#: The exceptions the CLI reports as a *refusal* — a declared exit code and one
+#: error line, never a traceback. A refused invocation never touches the history,
+#: so it leaves no ``attempt`` row: it is the engine declining, not a death.
+REFUSALS = (config_mod.ConfigError, ledger_mod.LedgerError, gitops.GitError)
+
+#: The run's refutation memory — one row per refuted claim text, the most recent
+#: :data:`REFUTED_LIMIT` distinct texts kept. Written beside the ledger.
+REFUTED_FILE = "refuted.json"
+REFUTED_LIMIT = 10
+REFUTED_REASON = "sign"
+
 
 @dataclass
 class Options:
@@ -68,6 +90,10 @@ class Options:
     record: Optional[str] = None
     dry_run: bool = False
     json_output: bool = False
+    #: PRD 29 opt-ins: ask for and record a claim, and which quantile gates the
+    #: margin. Both default to the behaviour every existing run was decided by.
+    hypotheses: bool = False
+    margin_quantile: str = decide_mod.QUANTILE_Z
 
 
 @dataclass
@@ -95,6 +121,34 @@ class State:
     @property
     def next_iteration(self) -> int:
         return max((int(t.get("iteration", 0)) for t in self.trials), default=0) + 1
+
+
+@dataclass
+class Progress:
+    """One iteration in flight: its own clock, its stage, its harness cost.
+
+    ``started`` is read from the loop's monotonic clock on the iteration's first
+    line, so ``wall_seconds`` is this trial's own elapsed time — not a second
+    timer invented beside the one the loop already reads.
+
+    ``phase`` is the stage running *now*. It is what an ``attempt`` event
+    reports when the iteration dies there, because "which stage" is the only
+    thing that makes an unsettled run diagnosable after the fact. ``tokens`` is
+    whatever the harness transcript reported, read once per iteration and never
+    guessed: ``None`` here is recorded as a JSON null.
+    """
+
+    started: float = field(default_factory=time.monotonic)
+    phase: str = "agent"
+    tokens: Optional[int] = None
+    exit_code: Optional[int] = None
+
+    def cost(self) -> Dict[str, object]:
+        """This trial's cost: tokens when reported, always a measured wall."""
+        return {
+            "tokens": self.tokens,
+            "wall_seconds": round(time.monotonic() - self.started, 3),
+        }
 
 
 def _incumbent_from(event: dict) -> dict:
@@ -156,6 +210,15 @@ class Emitter:
                 f"resume: continuing after stop {event.get('after')!r} from iteration "
                 f"{event.get('iteration')} (incumbent {event.get('metric')} at "
                 f"{str(event.get('commit'))[:7]})"
+            )
+        if kind == "attempt":
+            cost = event.get("cost")
+            priced = cost if isinstance(cost, dict) else {}
+            seconds = priced.get("wall_seconds", 0)
+            return (
+                f"attempt: unsettled in the {event.get('phase')} phase after "
+                f"{seconds}s (exit {event.get('exit_code')}) — "
+                "no verdict was reached"
             )
         return f"{kind}: {json.dumps(event, sort_keys=True)}"
 
@@ -356,6 +419,11 @@ def _wall_exhausted(cfg, opts: Options, started: float) -> bool:
     loop stops with a measured, decided iteration behind it instead of being
     killed by whoever set ``timeout`` on the engine. Unset (``0``) means
     unlimited, and is left exactly as it was.
+
+    The check runs between iterations, never inside one: a wall stop therefore
+    always follows a settled trial and owes no ``attempt`` row. An iteration
+    that overruns the wall is still measured and judged — stopping it halfway
+    would throw away work the reservation only estimated.
     """
     if not opts.max_wall:
         return False
@@ -432,6 +500,154 @@ def _append_record(path: str, iteration: int, description: str, patch: str) -> N
         os.fsync(handle.fileno())
 
 
+def _signed_delta(metric, incumbent_metric, direction) -> Optional[float]:
+    """The candidate's movement: positive when it beats the incumbent."""
+    if metric is None or incumbent_metric is None:
+        return None
+    if direction == "lower":
+        return float(incumbent_metric) - float(metric)
+    if direction == "higher":
+        return float(metric) - float(incumbent_metric)
+    return None
+
+
+def _sign_match(predict, delta) -> Optional[bool]:
+    """Did the realised movement carry the predicted sign?
+
+    ``None`` when either side is unmeasured or zero: a prediction of zero, or a
+    movement of zero, has no sign to agree with, so nothing is scored.
+    """
+    if predict is None or delta is None:
+        return None
+    if float(predict) == 0 or float(delta) == 0:
+        return None
+    return (float(predict) > 0) == (float(delta) > 0)
+
+
+def _hypothesis_record(
+    claim: Optional[dict], metric, incumbent_metric, direction: str
+) -> Optional[dict]:
+    """The claim beside the result: what was predicted, and whether it held.
+
+    A trial that stated no claim records ``None`` — a missing claim is reported
+    as missing, never as a wrong one.
+    """
+    if claim is None:
+        return None
+    matched = _sign_match(
+        claim.get("predict"), _signed_delta(metric, incumbent_metric, direction)
+    )
+    return {
+        "text": claim.get("text") or "",
+        "predict": claim.get("predict"),
+        "falsified_if": claim.get("falsified_if"),
+        "sign_match": matched,
+        "calibration": "n/a" if matched is None else "sign",
+    }
+
+
+def _refuted_path(cfg) -> Path:
+    return Path(cfg.state_dir) / REFUTED_FILE
+
+
+def _read_refuted(path: Path) -> List[dict]:
+    """The refutation memory; absent or unreadable reads as an empty one."""
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return [
+        row
+        for row in (rows if isinstance(rows, list) else ())
+        if isinstance(row, dict) and isinstance(row.get("text"), str)
+    ]
+
+
+def _record_refutation(cfg, text: str) -> None:
+    """Remember a refuted claim: one row per text, counted, last ten distinct.
+
+    The write is a temporary file renamed over the old one, so a reader never
+    sees half a memory. A memory that cannot be written does not kill the run:
+    the ledger is the record of truth, and this file is a hint.
+    """
+    path = _refuted_path(cfg)
+    rows = _read_refuted(path)
+    for row in rows:
+        if row["text"] == text:
+            row["count"] = int(row.get("count") or 0) + 1
+            break
+    else:
+        rows.append({"text": text, "reason": REFUTED_REASON, "count": 1})
+    rows = rows[-REFUTED_LIMIT:]
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(
+            json.dumps(rows, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        os.replace(tmp, path)
+    except OSError:
+        pass
+
+
+def _record_settled_claim(cfg, event: dict) -> None:
+    """Append a refutation for a settled trial whose result opposed its claim.
+
+    Only a *recorded* event reaches here, and only a settled one carries a
+    claim, so ``agent_error``, ``crash`` and ``guard_failed`` can neither append
+    nor increment: a dead agent refuted nothing.
+    """
+    record = event.get("hypothesis")
+    if not isinstance(record, dict):
+        return
+    if record.get("sign_match") is not False:
+        return
+    _record_refutation(cfg, str(record.get("text") or ""))
+
+
+def _phase_of(progress: Optional[Progress]) -> str:
+    """The stage to blame for a death: a known one, else ``agent``.
+
+    ``agent`` is where every iteration starts, so an unknown phase is not
+    guessed at from the traceback — it falls back to the beginning.
+    """
+    phase = getattr(progress, "phase", None)
+    return phase if phase in PHASES else "agent"
+
+
+def _attempt(
+    ledger: ledger_mod.Ledger,
+    emit: Emitter,
+    progress: Optional[Progress],
+    phase: str,
+    exit_code: Optional[int] = None,
+) -> dict:
+    """Record an iteration that ended without settling (PRD 30 SC-mcv-4).
+
+    Written *before* the exception travels on, so the record survives a run
+    that leaves no trial event behind: an unexpected failure, or a signal, would
+    otherwise vanish from the ledger entirely and the totals would read as
+    complete. A guard rejection never reaches here — it settled, as
+    ``guard_failed``, and settled events carry their cost directly. Nor does a
+    refusal (``loop.REFUSALS``): the engine declined to proceed and said why, so
+    the history it refuses to work on is left exactly as it found it.
+    """
+    cost = progress.cost() if progress is not None else {
+        "tokens": None,
+        "wall_seconds": 0.0,
+    }
+    event = ledger.append(
+        {
+            "type": "attempt",
+            "phase": phase if phase in PHASES else "agent",
+            "exit_code": exit_code,
+            "cost": cost,
+        }
+    )
+    emit(event)
+    return event
+
+
 # ─── phases ──────────────────────────────────────────────────────────────────
 
 
@@ -478,13 +694,21 @@ def _baseline(cfg, ledger: ledger_mod.Ledger, state: State, emit: Emitter) -> No
 
 
 def _one_iteration(
-    cfg, adapter, state: State, iteration: int, opts: Options, last_failure_log: str = ""
+    cfg, adapter, state: State, iteration: int, opts: Options,
+    last_failure_log: str = "", progress: Optional[Progress] = None,
 ) -> dict:
-    """Run one candidate through the whole pipeline; return the trial fields."""
+    """Run one candidate through the whole pipeline; return the trial fields.
+
+    ``progress`` is the iteration's own clock and stage, owned by the caller so
+    that a death inside here still reports *where* it died (see ``_attempt``).
+    Everything before the guard is the ``agent`` phase: the candidate is what is
+    being handled there.
+    """
     repo = cfg.repo
     incumbent = state.incumbent
     if incumbent is None:  # the baseline phase always sets it
         raise config_mod.ConfigError("no baseline in the ledger — cannot iterate")
+    progress = Progress() if progress is None else progress
     fields: Dict[str, object] = {
         "iteration": iteration,
         "direction": cfg.direction,
@@ -501,6 +725,9 @@ def _one_iteration(
         "agent_tokens": None,
         "agent_api_calls": None,
     }
+    # The agent's pre-registered claim, read once from its transcript. ``None``
+    # with the flag off, so nothing below can record one by accident.
+    claim: Optional[dict] = None
 
     # Provenance is built *before* anything is committed: nothing in the block
     # depends on the commit sha, and a failure here must abort on a clean tree
@@ -510,6 +737,15 @@ def _one_iteration(
     def done(outcome: str, **extra) -> dict:
         fields.update(extra)
         fields["outcome"] = outcome
+        if outcome in SETTLED_OUTCOMES:
+            # Cost rides *beside* the verdict and never feeds it: the same trial
+            # with or without usage settles identically (PRD 30 SC-mcv-3), and a
+            # null ``tokens`` says "not reported", never "free".
+            fields["cost"] = progress.cost()
+        if opts.hypotheses and outcome in SETTLED_OUTCOMES:
+            fields["hypothesis"] = _hypothesis_record(
+                claim, fields.get("metric"), incumbent.get("metric"), cfg.direction
+            )
         return fields
 
     prompt = prompt_mod.build_prompt(
@@ -520,6 +756,7 @@ def _one_iteration(
             incumbent_commit=incumbent["commit"],
             trials=state.trials,
             last_failure_log=last_failure_log,
+            hypotheses=opts.hypotheses,
         ),
     )
     # What the tree looked like before the agent ran: only the delta is the
@@ -535,10 +772,17 @@ def _one_iteration(
         # The preflight passed but the executable was gone (or not executable)
         # when the fork happened. That is still an outcome, not a traceback.
         _revert(cfg, incumbent["commit"])
+        progress.exit_code = 127
         fields["log_tail"] = _cap(f"agent could not be started: {exc}")
         fields["description"] = f"iteration {iteration} (could not start)"
         return done("agent_error", exit_code=127)
+    # The harness transcript is the only place a token count can come from, and
+    # ``None`` — no usage line anywhere — is recorded as such, never as 0.
+    progress.tokens = usage_mod.tokens_from_transcript(result.output_tail)
+    progress.exit_code = result.exit_code
     fields["log_tail"] = _cap(result.output_tail)
+    if opts.hypotheses:
+        claim = claim_mod.claim_from_transcript(result.output_tail)
     fields["description"] = result.description
     fields["agent_seconds"] = round(result.seconds, 3)
 
@@ -622,6 +866,7 @@ def _one_iteration(
     # Anything that appears from here on was written by guard/verify, and is
     # swept before the next iteration so it is not mistaken for an agent edit.
     before_measure = gitops.status_paths(repo)
+    progress.phase = "guard"
     guard_ok, guard_log = measure_mod.run_guard(cfg)
     fields["guard"] = "pass" if guard_ok else "fail"
     if not guard_ok:
@@ -633,6 +878,7 @@ def _one_iteration(
         )
         return rejected("guard_failed")
 
+    progress.phase = "measure"
     measurement = measure_mod.measure(cfg)
     fields["values"] = measurement.values
     fields["metric"] = measurement.value
@@ -647,14 +893,24 @@ def _one_iteration(
         )
         return rejected("crash")
 
-    # The decision rule (PRD 20 SC-evl-2): beat the *margin*, ``max(floor,
-    # 1.96 * SE)``; inside it is ``inconclusive``, not a coin-flip keep. The
-    # relative floor keeps ``margin >= floor``, so every margin keep was legal.
+    # The rule (PRD 20 SC-evl-2): beat the *margin*, ``max(floor, Z * SE)``;
+    # inside it is ``inconclusive``, not a coin-flip keep. The relative floor
+    # keeps ``margin >= floor``, so every margin keep was legal.
     incumbent_measurement = _measurement_of(incumbent)
     # One margin, one answer: the threshold is computed once and handed back as
-    # an absolute floor, which reproduces it exactly (``Z * SE`` is inside it).
+    # an absolute floor. With the default quantile the call carries no extra
+    # keyword, so it stays literally the call it has always been (SC-hyp-1).
+    quantile_kwargs = (
+        {}
+        if opts.margin_quantile == decide_mod.QUANTILE_Z
+        else {"quantile_name": opts.margin_quantile}
+    )
     threshold = decide_mod.margin(
-        measurement, incumbent_measurement, cfg.noise_floor, mode="relative"
+        measurement,
+        incumbent_measurement,
+        cfg.noise_floor,
+        mode="relative",
+        **quantile_kwargs,
     )
     verdict = decide_mod.decide_with_margin(
         measurement, incumbent_measurement, cfg.direction, threshold
@@ -748,6 +1004,7 @@ def _dry_run(cfg, adapter, state: State, opts: Options, emit: Emitter) -> int:
             incumbent=incumbent["metric"],
             incumbent_commit=incumbent["commit"],
             trials=state.trials,
+            hypotheses=opts.hypotheses,
         ),
     )
     argv = adapter.argv(prompt, cfg.repo, state=cfg.state_dir)
@@ -883,9 +1140,31 @@ def run(cfg, adapter, ledger: ledger_mod.Ledger, opts: Options, emit: Emitter) -
             if iteration > opts.max_iterations:
                 return _finish(cfg, ledger, state, emit, "max_iterations", iteration - 1)
 
-            trial = _one_iteration(
-                cfg, adapter, state, iteration, opts, last_failure
-            )
+            progress = Progress()
+            try:
+                trial = _one_iteration(
+                    cfg, adapter, state, iteration, opts, last_failure,
+                    progress=progress,
+                )
+            except KeyboardInterrupt:
+                # The iteration died mid-flight. Record what it had spent and
+                # where, then let the loop's own interrupt path restore the
+                # worktree and close the segment.
+                _attempt(ledger, emit, progress, "interrupted")
+                raise
+            except REFUSALS:
+                # A refusal is not an unsettled attempt: the engine declined to
+                # proceed and said why, with its own exit code.
+                raise
+            except Exception:
+                # An unexpected failure settles nothing, so it leaves a row of
+                # its own: a silent gap in the totals is the defect this record
+                # exists to remove. The exception still travels on untouched.
+                _attempt(
+                    ledger, emit, progress, _phase_of(progress),
+                    progress.exit_code,
+                )
+                raise
             # The tail is *stored*, capped, so it is both in the ledger and in
             # last_agent.log — an operator reading the history sees what the
             # agent said, without the history growing without bound.
@@ -897,6 +1176,7 @@ def run(cfg, adapter, ledger: ledger_mod.Ledger, opts: Options, emit: Emitter) -
                 # next attempt repeat the same mistake.
                 last_failure = last_log
             event = ledger.append({"type": "trial", **trial})
+            _record_settled_claim(cfg, event)
             state.trials.append(event)
             _write_log(cfg, last_log)
             emit(event)

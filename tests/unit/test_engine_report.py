@@ -219,7 +219,11 @@ def test_results_tsv_is_a_flat_export(tmp_path):
     assert run_cli(["report", "--repo", str(repo)]) == 0
 
     lines = (repo / STATE / "results.tsv").read_text().splitlines()
-    assert lines[0] == "iter\tcommit\tmetric\toutcome\tdescription"
+    # PRD 30 SC-mcv-2 appends the two cost columns; the five before them are the
+    # columns AC-ENG-064 pinned, in the same order.
+    assert lines[0] == (
+        "iter\tcommit\tmetric\toutcome\tdescription\ttokens\twall_seconds"
+    )
     assert lines[1].split("\t")[0] == "0"
     assert lines[1].split("\t")[3] == "baseline"
     rows = [line.split("\t") for line in lines[1:]]

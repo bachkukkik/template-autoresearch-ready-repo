@@ -96,6 +96,7 @@ the file that now owns the number.
 |---|-----|--------|--------|--------|
 | 17 | [The loop described by the docs cannot be pointed at real code](17-loop-cannot-target-real-code.md) | prd ↔ code | open | 2026-10-28 | closed by PRD-17: the `autoresearch/engine/` package + ex5 (NLTK 3.9.1 under a four-stage isolated guard); verified in [docs/17](../17-autoresearch-engine.md) |
 | 27 | [The 20 KB file-size cap cannot hold in this repo](27-file-size-cap-cannot-hold.md) | prd ↔ code | open | 2026-11-16 | convergence path: shrink the 22 measured files in waves (W1–W4), then drop `--max-kb 60` from the `Machine gates` step and `ADOPTED_KB` from `tests/unit/test_audit_size.py`; the gap closes when PRD 27's default is the gate — see [docs/27](../27-file-size-audit.md) |
+| 28 | [Nine veteran rules are declared, not enforced](28-veteran-rules-unenforced.md) | prd ↔ code | open | 2026-11-26 | one row at a time: a capability lands, its PRD moves the register row from `declared:` to `test:`, and its line goes; cheapest first is VD-09 (a `_Verify:` payload checker, test-only) — see [PRD 28](../prd/28-veteran-layer.md) |
 
 Resolved gaps leave this directory but stay in the repo, their path structure
 preserved under `docs/gaps/_archive/` (rule 5). A withdrawn gap leaves a

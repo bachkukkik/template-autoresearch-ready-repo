@@ -3,7 +3,7 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-11-16 | Total pages: 52
+> Last updated: 2026-11-26 | Total pages: 54
 
 ## Concepts
 
@@ -14,6 +14,7 @@
 | Agent code-graph search | [concepts/agent-code-graph-search.md](concepts/agent-code-graph-search.md) | high |
 | Autoresearch Contract | [concepts/autoresearch-contract.md](concepts/autoresearch-contract.md) | high |
 | Better/Cheaper/Faster Metrics | [concepts/better-cheaper-faster-metrics.md](concepts/better-cheaper-faster-metrics.md) | high |
+| Claim Reader Alignment | [concepts/claim-reader-alignment.md](concepts/claim-reader-alignment.md) | medium |
 | Command Registry | [concepts/command-registry.md](concepts/command-registry.md) | medium |
 | Deterministic Keep Gate | [concepts/deterministic-keep-gate.md](concepts/deterministic-keep-gate.md) | high |
 | Document Funnel Doctrine | [concepts/document-funnel-doctrine.md](concepts/document-funnel-doctrine.md) | high |
@@ -46,6 +47,7 @@
 | Unattended Loop Recipe | [concepts/unattended-loop-recipe.md](concepts/unattended-loop-recipe.md) | medium |
 | Val-BPB Metric | [concepts/val-bpb-metric.md](concepts/val-bpb-metric.md) | high |
 | Verify/Guard Contract | [concepts/verify-guard-contract.md](concepts/verify-guard-contract.md) | high |
+| Veteran Decision Register (20 rules from 38 played seasons) | [concepts/veteran-decision-register.md](concepts/veteran-decision-register.md) | medium |
 
 ## Entities
 
@@ -101,6 +103,7 @@
 | Unattended loop recipe — installer rules, guard ladder and round marker, implemented (code capture) | [raw/articles/2026-11-16-unattended-loop-recipe-implemented.md](raw/articles/2026-11-16-unattended-loop-recipe-implemented.md) | 2026-11-16 |
 | Process-scan doctrine — correction: `ROUND_PATTERN`, prefilter-only `pgrep`, dry runs not in flight | [raw/articles/2026-11-16-process-scan-correction.md](raw/articles/2026-11-16-process-scan-correction.md) | 2026-11-16 |
 | Codified agent guardrails — potato (inverse) pyramid, 69 techniques across 6 research items | [raw/articles/potato-pyramid-codified-guardrails-research.md](raw/articles/potato-pyramid-codified-guardrails-research.md) | 2026-11-15 |
+| Veteran decisions — 20-rule register from 38 played seasons, verified fragments, adopter-fork evidence | [raw/articles/2026-11-26-veteran-decisions.md](raw/articles/2026-11-26-veteran-decisions.md) | 2026-11-26 |
 | transcript — music AI model | [raw/transcripts/-Ip9EtoBjbk.txt](raw/transcripts/-Ip9EtoBjbk.txt) | 2026-09-04 |
 | transcript — can you autoresearch everything | [raw/transcripts/bMoNOb0iXpA.txt](raw/transcripts/bMoNOb0iXpA.txt) | 2026-09-04 |
 | transcript — best local LLM | [raw/transcripts/jCNeVZJAYGM.txt](raw/transcripts/jCNeVZJAYGM.txt) | 2026-09-04 |
@@ -116,10 +119,10 @@
 
 ## Stats
 
-- Concepts: 37
+- Concepts: 39
 - Entities: 7
 - Comparisons: 8
 - Queries: 0
-- Raw sources: 31
+- Raw sources: 32
 - Archived: 4
-- Total: 52
+- Total: 54

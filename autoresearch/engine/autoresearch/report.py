@@ -14,7 +14,24 @@ from . import config as config_mod
 from . import decide as decide_mod
 from . import ledger as ledger_mod
 
-RESULTS_HEADER = "iter\tcommit\tmetric\toutcome\tdescription"
+RESULTS_HEADER = (
+    "iter\tcommit\tmetric\toutcome\tdescription\ttokens\twall_seconds"
+)
+
+#: Outcomes that settle a trial: a verdict was reached about a candidate. The
+#: cost ratios count these and nothing else — an agent that never measured has
+#: no score to divide by its spend.
+SETTLED_OUTCOMES = (
+    decide_mod.KEEP, decide_mod.DISCARD, decide_mod.INCONCLUSIVE
+)
+
+#: Two decimals. The denominators here are measured, not exact, so a third
+#: digit would claim precision the measurement does not have.
+COST_DECIMALS = 2
+
+UNSETTLED_LINE = (
+    "unsettled: {count} attempt(s) — the totals above are a lower bound"
+)
 
 
 def _cell(text) -> str:
@@ -38,7 +55,12 @@ def _short(commit) -> str:
 
 
 def trial_rows(events: Sequence[dict]) -> List[dict]:
-    """Every row the report shows, baseline included as iteration 0."""
+    """Every row the report shows, baseline included as iteration 0.
+
+    ``tokens`` and ``wall_seconds`` are the row's own cost, ``None`` when the
+    event recorded none — the baseline never has one, and an unknown count is
+    not a measured zero.
+    """
     rows: List[dict] = []
     for event in events:
         kind = event.get("type")
@@ -50,6 +72,8 @@ def trial_rows(events: Sequence[dict]) -> List[dict]:
                     "metric": event.get("metric"),
                     "outcome": "baseline",
                     "description": "baseline",
+                    "tokens": None,
+                    "wall_seconds": None,
                 }
             )
         elif kind == "trial":
@@ -60,6 +84,8 @@ def trial_rows(events: Sequence[dict]) -> List[dict]:
                     "metric": event.get("metric"),
                     "outcome": event.get("outcome"),
                     "description": event.get("description") or "",
+                    "tokens": _tokens_of(event),
+                    "wall_seconds": _wall_of(event),
                 }
             )
     return rows
@@ -93,11 +119,136 @@ def summarize(cfg, events: Sequence[dict]) -> dict:
             baseline_metric, best_metric, cfg.direction
         ),
         "iterations": len([e for e in events if e.get("type") == "trial"]),
+        "attempts": len([e for e in events if e.get("type") == "attempt"]),
+        "unsettled": any(e.get("type") == "attempt" for e in events),
         "outcomes": counts,
         "stop_reason": stop.get("reason") if stop else None,
         "keeps": keeps,
         "trials": [e for e in events if e.get("type") == "trial"],
     }
+
+
+#: How a claim is graded here: was one stated, and did its sign hold. The
+#: magnitude is deliberately not scored — most honest predictions would fail an
+#: error band, and a metric nobody can pass measures nothing.
+CALIBRATION_NA = "calibration: n/a (no numeric predictions measured)"
+
+
+def calibration_line(events: Sequence[dict]) -> Optional[str]:
+    """How many settled trials stated a claim, and how many of those held.
+
+    ``None`` when not one trial carries a ``hypothesis`` key: the flag was off,
+    so the report says nothing about claims rather than claiming zero of zero.
+    """
+    asked = [
+        event
+        for event in events
+        if event.get("type") == "trial" and "hypothesis" in event
+    ]
+    if not asked:
+        return None
+    claims = [
+        event["hypothesis"]
+        for event in asked
+        if isinstance(event.get("hypothesis"), dict)
+    ]
+    if not any(claim.get("predict") is not None for claim in claims):
+        return CALIBRATION_NA
+    matches = sum(1 for claim in claims if claim.get("sign_match") is True)
+    return (
+        f"calibration: {len(claims)}/{len(asked)} claims read, "
+        f"{matches} sign matches"
+    )
+
+
+def cost_of(event: dict) -> dict:
+    """The trial's recorded cost, or an empty dict when it recorded none."""
+    cost = event.get("cost")
+    return cost if isinstance(cost, dict) else {}
+
+
+def _tokens_of(event: dict) -> Optional[int]:
+    """The recorded token count, or ``None`` — a bool is not a count."""
+    value = cost_of(event).get("tokens")
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value
+
+
+def _wall_of(event: dict) -> Optional[float]:
+    """The recorded wall time, or ``None``."""
+    value = cost_of(event).get("wall_seconds")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def settled_trials(events: Sequence[dict]) -> List[dict]:
+    """The trials that reached a verdict, in ledger order."""
+    return [
+        event
+        for event in events
+        if event.get("type") == "trial"
+        and event.get("outcome") in SETTLED_OUTCOMES
+    ]
+
+
+def _ratio(keeps: int, denominator: float) -> str:
+    return f"{keeps / denominator:.{COST_DECIMALS}f}"
+
+
+def cost_lines(events: Sequence[dict]) -> List[str]:
+    """The *Cost* section: keeps against what the settled trials spent.
+
+    Numerator and denominator are read from the *same* subset, so a trial that
+    reported no tokens can neither inflate nor deflate a rate: keeps per 100k
+    tokens counts the keeps among the trials that reported tokens. Where that
+    subset is empty the line says ``n/a`` and why — the alternative is
+    dividing by an unknown, which is how a partial total starts reading as
+    a complete one. ``0`` is not a denominator either: zero recorded tokens means none were
+    recorded, not that the run was free.
+    """
+    settled = settled_trials(events)
+    keeps = sum(
+        1 for event in settled if event.get("outcome") == decide_mod.KEEP
+    )
+    lines = [f"keeps: {keeps} / {len(settled)} settled"]
+
+    paid = [event for event in settled if _tokens_of(event) is not None]
+    tokens = sum(
+        int(value) for value in (_tokens_of(event) for event in paid)
+        if value is not None
+    )
+    if tokens > 0:
+        kept = sum(1 for e in paid if e.get("outcome") == decide_mod.KEEP)
+        lines.append(f"keeps / 100k tokens: {_ratio(kept, tokens / 100_000)}")
+    else:
+        lines.append("keeps / 100k tokens: n/a (no token usage)")
+
+    timed = [event for event in settled if _wall_of(event) is not None]
+    seconds = sum(
+        value for value in (_wall_of(event) for event in timed)
+        if value is not None
+    )
+    if seconds > 0:
+        kept = sum(1 for e in timed if e.get("outcome") == decide_mod.KEEP)
+        lines.append(f"keeps / hour: {_ratio(kept, seconds / 3600)}")
+    else:
+        lines.append("keeps / hour: n/a (no wall time)")
+    return lines
+
+
+def unsettled_line(events: Sequence[dict]) -> Optional[str]:
+    """One line saying the totals above are a floor, or ``None``.
+
+    A run that wrote an ``attempt`` event tried something that never settled, so
+    every total beside it is a lower bound. Saying so is the whole point: the
+    veteran's defect was a partial total published as a complete one.
+    """
+    attempts = sum(1 for event in events if event.get("type") == "attempt")
+    if not attempts:
+        return None
+    return UNSETTLED_LINE.format(count=attempts)
 
 
 def render_markdown(cfg, events: Sequence[dict]) -> str:
@@ -138,7 +289,17 @@ def render_markdown(cfg, events: Sequence[dict]) -> str:
     if summary["outcomes"]:
         counts = ", ".join(f"{k}={v}" for k, v in sorted(summary["outcomes"].items()))
         lines.append(f"- outcomes: {counts}")
+    calibration = calibration_line(events)
+    if calibration:
+        lines.append("")
+        lines.append(calibration)
+    unsettled = unsettled_line(events)
+    if unsettled:
+        lines.append("")
+        lines.append(unsettled)
     lines.append("")
+
+    lines += ["## Cost", ""] + cost_lines(events) + [""]
 
     lines += ["## Trials", "", "| iter | commit | outcome | metric | description |",
               "|------|--------|---------|--------|-------------|"]
@@ -175,6 +336,20 @@ def render_markdown(cfg, events: Sequence[dict]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _tsv_cost(value) -> str:
+    """A cost cell: empty when the number is unknown.
+
+    Empty, never ``0``: a spreadsheet reads a blank as "not recorded" and a zero
+    as "measured, and it cost nothing" — the exact substitution this record
+    exists to prevent.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, float):
+        return f"{value:g}"
+    return str(value)
+
+
 def results_tsv(events: Sequence[dict]) -> str:
     lines = [RESULTS_HEADER]
     for row in trial_rows(events):
@@ -182,7 +357,9 @@ def results_tsv(events: Sequence[dict]) -> str:
         commit = row["commit"] or "-"
         description = str(row["description"]).replace("\t", " ").replace("\n", " ")
         lines.append(
-            f"{row['iteration']}\t{commit}\t{metric}\t{row['outcome']}\t{description}"
+            f"{row['iteration']}\t{commit}\t{metric}\t{row['outcome']}\t"
+            f"{description}\t{_tsv_cost(row['tokens'])}\t"
+            f"{_tsv_cost(row['wall_seconds'])}"
         )
     return "\n".join(lines) + "\n"
 

@@ -24,6 +24,7 @@ from typing import List, Optional, Sequence
 from . import __version__
 from . import adapters as adapters_mod
 from . import config as config_mod
+from . import decide as decide_mod
 from . import gitops
 from . import ledger as ledger_mod
 from . import loop as loop_mod
@@ -102,6 +103,14 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--max-crashes", type=int, default=3)
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--json", dest="json_output", action="store_true")
+    run.add_argument("--hypotheses", action="store_true",
+                     help="ask the agent for a falsifiable claim and record it "
+                          "beside the result (default: off)")
+    run.add_argument("--margin-quantile", dest="margin_quantile",
+                     default=decide_mod.QUANTILE_Z,
+                     choices=list(decide_mod.QUANTILES),
+                     help="margin multiplier: z (default, 1.96 standard errors) "
+                          "or t (Student-t at df = n-1, small samples)")
     run.set_defaults(func=cmd_run)
 
     status = sub.add_parser("status", help="replay-validate the ledger and summarise the run")
@@ -200,6 +209,19 @@ def cmd_init(args) -> int:
     return EXIT_OK
 
 
+def _margin_quantile(flag: str, cfg) -> str:
+    """The CLI's choice, unless it left the default to the run's own record.
+
+    ``--margin-quantile z`` is both the default and a legal request, so a
+    non-default flag wins outright and a default flag defers to run.json — the
+    file the run was initialised from is the stronger statement about how its
+    history was decided.
+    """
+    if flag != decide_mod.QUANTILE_Z:
+        return flag
+    return cfg.margin_quantile
+
+
 def cmd_run(args) -> int:
     cfg = config_mod.load(args.repo, args.state)
 
@@ -246,6 +268,8 @@ def cmd_run(args) -> int:
         record=args.record,
         dry_run=args.dry_run,
         json_output=args.json_output,
+        hypotheses=bool(args.hypotheses or cfg.hypotheses),
+        margin_quantile=_margin_quantile(args.margin_quantile, cfg),
     )
     ledger = ledger_mod.Ledger(cfg.events_path)
     emit = loop_mod.Emitter(json_output=args.json_output)

@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+from . import decide as decide_mod
 from . import gitops
 from . import objective as objective_mod
 
@@ -115,6 +116,20 @@ def hash_file(path: os.PathLike | str) -> str:
     return digest.hexdigest()
 
 
+def margin_quantile_name(value) -> str:
+    """The margin multiplier a run.json names, ``z`` when it names none.
+
+    An absent key is the pre-PRD-29 file and means the default; a key naming
+    something else is a malformed config, not a silent fallback to ``z``.
+    """
+    name = decide_mod.QUANTILE_Z if value is None else str(value)
+    if name not in decide_mod.QUANTILES:
+        raise ConfigError(
+            f"margin_quantile must be one of {decide_mod.QUANTILES}, got {name!r}"
+        )
+    return name
+
+
 # ─── the config object ───────────────────────────────────────────────────────
 
 
@@ -145,6 +160,11 @@ class RunConfig:
     objective_id: Optional[str] = None
     objective_leg: Optional[str] = None
     objective_unit: Optional[str] = None
+    #: PRD 29 opt-ins. Both are recorded only when non-default, so a run.json
+    #: written before this PRD re-reads identically — and the default path is
+    #: the path every existing run was decided by.
+    hypotheses: bool = False
+    margin_quantile: str = decide_mod.QUANTILE_Z
 
     # -- views ---------------------------------------------------------------
 
@@ -160,7 +180,7 @@ class RunConfig:
         return sorted(self.protected)
 
     def as_dict(self) -> dict:
-        return {
+        data = {
             "version": 1,
             "repo": self.repo,
             "verify": self.verify,
@@ -184,6 +204,13 @@ class RunConfig:
             "objective_leg": self.objective_leg,
             "objective_unit": self.objective_unit,
         }
+        # Opt-ins are written only when they are opted into: a default run.json
+        # is the file it was before PRD 29, key for key.
+        if self.hypotheses:
+            data["hypotheses"] = True
+        if self.margin_quantile != decide_mod.QUANTILE_Z:
+            data["margin_quantile"] = self.margin_quantile
+        return data
 
     @classmethod
     def from_dict(cls, data: Mapping) -> "RunConfig":
@@ -215,6 +242,8 @@ class RunConfig:
                 objective_id=data.get("objective_id"),
                 objective_leg=data.get("objective_leg"),
                 objective_unit=data.get("objective_unit"),
+                hypotheses=bool(data.get("hypotheses", False)),
+                margin_quantile=margin_quantile_name(data.get("margin_quantile")),
             )
         except KeyError as exc:
             raise ConfigError(f"run.json is missing the field {exc.args[0]!r}") from exc

@@ -18,6 +18,16 @@ TRIALS_SHOWN = 8
 DEAD_ENDS_SHOWN = 10
 FAILURE_LOG_LINES = 40
 
+#: The opt-in claim contract (PRD 29). One line, four labels, and the word
+#: ``HYPOTHESIS:`` appears nowhere else in the prompt — the reader scores the
+#: claim, so the prompt must ask for exactly one.
+CLAIM_INSTRUCTION = (
+    "6. Finish with a single line: CHANGE: <one-line summary> | "
+    "HYPOTHESIS: <the claim being tested> | "
+    "PREDICT: <the number you expect, signed> | "
+    "FALSIFIED IF: <what result would refute it>"
+)
+
 
 @dataclass
 class PromptState:
@@ -28,6 +38,9 @@ class PromptState:
     incumbent_commit: str = ""
     trials: Sequence[dict] = field(default_factory=list)
     last_failure_log: str = ""
+    #: Ask for a falsifiable claim on the mandatory line. Off by default: with
+    #: it off the rendered prompt is byte-for-byte what it was before PRD 29.
+    hypotheses: bool = False
 
 
 def _fmt(value: Optional[float]) -> str:
@@ -74,6 +87,11 @@ def build_prompt(cfg, state: PromptState) -> str:
             [f"- {path}" for path in protected],
         )
 
+    closing = (
+        CLAIM_INSTRUCTION
+        if state.hypotheses
+        else "6. Finish with a single line: CHANGE: <one-line summary>"
+    )
     lines += _section(
         "Rules",
         [
@@ -82,7 +100,7 @@ def build_prompt(cfg, state: PromptState) -> str:
             "3. Do NOT run git commit, git reset or git checkout — the harness owns git.",
             "4. Do not modify the verify or guard commands or the files that implement them.",
             "5. Keep behaviour correct: the guard must pass and the verify command must still print the metric.",
-            f"6. Finish with a single line: CHANGE: <one-line summary>",
+            closing,
         ],
     )
 

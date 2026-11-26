@@ -42,14 +42,34 @@ for job in "${JOBS[@]}"; do
   rc=0
   act push -j "$job" >"$log" 2>&1 || rc=$?
   status="pass"
-  # act's process exit code can be 0 even when a job failed — read the job marker too.
-  if [ "$rc" -ne 0 ] || grep -q 'Job failed' "$log"; then
+  reason=""
+  # act's exit code can be 0 even when a job failed — read the job marker too.
+  if [ "$rc" -ne 0 ]; then
     status="FAIL"
+    reason="act exited $rc"
+  fi
+  if grep -q 'Job failed' "$log"; then
+    status="FAIL"
+    reason="the job failed (log carries 'Job failed')"
+  fi
+  # VD-14: a skipped job is a failure. act exits 0 having run nothing, so a
+  # skip marker must not read as a pass (docs/prd/28-veteran-layer.md).
+  if [ -z "$reason" ]; then
+    for marker in 'Skipping unsupported platform' 'Job skipped'; do
+      if grep -qF "$marker" "$log"; then
+        status="FAIL"
+        reason="job skipped, not run ($marker)"
+        break
+      fi
+    done
+  fi
+  if [ "$status" = "FAIL" ]; then
     fail=1
   fi
   printf '  %-14s %s   (log: %s)\n' "$job" "$status" "$log"
   if [ "$status" = "FAIL" ]; then
-    grep -E '::error|Job failed' "$log" | head -5 | sed 's/^/      /'
+    printf '      reason: %s\n' "$reason"
+    grep -E '::error|Job failed' "$log" | head -5 | sed 's/^/      /' || true
   fi
 done
 
