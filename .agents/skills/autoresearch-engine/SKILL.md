@@ -38,8 +38,10 @@ of the engine. A run needs a `run.json` from `init`; `status`/`report` need a le
 ## init — record the run config
 
 ```bash
-# 1. the bundled real-repo example: copies ex5 to $TMPDIR/ex5, git-inits it, inits the engine
-bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
+# 1. the bundled real-repo example: copies ex5 to ${TMPDIR:-/tmp}/ex5,
+#    git-inits it, inits the engine
+bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh \
+  "${TMPDIR:-/tmp}/ex5"
 
 # 2. by hand, on your own repo (clean tree, named branch)
 autoresearch/engine/bin/autoresearch init --repo . \

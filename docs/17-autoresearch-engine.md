@@ -79,8 +79,9 @@ PYTHONPATH=engine python3 -P -m autoresearch status --repo <repo>
 PYTHONPATH=engine python3 -P -m autoresearch report --repo <repo>
 
 # the worked example, end to end
-bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
-cd "$TMPDIR/ex5"
+bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh \
+  "${TMPDIR:-/tmp}/ex5"
+cd "${TMPDIR:-/tmp}/ex5"
 PYTHONPATH=<repo>/engine python3 -P -m autoresearch run --repo . --agent claude \
   --max-iterations 8 --plateau 3
 ```

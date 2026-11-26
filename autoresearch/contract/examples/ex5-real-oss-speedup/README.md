@@ -93,8 +93,9 @@ is judged, with a 2 % noise floor and a median over repeats.
 
 ```bash
 # 1. a disposable repo: copy + git init + one baseline commit + engine init
-bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
-cd "$TMPDIR/ex5"
+bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh \
+  "${TMPDIR:-/tmp}/ex5"
+cd "${TMPDIR:-/tmp}/ex5"
 
 # 2. prove the wiring without spending a token
 PYTHONPATH=<repo>/engine python3 -m autoresearch run --repo . --agent claude --dry-run
@@ -259,7 +260,7 @@ EX5_TEST_MODE=1 EX5_BENCH_SCALE=0.05 python3 bench.py   # same shape, ~0.1 s (un
 EX5_TEST_MODE=1 EX5_GUARD_PAIRS=40 python3 guard.py     # fewer random pairs, ~0.7 s
 
 # the guard is not decorative: mutate a copy and watch it fail
-cp -R . "$TMPDIR/ex5-mutant" && cd "$TMPDIR/ex5-mutant"
+cp -R . "${TMPDIR:-/tmp}/ex5-mutant" && cd "${TMPDIR:-/tmp}/ex5-mutant"
 python3 - <<'EOF'
 import pathlib
 p = pathlib.Path("target/distance.py")
