@@ -91,11 +91,12 @@ where the script, not the agent, commits, measures and reverts:
 
 ```bash
 autoresearch/engine/bin/autoresearch doctor   # each harness binary; key set/unset
-bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh "$TMPDIR/ex5"
+bash autoresearch/contract/examples/ex5-real-oss-speedup/setup.sh \
+  "${TMPDIR:-/tmp}/ex5"
 # setup.sh copies ex5, commits a baseline and runs init for it — the general form:
 #   init --repo <repo> --verify "python3 bench.py" --guard "python3 guard.py"
 #        --metric-name seconds --direction lower --scope target
-cd "$TMPDIR/ex5"                              # disposable repo, already init'd
+cd "${TMPDIR:-/tmp}/ex5"                      # disposable repo, already init'd
 PYTHONPATH=<repo>/autoresearch/engine python3 -m autoresearch run --repo . \
   --agent claude --dry-run                    # validate + print argv, no agent run
 PYTHONPATH=<repo>/autoresearch/engine python3 -m autoresearch run --repo . \
@@ -134,7 +135,7 @@ The most useful table in this file. Nothing here is a rule — for every rule, r
 | `PRD.md` + `docs/prd/` | **REPLACE** | this template's intent, not yours — rewrite the master PRD and start your topic PRDs at `50` |
 | `docs/NN-slug.md` + `docs/README.md` | **REPLACE** | the empirical layer records what *this* project verified; start your own `NN` set at `50`, keep the catalog format |
 | `autoresearch/contract/` (the autoresearch loop) | **REPLACE** | the loop's objective and its immutable evaluator are this template's; keep the `program.md` / `train.py` / `prepare.py` shape, swap the subject |
-| `autoresearch/contract/examples/` (the worked runs) | **KEEP as reference** | reference, not scaffolding: ex5 is the engine's real-code demo; ex2–ex4 predate the engine and each carries its own copy of the keep/discard driver — do not copy those drivers (closed gap 17) |
+| `autoresearch/contract/examples/` (the worked runs) | **KEEP as reference** | reference, not scaffolding: ex5 is the engine's real-code demo; ex1–ex4 predate the engine and each carries its own copy of the keep/discard driver — do not copy those drivers (closed gap 17) |
 | `autoresearch/engine/` (the loop itself) | **KEEP** | layer 0 — the script owns commit/measure/revert, the margin and the bounded stops; inherit it verbatim and point it at your code (step 2.5) |
 | `autoresearch/objective/` + `autoresearch/targets/` (what a run optimises) | **KEEP the mechanism, REPLACE the records** | layer 0/1 — the validator and the relativity split are the contract; replace the example profile and the `template-val-bpb` objective with your own |
 | `autoresearch/commands/` (the command registry) | **KEEP** | layer 0 — one declaration per command (PRD 23); a new script outside the registry is a defect, not a shortcut |

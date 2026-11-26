@@ -95,9 +95,11 @@ exactly the case that must print a reason, so it now ends in `|| true`.
 
 **The docs caught up with the register.** The follow-up run reconciled what
 this record's first version had predicted with what the tree now does:
-`ADOPTING.md` Step 2.5 shows the engine loop beside the contract loop, Step 3
-carries the layer model and the numbering band, Step 5 points at `D0`–`D4` /
-`sub1`–`sub4` and Step 6 names `README.md` as the home of the structure block;
+`ADOPTING.md` Step 2.5 shows the engine loop beside the contract loop, Step 3's
+table sends an adopter's own PRDs and records to `50` (the *Layer model*
+section between Step 3 and Step 4 carries the layer table and the `01`–`49`
+reservation), Step 5 points at `D0`–`D4` / `sub1`–`sub4` and Step 6 names
+`README.md` as the home of the structure block;
 the *Knowledge Base* and *Status* sections of `README.md` were brought up to
 date; and gap 17 was archived, its resolution having landed in PRD 17 (rule 5).
 
@@ -115,10 +117,10 @@ $ python3 -m pytest tests/integration -q
 49 passed
 
 $ python3 scripts/audit-chars.py
-OK: every measured line is within 80 chars (7217 lines); 37 unbreakable
+OK: every measured line is within 80 chars (7222 lines); 37 unbreakable
 
 $ python3 scripts/audit-size.py --max-kb 60
-OK: 406 tracked files within 61440 bytes (largest 56312 B)
+OK: 407 tracked files within 61440 bytes (largest 56312 B, tests/unit/test_harness_neutrality.py)
 
 $ python3 scripts/audit_pyramid.py
 OK: 3 foundations green (37 files, ratio 5.8%)

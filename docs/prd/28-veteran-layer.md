@@ -8,7 +8,10 @@
 > **Domain:** `vet` — the veteran layer. **Canonical tests:**
 > `tests/unit/test_veteran_register.py` (`AC-VET-001..006`, `008`, `010`)
 > and `tests/unit/test_verify_payloads.py` (`AC-VET-009`).
-> **Stage 6:** `docs/28-veteran-layer.md` (pending).
+> **Stage 6:**
+> [`docs/28-veteran-layer.md`](../28-veteran-layer.md) — **written 2026-11-26**
+> from a verification run, not from this plan; verdict `works`, with the limits
+> that run found recorded there.
 > **Grounding:**
 > [veteran-decision-register](../../kb/concepts/veteran-decision-register.md),
 > [claim-reader-alignment](../../kb/concepts/claim-reader-alignment.md),
