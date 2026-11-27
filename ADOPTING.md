@@ -189,6 +189,12 @@ sync may extend; an adopter numbers its own PRDs, records and gaps from `50` up.
 A sibling that spent `28`–`31` on its game layer collided with the template's own
 `28`–`30` on the next pull, and the merge cost more than renumbering would have.
 
+The template ships one reference game as a worked example, under
+`autoresearch/contract/examples/arena/`
+([PRD 31](docs/prd/31-cs-arena-reference-game.md)). Read its `README.md`'s
+*What this cannot do* and *Requests that make no sense* sections first. Your
+game is still configured downstream; the example is read, never forked.
+
 ## Step 4 — wire your harness
 
 **No vendor entry file or config needs to be created for any harness.** `AGENTS.md` is

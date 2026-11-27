@@ -1,0 +1,568 @@
+{
+  "banks": {
+    "A": 46.137169,
+    "B": 2.000717
+  },
+  "economy": "PORTABLE",
+  "equilibrium": {
+    "current": {
+      "A": "smoothing",
+      "B": "smoothing"
+    },
+    "reached": false,
+    "regrets": {
+      "A": 42.137169,
+      "B": 0.000717
+    },
+    "threshold": 2.5,
+    "unknown": {
+      "A": [],
+      "B": []
+    }
+  },
+  "final_trunk_metric": 2.178568,
+  "matrix": [
+    {
+      "a": "context",
+      "b": "smoothing",
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "landed": {
+        "A": true,
+        "B": false
+      },
+      "payoff": [
+        42.137169,
+        0.000717
+      ]
+    },
+    {
+      "a": "context",
+      "b": "context",
+      "cost": {
+        "A": 0,
+        "B": 2
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "payoff": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "a": "smoothing",
+      "b": "smoothing",
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "payoff": [
+        0.0,
+        0.0
+      ],
+      "void": "B not served"
+    },
+    {
+      "a": "smoothing",
+      "b": "smoothing",
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "payoff": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "name": "ex1-music-abc-cs",
+  "rounds": [
+    {
+      "attempts": {
+        "A": 3,
+        "B": 2
+      },
+      "banks": {
+        "A": 46.137169,
+        "B": 4.000717
+      },
+      "captains": {
+        "A": {
+          "choice": {
+            "buy": 0,
+            "reason": "bigram context is the only signal in this corpus",
+            "strategy": "context"
+          },
+          "sha256": "a61b908135e1ee4d35aae5d96a1abb1487dc5dad114bf0f8a9b1a43255dec2db"
+        },
+        "B": {
+          "choice": {
+            "buy": 0,
+            "reason": "probe the cheap smoothing knob first",
+            "strategy": "smoothing"
+          },
+          "sha256": "dfb5608ce4ac50cccce8df99209b3d1d1a3400d4b7adffcde047f01c0410e9ae"
+        }
+      },
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "equilibrium": {
+        "current": {
+          "A": "context",
+          "B": "smoothing"
+        },
+        "reached": false,
+        "regrets": {
+          "A": 0.0,
+          "B": 0.0
+        },
+        "threshold": 1.0,
+        "unknown": {
+          "A": [
+            "smoothing"
+          ],
+          "B": [
+            "context"
+          ]
+        }
+      },
+      "floor": 0.01,
+      "injected": [],
+      "iterations": {
+        "A": 4,
+        "B": 4
+      },
+      "landed": {
+        "A": true,
+        "B": false
+      },
+      "opener": "A",
+      "order": [
+        "A",
+        "B"
+      ],
+      "payoff": [
+        42.137169,
+        0.000717
+      ],
+      "results": {
+        "A": {
+          "attempts": 3,
+          "audit_hits": 0,
+          "baseline": 3.765056,
+          "best": 2.178568,
+          "cost": 0,
+          "direction": "lower",
+          "events": {},
+          "iterations": 4,
+          "keeps": [
+            "bigram interpolation lam=0.5",
+            "bigram interpolation lam=0.7"
+          ],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "val_bpb": 2.178568
+          },
+          "trunk_snapshot": {
+            "val_bpb": 3.765056
+          }
+        },
+        "B": {
+          "attempts": 2,
+          "audit_hits": 0,
+          "baseline": 3.765056,
+          "best": 3.765029,
+          "cost": 0,
+          "direction": "lower",
+          "events": {},
+          "iterations": 4,
+          "keeps": [
+            "alpha=0.5 (lighter backoff)"
+          ],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "val_bpb": 3.765029
+          },
+          "trunk_snapshot": {
+            "val_bpb": 3.765056
+          }
+        }
+      },
+      "round": 1,
+      "strategies": {
+        "A": "context",
+        "B": "smoothing"
+      },
+      "trunk_metric": 3.765056,
+      "void": null,
+      "winner": "A"
+    },
+    {
+      "attempts": {
+        "A": 0,
+        "B": 3
+      },
+      "banks": {
+        "A": 46.137169,
+        "B": 2.000717
+      },
+      "captains": {
+        "A": {
+          "choice": {
+            "buy": 0,
+            "reason": "our context pool is spent; re-probe it, do not spend the bank",
+            "strategy": "context"
+          },
+          "sha256": "3256b7e068826dea02c0ee98ba20723ec2c8a5cb7c4f1a42b20d9d21372935ed"
+        },
+        "B": {
+          "choice": {
+            "buy": 2,
+            "reason": "we lost, so buy two attempts and replay the bigram line",
+            "strategy": "context"
+          },
+          "sha256": "04c59d155e88bac3f4bf74dae56a6b1fdc2267984f7e1a57f5a760f827b9f748"
+        }
+      },
+      "cost": {
+        "A": 0,
+        "B": 2
+      },
+      "equilibrium": {
+        "current": {
+          "A": "context",
+          "B": "context"
+        },
+        "reached": false,
+        "regrets": {
+          "A": 0.000717,
+          "B": 42.137169
+        },
+        "threshold": 1.5,
+        "unknown": {
+          "A": [],
+          "B": []
+        }
+      },
+      "floor": 0.015,
+      "injected": [],
+      "iterations": {
+        "A": 4,
+        "B": 6
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "opener": "B",
+      "order": [
+        "B",
+        "A"
+      ],
+      "payoff": [
+        0.0,
+        0.0
+      ],
+      "results": {
+        "A": {
+          "attempts": 0,
+          "audit_hits": 0,
+          "baseline": 2.178568,
+          "best": 2.178568,
+          "cost": 0,
+          "direction": "lower",
+          "events": {},
+          "iterations": 4,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "val_bpb": 2.178568
+          },
+          "trunk_snapshot": {
+            "val_bpb": 2.178568
+          }
+        },
+        "B": {
+          "attempts": 3,
+          "audit_hits": 0,
+          "baseline": 2.178568,
+          "best": 2.178568,
+          "cost": 2,
+          "direction": "lower",
+          "events": {},
+          "iterations": 6,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "val_bpb": 2.178568
+          },
+          "trunk_snapshot": {
+            "val_bpb": 2.178568
+          }
+        }
+      },
+      "round": 2,
+      "strategies": {
+        "A": "context",
+        "B": "context"
+      },
+      "trunk_metric": 2.178568,
+      "void": null,
+      "winner": "B"
+    },
+    {
+      "attempts": {
+        "A": 2,
+        "B": 0
+      },
+      "banks": {
+        "A": 46.137169,
+        "B": 2.000717
+      },
+      "captains": {
+        "A": {
+          "choice": {
+            "buy": 0,
+            "reason": "nothing left in context; take the smoothing step",
+            "strategy": "smoothing"
+          },
+          "sha256": "f747b0391c7ca2c0d0afefd5b9e6678690e3e54f65d0ed60df005c3c2ec814d4"
+        },
+        "B": {
+          "choice": {
+            "buy": 0,
+            "reason": "hold the bank and replay smoothing",
+            "strategy": "smoothing"
+          },
+          "sha256": "665662eda5dfab820ac52a07bf8f7443c334fcc13e79c6c825e01d8fe7b6abff"
+        }
+      },
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "equilibrium": {
+        "current": {
+          "A": "smoothing",
+          "B": "smoothing"
+        },
+        "reached": false,
+        "regrets": {
+          "A": null,
+          "B": null
+        },
+        "threshold": 2.0,
+        "unknown": {
+          "A": [],
+          "B": []
+        }
+      },
+      "floor": 0.02,
+      "injected": [
+        "B"
+      ],
+      "iterations": {
+        "A": 5,
+        "B": 4
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "opener": "A",
+      "order": [
+        "A",
+        "B"
+      ],
+      "payoff": [
+        0.0,
+        0.0
+      ],
+      "results": {
+        "A": {
+          "attempts": 2,
+          "audit_hits": 0,
+          "baseline": 2.178568,
+          "best": 2.178535,
+          "cost": 0,
+          "direction": "lower",
+          "events": {},
+          "iterations": 5,
+          "keeps": [
+            "alpha=0.5 (lighter backoff)"
+          ],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "val_bpb": 2.178535
+          },
+          "trunk_snapshot": {
+            "val_bpb": 2.178568
+          }
+        },
+        "B": {
+          "attempts": 0,
+          "audit_hits": 0,
+          "baseline": null,
+          "best": null,
+          "cost": 0,
+          "direction": "lower",
+          "events": {},
+          "iterations": 4,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "injected: not served",
+          "snapshot": {},
+          "trunk_snapshot": {}
+        }
+      },
+      "round": 3,
+      "strategies": {
+        "A": "smoothing",
+        "B": "smoothing"
+      },
+      "trunk_metric": 2.178568,
+      "void": "B not served",
+      "winner": null
+    },
+    {
+      "attempts": {
+        "A": 0,
+        "B": 0
+      },
+      "banks": {
+        "A": 46.137169,
+        "B": 2.000717
+      },
+      "captains": {
+        "A": {
+          "choice": {
+            "buy": 0,
+            "reason": "both pools are spent; this round is a formality",
+            "strategy": "smoothing"
+          },
+          "sha256": "8aa4db8c7262b39ebb07ec7ed90f4843e83b9d99b0276b99ea5551eb0e7bd930"
+        },
+        "B": {
+          "choice": {
+            "buy": 0,
+            "reason": "replay smoothing from the trunk we lost on",
+            "strategy": "smoothing"
+          },
+          "sha256": "c50f7fef3a4822f076e98d8a131688ab331263049fd4257ffb65134f59eec027"
+        }
+      },
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "equilibrium": {
+        "current": {
+          "A": "smoothing",
+          "B": "smoothing"
+        },
+        "reached": false,
+        "regrets": {
+          "A": 42.137169,
+          "B": 0.000717
+        },
+        "threshold": 2.5,
+        "unknown": {
+          "A": [],
+          "B": []
+        }
+      },
+      "floor": 0.025,
+      "injected": [],
+      "iterations": {
+        "A": 4,
+        "B": 4
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "opener": "B",
+      "order": [
+        "B",
+        "A"
+      ],
+      "payoff": [
+        0.0,
+        0.0
+      ],
+      "results": {
+        "A": {
+          "attempts": 0,
+          "audit_hits": 0,
+          "baseline": 2.178568,
+          "best": 2.178568,
+          "cost": 0,
+          "direction": "lower",
+          "events": {},
+          "iterations": 4,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "val_bpb": 2.178568
+          },
+          "trunk_snapshot": {
+            "val_bpb": 2.178568
+          }
+        },
+        "B": {
+          "attempts": 0,
+          "audit_hits": 0,
+          "baseline": 2.178568,
+          "best": 2.178568,
+          "cost": 0,
+          "direction": "lower",
+          "events": {},
+          "iterations": 4,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "val_bpb": 2.178568
+          },
+          "trunk_snapshot": {
+            "val_bpb": 2.178568
+          }
+        }
+      },
+      "round": 4,
+      "strategies": {
+        "A": "smoothing",
+        "B": "smoothing"
+      },
+      "trunk_metric": 2.178568,
+      "void": null,
+      "winner": "B"
+    }
+  ],
+  "start_metric": 3.765056
+}

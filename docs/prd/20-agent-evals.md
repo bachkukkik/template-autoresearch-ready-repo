@@ -162,6 +162,9 @@ them with tests rather than port them as dead code.
 a whole iteration or starts none) — AC-ENG-082..083.
 - **A multi-metric `better` composite** and an LLM judge — both change PRD 17's
 contract and need their own PRD.
+- **A scripted reference game is an example, not a layer.** PRD 31 ships one
+under `autoresearch/contract/examples/arena/`: no engine module imports it and
+an adopter's scoring stays downstream.
 
 ## Assumptions
 

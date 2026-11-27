@@ -1,0 +1,589 @@
+{
+  "banks": {
+    "A": 7.142895,
+    "B": 11.142895
+  },
+  "economy": "PORTABLE",
+  "equilibrium": {
+    "current": {
+      "A": "k",
+      "B": "distance"
+    },
+    "reached": false,
+    "regrets": {
+      "A": 0.0,
+      "B": 7.142895
+    },
+    "threshold": 2.5,
+    "unknown": {
+      "A": [
+        "distance"
+      ],
+      "B": []
+    }
+  },
+  "final_trunk_metric": 1.0,
+  "matrix": [
+    {
+      "a": "k",
+      "b": "k",
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "landed": {
+        "A": true,
+        "B": false
+      },
+      "payoff": [
+        7.142895,
+        7.142895
+      ]
+    },
+    {
+      "a": "vote",
+      "b": "k",
+      "cost": {
+        "A": 4,
+        "B": 0
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "payoff": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "a": "distance",
+      "b": "vote",
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "payoff": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "a": "k",
+      "b": "distance",
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "payoff": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "name": "ex2-iris-knn-cs",
+  "rounds": [
+    {
+      "attempts": {
+        "A": 3,
+        "B": 3
+      },
+      "banks": {
+        "A": 11.142895,
+        "B": 11.142895
+      },
+      "captains": {
+        "A": {
+          "choice": {
+            "buy": 0,
+            "reason": "sweep the neighbour count; one of three should clear the baseline",
+            "strategy": "k"
+          },
+          "sha256": "cf345a97fd2a138697bcfc4c49e264c9267c2587971181dea566ea5bbacc5c3a"
+        },
+        "B": {
+          "choice": {
+            "buy": 0,
+            "reason": "the same sweep - k is the only knob with a gradient here",
+            "strategy": "k"
+          },
+          "sha256": "4ea9f5b35d8cf1a619fe1fe4e642b39e6257d9935221202163cb02c593d6c807"
+        }
+      },
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "equilibrium": {
+        "current": {
+          "A": "k",
+          "B": "k"
+        },
+        "reached": false,
+        "regrets": {
+          "A": 0.0,
+          "B": 0.0
+        },
+        "threshold": 1.0,
+        "unknown": {
+          "A": [
+            "distance",
+            "vote"
+          ],
+          "B": [
+            "distance",
+            "vote"
+          ]
+        }
+      },
+      "floor": 0.01,
+      "injected": [],
+      "iterations": {
+        "A": 4,
+        "B": 4
+      },
+      "landed": {
+        "A": true,
+        "B": false
+      },
+      "opener": "A",
+      "order": [
+        "A",
+        "B"
+      ],
+      "payoff": [
+        7.142895,
+        7.142895
+      ],
+      "results": {
+        "A": {
+          "attempts": 3,
+          "audit_hits": 0,
+          "baseline": 0.933333,
+          "best": 1.0,
+          "cost": 0,
+          "direction": "higher",
+          "events": {},
+          "iterations": 4,
+          "keeps": [
+            "K=3 kNN",
+            "K=7 kNN"
+          ],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "accuracy": 1.0
+          },
+          "trunk_snapshot": {
+            "accuracy": 0.933333
+          }
+        },
+        "B": {
+          "attempts": 3,
+          "audit_hits": 0,
+          "baseline": 0.933333,
+          "best": 1.0,
+          "cost": 0,
+          "direction": "higher",
+          "events": {},
+          "iterations": 4,
+          "keeps": [
+            "K=3 kNN",
+            "K=7 kNN"
+          ],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "accuracy": 1.0
+          },
+          "trunk_snapshot": {
+            "accuracy": 0.933333
+          }
+        }
+      },
+      "round": 1,
+      "strategies": {
+        "A": "k",
+        "B": "k"
+      },
+      "trunk_metric": 0.933333,
+      "void": null,
+      "winner": "A"
+    },
+    {
+      "attempts": {
+        "A": 1,
+        "B": 0
+      },
+      "banks": {
+        "A": 7.142895,
+        "B": 11.142895
+      },
+      "captains": {
+        "A": {
+          "choice": {
+            "buy": 2,
+            "clamped": true,
+            "reason": "we cannot improve on the ceiling, but a weighted vote may break it",
+            "strategy": "vote"
+          },
+          "sha256": "3d6f0a5673c7294af9c217b2aab874171fd833abe3705476b8e70319320be739"
+        },
+        "B": {
+          "choice": {
+            "buy": 0,
+            "reason": "captain fallback",
+            "strategy": "k"
+          },
+          "sha256": "a387af40dbc57098635da017bea5e6419ecd4468752ebcf1a26bef97c65c17b3"
+        }
+      },
+      "cost": {
+        "A": 4,
+        "B": 0
+      },
+      "equilibrium": {
+        "current": {
+          "A": "vote",
+          "B": "k"
+        },
+        "reached": false,
+        "regrets": {
+          "A": 7.142895,
+          "B": 0.0
+        },
+        "threshold": 1.5,
+        "unknown": {
+          "A": [
+            "distance"
+          ],
+          "B": [
+            "distance",
+            "vote"
+          ]
+        }
+      },
+      "floor": 0.015,
+      "injected": [],
+      "iterations": {
+        "A": 6,
+        "B": 5
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "opener": "B",
+      "order": [
+        "B",
+        "A"
+      ],
+      "payoff": [
+        0.0,
+        0.0
+      ],
+      "results": {
+        "A": {
+          "attempts": 1,
+          "audit_hits": 0,
+          "baseline": 1.0,
+          "best": 1.0,
+          "cost": 4,
+          "direction": "higher",
+          "events": {},
+          "iterations": 6,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "accuracy": 1.0
+          },
+          "trunk_snapshot": {
+            "accuracy": 1.0
+          }
+        },
+        "B": {
+          "attempts": 0,
+          "audit_hits": 0,
+          "baseline": 1.0,
+          "best": 1.0,
+          "cost": 0,
+          "direction": "higher",
+          "events": {},
+          "iterations": 5,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "accuracy": 1.0
+          },
+          "trunk_snapshot": {
+            "accuracy": 1.0
+          }
+        }
+      },
+      "round": 2,
+      "strategies": {
+        "A": "vote",
+        "B": "k"
+      },
+      "trunk_metric": 1.0,
+      "void": null,
+      "winner": "B"
+    },
+    {
+      "attempts": {
+        "A": 2,
+        "B": 1
+      },
+      "banks": {
+        "A": 7.142895,
+        "B": 11.142895
+      },
+      "captains": {
+        "A": {
+          "choice": {
+            "buy": 0,
+            "reason": "spend the bank on nothing; measure the distance knobs instead",
+            "strategy": "distance"
+          },
+          "sha256": "22c36bd8547ea643b8b9e6380bcd412239362352e78af1e20d0cd2cb5c7ec55a"
+        },
+        "B": {
+          "choice": {
+            "buy": 0,
+            "reason": "the vote leg is still unplayed, so play it",
+            "strategy": "vote"
+          },
+          "sha256": "a305fc3916d55da085856aa00036c71d9c4a285ef1adf50d9e17460d7bae17db"
+        }
+      },
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "equilibrium": {
+        "current": {
+          "A": "distance",
+          "B": "vote"
+        },
+        "reached": false,
+        "regrets": {
+          "A": 0.0,
+          "B": 0.0
+        },
+        "threshold": 2.0,
+        "unknown": {
+          "A": [
+            "vote"
+          ],
+          "B": [
+            "k",
+            "distance"
+          ]
+        }
+      },
+      "floor": 0.02,
+      "injected": [],
+      "iterations": {
+        "A": 5,
+        "B": 4
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "opener": "A",
+      "order": [
+        "A",
+        "B"
+      ],
+      "payoff": [
+        0.0,
+        0.0
+      ],
+      "results": {
+        "A": {
+          "attempts": 2,
+          "audit_hits": 0,
+          "baseline": 1.0,
+          "best": 1.0,
+          "cost": 0,
+          "direction": "higher",
+          "events": {},
+          "iterations": 5,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "accuracy": 1.0
+          },
+          "trunk_snapshot": {
+            "accuracy": 1.0
+          }
+        },
+        "B": {
+          "attempts": 1,
+          "audit_hits": 0,
+          "baseline": 1.0,
+          "best": 1.0,
+          "cost": 0,
+          "direction": "higher",
+          "events": {},
+          "iterations": 4,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "accuracy": 1.0
+          },
+          "trunk_snapshot": {
+            "accuracy": 1.0
+          }
+        }
+      },
+      "round": 3,
+      "strategies": {
+        "A": "distance",
+        "B": "vote"
+      },
+      "trunk_metric": 1.0,
+      "void": null,
+      "winner": "A"
+    },
+    {
+      "attempts": {
+        "A": 0,
+        "B": 2
+      },
+      "banks": {
+        "A": 7.142895,
+        "B": 11.142895
+      },
+      "captains": {
+        "A": {
+          "choice": {
+            "buy": 0,
+            "reason": "everything is spent; replay k as the formality",
+            "strategy": "k"
+          },
+          "sha256": "6633e9f08f696df17f5ea399c376ee4b128822e99c08d071c1ba4708c349b1eb"
+        },
+        "B": {
+          "choice": {
+            "buy": 0,
+            "reason": "the last unplayed pool, from a trunk that already reads 1.000000",
+            "strategy": "distance"
+          },
+          "sha256": "16b9aa65c2f60c2053cd947188867c3e0c258ab279db90190fd0d7a1c37cec28"
+        }
+      },
+      "cost": {
+        "A": 0,
+        "B": 0
+      },
+      "equilibrium": {
+        "current": {
+          "A": "k",
+          "B": "distance"
+        },
+        "reached": false,
+        "regrets": {
+          "A": 0.0,
+          "B": 7.142895
+        },
+        "threshold": 2.5,
+        "unknown": {
+          "A": [
+            "distance"
+          ],
+          "B": []
+        }
+      },
+      "floor": 0.025,
+      "injected": [],
+      "iterations": {
+        "A": 4,
+        "B": 5
+      },
+      "landed": {
+        "A": false,
+        "B": false
+      },
+      "opener": "B",
+      "order": [
+        "B",
+        "A"
+      ],
+      "payoff": [
+        0.0,
+        0.0
+      ],
+      "results": {
+        "A": {
+          "attempts": 0,
+          "audit_hits": 0,
+          "baseline": 1.0,
+          "best": 1.0,
+          "cost": 0,
+          "direction": "higher",
+          "events": {},
+          "iterations": 4,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "accuracy": 1.0
+          },
+          "trunk_snapshot": {
+            "accuracy": 1.0
+          }
+        },
+        "B": {
+          "attempts": 2,
+          "audit_hits": 0,
+          "baseline": 1.0,
+          "best": 1.0,
+          "cost": 0,
+          "direction": "higher",
+          "events": {},
+          "iterations": 5,
+          "keeps": [],
+          "kind": "measure",
+          "loc_delta": 0,
+          "note": "pool exhausted",
+          "snapshot": {
+            "accuracy": 1.0
+          },
+          "trunk_snapshot": {
+            "accuracy": 1.0
+          }
+        }
+      },
+      "round": 4,
+      "strategies": {
+        "A": "k",
+        "B": "distance"
+      },
+      "trunk_metric": 1.0,
+      "void": null,
+      "winner": "B"
+    }
+  ],
+  "start_metric": 0.933333
+}
