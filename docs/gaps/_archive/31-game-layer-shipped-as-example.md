@@ -68,8 +68,8 @@ of amendment in each of PRD 28 and PRD 20. The gap closes when
 `docs/31-cs-arena-reference-game.md` records the replay's verdict, because an
 example is only "shipped" once a run has been observed.
 
-**Closed 2026-11-27.** [docs/31](../31-cs-arena-reference-game.md) records the
-verdict `works`: ex1-cs and ex2-cs replay byte-identical to their vendored
+**Closed 2026-11-27.** [docs/31](../../31-cs-arena-reference-game.md) records
+the verdict `works`: ex1-cs and ex2-cs replay byte-identical to their vendored
 `scoreboard.json` and `scoreboard.md`, ex3-cs's attack is gate-rejected at exit
 2 with `gate_ok: False` while the surviving trunk passes the frozen gate, and
 `pytest tests/unit/test_arena_rules.py tests/unit/test_arena_examples.py -q`
