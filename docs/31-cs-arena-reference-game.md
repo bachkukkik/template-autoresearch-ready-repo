@@ -131,6 +131,12 @@ $ python3 scripts/audit-size.py --max-kb 60 | grep '^OK'
 OK: 407 tracked files within 61440 bytes (largest 56312 B, ...)
 ```
 
+The integration job's cap moved with the tier. The ex3 replay takes about 90 s
+of the 220 s tier, and the first remote run showed the old 5-minute cap
+cancelling the job with the tier still running. `.github/workflows/ci.yml`
+therefore raises the Integration Tests job from `timeout-minutes: 5` to 10 —
+the same cap the E2E job already carries — and no test or gate is added.
+
 ## What Works
 
 - **A replay is the same bytes on every machine.** Both ex1-cs and ex2-cs
