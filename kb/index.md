@@ -3,7 +3,7 @@
 > Sectioned catalog with one-line summaries. Maintained by the `llm-wiki` skill —
 > run `/llm-wiki ./kb/` after any `kb/raw/` change. Do not hand-edit.
 > Entries are alphabetical within each section. Archived pages are removed from here.
-> Last updated: 2026-11-26 | Total pages: 54
+> Last updated: 2026-11-27 | Total pages: 55
 
 ## Concepts
 
@@ -16,6 +16,7 @@
 | Better/Cheaper/Faster Metrics | [concepts/better-cheaper-faster-metrics.md](concepts/better-cheaper-faster-metrics.md) | high |
 | Claim Reader Alignment | [concepts/claim-reader-alignment.md](concepts/claim-reader-alignment.md) | medium |
 | Command Registry | [concepts/command-registry.md](concepts/command-registry.md) | medium |
+| CS-Style Arena | [concepts/cs-style-arena.md](concepts/cs-style-arena.md) | medium |
 | Deterministic Keep Gate | [concepts/deterministic-keep-gate.md](concepts/deterministic-keep-gate.md) | high |
 | Document Funnel Doctrine | [concepts/document-funnel-doctrine.md](concepts/document-funnel-doctrine.md) | high |
 | Domain Adaptation | [concepts/domain-adaptation.md](concepts/domain-adaptation.md) | medium |
@@ -116,13 +117,14 @@
 | transcript — playlist metrics vs code | [raw/transcripts/U4kZ0t7Onhw.txt](raw/transcripts/U4kZ0t7Onhw.txt) | 2026-09-04 |
 | transcript — playlist nanobot training | [raw/transcripts/jZB0VeXlETU.txt](raw/transcripts/jZB0VeXlETU.txt) | 2026-09-04 |
 | transcript — all code is slop except mine (Lauren Tan, AI Engineer Code Summit 2026-11-11) | [raw/transcripts/2026-11-11-all-code-is-slop-except-mine-lauren-tan.txt](raw/transcripts/2026-11-11-all-code-is-slop-except-mine-lauren-tan.txt) | 2026-11-15 |
+| CS-style arena — economy, settlement, sealed captains, five-round VOD (code capture, arena.py) | [raw/articles/2026-11-27-cs-arena-rules-capture.md](raw/articles/2026-11-27-cs-arena-rules-capture.md) | 2026-11-27 |
 
 ## Stats
 
-- Concepts: 39
+- Concepts: 40
 - Entities: 7
 - Comparisons: 8
 - Queries: 0
-- Raw sources: 32
+- Raw sources: 33
 - Archived: 4
-- Total: 54
+- Total: 55

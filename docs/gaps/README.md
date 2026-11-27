@@ -133,6 +133,11 @@ wins).
 moved to [`_archive/`](_archive/), path preserved. Its `Status:` still read
 `open` while its own Resolution had said closed since PRD-17 landed, so it is
 archived as `resolved` (rule 5), not withdrawn.
+- **Archived 2026-11-27** — resolution landed in PRD-31 (the arena reference
+game under `autoresearch/contract/examples/arena/`; verified in
+[docs/31](../31-cs-arena-reference-game.md), verdict `works`):
+`31-game-layer-shipped-as-example.md` moved to [`_archive/`](_archive/), path
+preserved, and archived as `resolved` (rule 5).
 - **Withdrawn tombstones** — `02-contract-files-missing.md`,
 `03-governance-tests-missing.md`, `04-corpus-tests-missing.md`,
 `05-dual-exposure-not-implemented.md`, `06-single-topic-no-isolation.md`.

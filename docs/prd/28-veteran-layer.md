@@ -116,9 +116,10 @@ layer-model section in `ADOPTING.md`; the skipped-job guard in
 `scripts/local-ci.sh` (VD-14); one gap file naming every `declared` row and who
 closes it.
 
-Out of scope, explicitly: the game layer (no `league/`, no economy, no seats);
-the steward router (PRD 25 downstream — its rules stay `declared` here); any
-per-domain metric.
+Out of scope, explicitly: the game layer (no `league/`, no economy, no seats in
+the engine) — one worked example ships under `autoresearch/contract/examples/`
+(PRD 31), read not inherited; the steward router (PRD 25 downstream — its rules
+stay `declared` here); any per-domain metric.
 
 ## Success Criteria
 

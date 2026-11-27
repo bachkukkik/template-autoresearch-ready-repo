@@ -67,6 +67,23 @@ carries a driver header and T2-timing crash rows the dashboard's two-column
 series does not model; its replay is checked in `tests/unit/test_examples_ex4.py`
 (AC-EXA-011..033).
 
+## The arena counterparts (`-cs`)
+
+[`arena/`](arena/) is one **reference game** — a scripted two-team arena over a
+frozen evaluator, distilled from an archived portable rule set plus a live
+league's season-38 preset. It is a worked example, not a layer: no engine
+module imports it, and an adopter's real game is configured downstream.
+[`arena/README.md`](arena/README.md) carries the rules table, the round loop,
+the live-mode recipe and the CAN / CANNOT contract.
+
+- [ex1-music-abc-cs](ex1-music-abc-cs/) — `val_bpb`, `PORTABLE`: a loss bonus, a
+  bought attempt that finds nothing, and a void round (unit tier).
+- [ex2-iris-knn-cs](ex2-iris-knn-cs/) — `accuracy`, `PORTABLE`: a clamped buy, a
+  fallback captain, and an exact tie at the 1.000000 ceiling (unit tier).
+- [ex3-hotpath-speedup-cs](ex3-hotpath-speedup-cs/) — `median_seconds` under a
+  gate, `PORTABLE`: the gate and the audit decide and no timing value is
+  compared (integration tier — timing is a T2 field).
+
 ## Calibration lessons (validated across all four runs)
 
 - **The loop catches driver bugs for free**: an anchor bug that patches the

@@ -1,0 +1,9 @@
+# Nothing here is vendored: timing is a T2 field, so a local replay's whole
+# output is scratch. Seat dirs, the round record and the totals stay untracked.
+seat-*/
+trunk-measure/
+landing/
+round-*/
+scoreboard.json
+scoreboard.md
+__pycache__/

@@ -1,0 +1,5 @@
+# Seat scratch from a local replay — never vendored.
+seat-*/
+trunk-measure/
+landing/
+__pycache__/
